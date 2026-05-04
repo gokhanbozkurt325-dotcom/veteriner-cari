@@ -12,6 +12,7 @@
   --green:#1A7A4A;--green-light:#E6F4ED;
   --red:#C0392B;--red-light:#FEE8E6;
   --amber:#D97706;--amber-light:#FEF3C7;
+  --purple:#6D28D9;--purple-light:#EDE9FE;
   --gray:#F4F6F9;--gray2:#E8ECF0;--gray3:#B0BAC5;--gray4:#6B7A8D;
   --text:#1A2332;--text2:#4A5568;
   --shadow:0 2px 12px rgba(12,68,124,.10);
@@ -40,7 +41,6 @@ html,body{height:100%;background:var(--gray);font-family:'Nunito Sans',sans-seri
 .num-btn{background:var(--gray);border:none;border-radius:12px;padding:18px;font-family:'Nunito',sans-serif;font-size:22px;font-weight:700;color:var(--text);cursor:pointer;user-select:none;-webkit-user-select:none;transition:background .1s}
 .num-btn:active{background:#d0e4f7}
 .num-btn.del{background:var(--red-light);color:var(--red);font-size:18px}
-.num-btn.del:active{background:#fcc}
 @keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
 
@@ -55,11 +55,12 @@ html,body{height:100%;background:var(--gray);font-family:'Nunito Sans',sans-seri
 
 /* NAV */
 .nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:1px solid var(--gray2);display:flex;justify-content:space-around;padding:6px 0 10px;z-index:200;box-shadow:0 -2px 12px rgba(0,0,0,.05)}
-.nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;cursor:pointer;padding:4px 12px;border-radius:10px}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:10px;position:relative}
 .nav-item .ni{font-size:20px;transition:.15s}
-.nav-item .nl{font-size:10px;font-weight:700;color:var(--gray3)}
+.nav-item .nl{font-size:9px;font-weight:700;color:var(--gray3)}
 .nav-item.active .nl{color:var(--blue)}
 .nav-item.active .ni{transform:scale(1.15)}
+.nav-badge{position:absolute;top:0;right:4px;background:var(--red);color:#fff;font-size:9px;font-weight:900;border-radius:10px;padding:1px 5px;min-width:16px;text-align:center}
 .content{padding:14px 14px 90px}
 
 /* STAT CARDS */
@@ -71,14 +72,18 @@ html,body{height:100%;background:var(--gray);font-family:'Nunito Sans',sans-seri
 .sc-green{border-left:3px solid var(--green)}.sc-green .val{color:var(--green)}
 .sc-red{border-left:3px solid var(--red)}.sc-red .val{color:var(--red)}
 .sc-amber{border-left:3px solid var(--amber)}.sc-amber .val{color:var(--amber)}
+.sc-purple{border-left:3px solid var(--purple)}.sc-purple .val{color:var(--purple)}
 
 /* LIST */
 .list-item{display:flex;align-items:center;gap:12px;padding:12px 14px;background:#fff;border-radius:var(--radius-sm);border:1px solid var(--gray2);margin-bottom:8px;cursor:pointer;box-shadow:var(--shadow)}
 .list-item:active{background:var(--blue-light)}
+.list-item.overdue{border-left:3px solid var(--red);background:#fffafa}
 .avatar{width:42px;height:42px;border-radius:12px;background:var(--blue-light);display:flex;align-items:center;justify-content:center;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;color:var(--blue);flex-shrink:0}
+.avatar.overdue-av{background:var(--red-light);color:var(--red)}
 .ii{flex:1;min-width:0}
 .iname{font-weight:700;font-size:14px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .isub{font-size:11px;color:var(--gray4);margin-top:2px}
+.isub2{font-size:10px;color:var(--gray3);margin-top:1px}
 .iright{text-align:right;flex-shrink:0}
 .amt{font-family:'Nunito',sans-serif;font-weight:900;font-size:14px}
 .amt-debt{color:var(--red)}.amt-cred{color:var(--green)}.amt-zero{color:var(--gray4)}
@@ -96,11 +101,14 @@ textarea.fi{resize:none;height:76px}
 .btn-p:active{opacity:.88}
 .btn-o{background:#fff;color:var(--blue);border:2px solid var(--blue);border-radius:var(--radius-sm);padding:11px 20px;font-family:'Nunito',sans-serif;font-weight:800;font-size:14px;cursor:pointer}
 .btn-d{background:var(--red-light);color:var(--red);border:none;border-radius:var(--radius-sm);padding:11px 20px;font-family:'Nunito',sans-serif;font-weight:800;font-size:14px;cursor:pointer;width:100%}
+.btn-wa{background:#25D366;color:#fff;border:none;border-radius:var(--radius-sm);padding:11px 20px;font-family:'Nunito',sans-serif;font-weight:800;font-size:14px;cursor:pointer;width:100%}
 .btn-sm{border:none;border-radius:7px;padding:5px 10px;font-weight:700;font-size:11px;cursor:pointer}
 .btn-sm-b{background:var(--blue-light);color:var(--blue)}
 .btn-sm-r{background:var(--red-light);color:var(--red)}
+.btn-sm-g{background:#E8FDF1;color:#1A7A4A}
+.btn-sm-wa{background:#E8FDF5;color:#25D366}
 .btn-row{display:flex;gap:8px;margin-top:16px}
-.btn-row .btn-p,.btn-row .btn-o,.btn-row .btn-d{flex:1}
+.btn-row .btn-p,.btn-row .btn-o,.btn-row .btn-d,.btn-row .btn-wa{flex:1}
 
 /* MODAL */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:flex;align-items:flex-end;justify-content:center}
@@ -117,6 +125,12 @@ textarea.fi{resize:none;height:76px}
 .tx-amt{font-family:'Nunito',sans-serif;font-weight:900;font-size:14px}
 .tx-pos{color:var(--green)}.tx-neg{color:var(--red)}
 
+/* VADE BADGE */
+.vade-badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:9px;font-weight:800;margin-top:3px}
+.vb-ok{background:var(--green-light);color:var(--green)}
+.vb-warn{background:var(--amber-light);color:var(--amber)}
+.vb-over{background:var(--red-light);color:var(--red)}
+
 /* MISC */
 .sec-title{font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:var(--gray4);text-transform:uppercase;letter-spacing:.5px;margin:16px 0 10px}
 .search-bar{position:relative;margin-bottom:12px}
@@ -130,6 +144,7 @@ textarea.fi{resize:none;height:76px}
 .chip-row{display:flex;gap:7px;margin-bottom:12px;overflow-x:auto}.chip-row::-webkit-scrollbar{display:none}
 .chip{border:1.5px solid var(--gray2);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;background:#fff;color:var(--gray4);cursor:pointer;white-space:nowrap}
 .chip.active{background:var(--blue);border-color:var(--blue);color:#fff}
+.chip.red-chip.active{background:var(--red);border-color:var(--red)}
 .empty{text-align:center;padding:40px 20px;color:var(--gray4)}.empty .eicon{font-size:44px;margin-bottom:10px}.empty p{font-size:13px}
 .fab{position:fixed;right:20px;bottom:76px;width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,var(--blue) 0%,var(--blue2) 100%);border:none;color:#fff;font-size:28px;cursor:pointer;box-shadow:0 4px 18px rgba(12,68,124,.4);display:flex;align-items:center;justify-content:center;z-index:150}
 .fab:active{transform:scale(.93)}
@@ -145,6 +160,9 @@ textarea.fi{resize:none;height:76px}
 .spinner{width:32px;height:32px;border:3px solid var(--gray2);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1A2332;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:700;z-index:999;animation:fadeUp .3s ease;white-space:nowrap;pointer-events:none}
+.overdue-banner{background:var(--red-light);border:1px solid #f5c6c0;border-radius:10px;padding:12px;margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.overdue-banner .ob-icon{font-size:22px}
+.overdue-banner .ob-text{font-size:12px;font-weight:700;color:var(--red)}
 </style>
 </head>
 <body>
@@ -153,9 +171,8 @@ textarea.fi{resize:none;height:76px}
 // ─── CONFIG ───────────────────────────────────────────────────
 const SUPABASE_URL = 'https://srbjawvtbzqxypuwskxw.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyYmphd3Z0YnpxeHlwdXdza3h3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5MDQ0OTAsImV4cCI6MjA5MzQ4MDQ5MH0.o3_pwC1HDRgXDahDtVaC3MOFmam3tTSCd54zuxV94cc';
-const DEFAULT_PIN  = '1234';
+const DEFAULT_PIN = '1234';
 
-// ─── TX TYPES ─────────────────────────────────────────────────
 const TX_TYPES = {
   general:  { label:'Genel',       icon:'📋' },
   service:  { label:'Hekimlik',    icon:'🩺' },
@@ -166,9 +183,11 @@ const TX_TYPES = {
 // ─── HELPERS ──────────────────────────────────────────────────
 const uid = ()=>'_'+Math.random().toString(36).substr(2,9);
 const fmt = n=>Math.abs(parseFloat(n)||0).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})+' ₺';
-const fmtDate = d=>{ try{ return new Date(d).toLocaleDateString('tr-TR',{day:'2-digit',month:'short',year:'numeric'}); }catch{ return d; }};
+const fmtDate = d=>{ try{ return new Date(d).toLocaleDateString('tr-TR',{day:'2-digit',month:'short',year:'numeric'}); }catch{ return d||'-'; }};
 const initials = name=>{ const p=(name||'?').trim().split(' '); return p.length>=2?(p[0][0]+p[p.length-1][0]).toUpperCase():(name||'?').substring(0,2).toUpperCase(); };
 const getPin = ()=>localStorage.getItem('vc_pin')||DEFAULT_PIN;
+const today = ()=>new Date().toISOString().slice(0,10);
+const daysDiff = (d)=>{ const ms=new Date(d)-new Date(today()); return Math.ceil(ms/(1000*60*60*24)); };
 
 // ─── STATE ────────────────────────────────────────────────────
 let persons=[], txs=[], dataLoading=true;
@@ -176,14 +195,33 @@ let pinVal='', pinErr='';
 let nav='home', detailPid=null, txTab='all', filterType='all', search='';
 let modal=null, editTxId=null;
 
-// ─── BALANCE ──────────────────────────────────────────────────
+// ─── COMPUTED ─────────────────────────────────────────────────
 function getBalance(pid){
   let b=0;
-  txs.filter(t=>t.person_id===pid).forEach(t=>{
-    const a=parseFloat(t.amount||0);
-    t.type==='payment'? b-=a : b+=a;
-  });
+  txs.filter(t=>t.person_id===pid).forEach(t=>{ const a=parseFloat(t.amount||0); t.type==='payment'?b-=a:b+=a; });
   return b;
+}
+function getLastTx(pid){ const pt=txs.filter(t=>t.person_id===pid); return pt.length?pt[0]:null; }
+function getLastPayment(pid){ const pt=txs.filter(t=>t.person_id===pid&&t.type==='payment'); return pt.length?pt[0]:null; }
+function getEarliestDue(pid){
+  // Borçlu olan ve vadesi geçmiş en eski tx
+  const pt=txs.filter(t=>t.person_id===pid&&t.type!=='payment'&&t.due_date&&daysDiff(t.due_date)<0);
+  if(!pt.length) return null;
+  return pt.reduce((a,b)=>new Date(a.due_date)<new Date(b.due_date)?a:b);
+}
+function isOverdue(pid){
+  if(getBalance(pid)<=0) return false;
+  return txs.some(t=>t.person_id===pid&&t.type!=='payment'&&t.due_date&&daysDiff(t.due_date)<0);
+}
+function getOverduePersons(){
+  return persons.filter(p=>isOverdue(p.id)).sort((a,b)=>getBalance(b.id)-getBalance(a.id));
+}
+function vadeBadge(dueDate){
+  if(!dueDate) return '';
+  const d=daysDiff(dueDate);
+  if(d<0) return `<span class="vade-badge vb-over">⚠️ ${Math.abs(d)} gün gecikmiş</span>`;
+  if(d<=7) return `<span class="vade-badge vb-warn">⏰ ${d} gün kaldı</span>`;
+  return `<span class="vade-badge vb-ok">✅ Vade: ${fmtDate(dueDate)}</span>`;
 }
 
 // ─── SUPABASE ─────────────────────────────────────────────────
@@ -197,7 +235,7 @@ async function sbReq(method,path,body){
   return txt?JSON.parse(txt):[];
 }
 
-// ─── DATA OPS ─────────────────────────────────────────────────
+// ─── DATA ─────────────────────────────────────────────────────
 async function loadAll(){
   dataLoading=true; render();
   try{
@@ -205,8 +243,7 @@ async function loadAll(){
       sbReq('GET','vc_persons?order=name.asc'),
       sbReq('GET','vc_txs?order=date.desc,created_at.desc'),
     ]);
-    // description → desc alanını normalize et
-    txs=txs.map(t=>({...t, desc:t.description||t.desc||''}));
+    txs=txs.map(t=>({...t,desc:t.description||t.desc||''}));
   }catch(e){
     persons=JSON.parse(localStorage.getItem('vc_persons')||'[]');
     txs=JSON.parse(localStorage.getItem('vc_txs')||'[]');
@@ -217,8 +254,8 @@ function saveLocal(){ localStorage.setItem('vc_persons',JSON.stringify(persons))
 
 async function addPerson(p){
   try{ const r=await sbReq('POST','vc_persons',p); persons=[...persons,...(Array.isArray(r)?r:[r])]; }
-  catch{ persons=[...persons,p]; saveLocal(); }
-  persons.sort((a,b)=>a.name.localeCompare(b.name,'tr'));
+  catch{ persons=[...persons,p]; }
+  persons.sort((a,b)=>a.name.localeCompare(b.name,'tr')); saveLocal();
 }
 async function updatePerson(id,upd){
   try{ await sbReq('PATCH','vc_persons?id=eq.'+id,upd); }catch{}
@@ -229,39 +266,33 @@ async function deletePerson(id){
   txs=txs.filter(t=>t.person_id!==id); persons=persons.filter(p=>p.id!==id); saveLocal();
 }
 async function addTx(t){
-  const sbT={...t, description:t.desc||''}; delete sbT.desc;
-  try{ const r=await sbReq('POST','vc_txs',sbT); const saved={...(Array.isArray(r)?r[0]:r), desc:sbT.description}; txs=[saved,...txs]; }
+  const sbT={...t,description:t.desc||'',due_date:t.due_date||null}; delete sbT.desc;
+  try{ const r=await sbReq('POST','vc_txs',sbT); const saved={...(Array.isArray(r)?r[0]:r),desc:sbT.description}; txs=[saved,...txs]; }
   catch{ txs=[t,...txs]; saveLocal(); }
 }
 async function updateTx(id,upd){
-  const sbUpd={...upd, description:upd.desc||''}; delete sbUpd.desc;
+  const sbUpd={...upd,description:upd.desc||''}; delete sbUpd.desc;
   try{ await sbReq('PATCH','vc_txs?id=eq.'+id,sbUpd); }catch{}
   txs=txs.map(t=>t.id===id?{...t,...upd}:t); saveLocal();
 }
 
 // ─── TOAST ────────────────────────────────────────────────────
-function toast(msg){
-  document.querySelectorAll('.toast').forEach(e=>e.remove());
-  const d=document.createElement('div'); d.className='toast'; d.textContent=msg;
-  document.body.appendChild(d); setTimeout(()=>d.remove(),2000);
-}
+function toast(msg){ document.querySelectorAll('.toast').forEach(e=>e.remove()); const d=document.createElement('div'); d.className='toast'; d.textContent=msg; document.body.appendChild(d); setTimeout(()=>d.remove(),2200); }
 
 // ─── RENDER ───────────────────────────────────────────────────
-function render(){
-  document.getElementById('app').innerHTML=buildHTML();
-  bindEvents();
-}
+function render(){ document.getElementById('app').innerHTML=buildHTML(); bindEvents(); }
 
 function buildHTML(){
   if(!localStorage.getItem('vc_loggedin')) return buildLogin();
-  return buildHeader()+`<div class="content">`+(dataLoading?`<div class="loading"><div class="spinner"></div><p>Yükleniyor...</p></div>`:buildPage())+`</div>`+buildNav()+(modal?buildModal():'');
+  const overdueCount=getOverduePersons().length;
+  return buildHeader(overdueCount)+`<div class="content">`+(dataLoading?`<div class="loading"><div class="spinner"></div><p>Yükleniyor...</p></div>`:buildPage())+`</div>`+buildNav(overdueCount)+(modal?buildModal():'');
 }
-
 function buildPage(){
-  if(nav==='home')     return buildHome();
-  if(nav==='persons')  return buildPersons();
-  if(nav==='detail')   return buildDetail();
-  if(nav==='report')   return buildReport();
+  if(nav==='home') return buildHome();
+  if(nav==='persons') return buildPersons();
+  if(nav==='detail') return buildDetail();
+  if(nav==='report') return buildReport();
+  if(nav==='overdue') return buildOverdue();
   if(nav==='settings') return buildSettings();
   return '';
 }
@@ -270,61 +301,38 @@ function buildPage(){
 function buildLogin(){
   const dots=[0,1,2,3].map(i=>`<div class="pin-dot ${i<pinVal.length?'filled':''}"></div>`).join('');
   return `<div class="login-wrap">
-  <div class="login-logo"><div class="icon">🩺</div>
-    <h1>Veteriner Cari Hesap</h1><p>Sayın Dr. Cemil Baş — Hoş Geldiniz</p>
-  </div>
+  <div class="login-logo"><div class="icon">🩺</div><h1>Veteriner Cari Hesap</h1><p>Sayın Dr. Cemil Baş — Hoş Geldiniz</p></div>
   <div class="login-card">
     <h2>Şifrenizi Girin</h2><p class="hint">4 haneli şifrenizi tuşlayın</p>
     <div class="pin-dots">${dots}</div>
     <div class="pin-error ${pinErr?'shake':''}" id="pin-err">${pinErr}&nbsp;</div>
     <div class="numpad">
-      ${[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map(n=>
-        n===''?'<div></div>':`<button class="num-btn ${n==='⌫'?'del':''}" data-num="${n}">${n}</button>`
-      ).join('')}
+      ${[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map(n=>n===''?'<div></div>':`<button class="num-btn ${n==='⌫'?'del':''}" data-num="${n}">${n}</button>`).join('')}
     </div>
   </div></div>`;
 }
-
-// Login olaylarını sadece numpad üzerinde, tam sayfa yenilemeden yönet
 function bindLoginEvents(){
   document.querySelectorAll('.num-btn').forEach(btn=>{
     btn.addEventListener('click',()=>{
       const v=btn.dataset.num;
-      if(v==='⌫'){
-        pinVal=pinVal.slice(0,-1); pinErr='';
-        updatePinUI(); return;
-      }
+      if(v==='⌫'){ pinVal=pinVal.slice(0,-1); pinErr=''; updatePinUI(); return; }
       if(pinVal.length>=4) return;
-      pinVal+=v;
-      updatePinUI();
+      pinVal+=v; updatePinUI();
       if(pinVal.length===4){
-        if(pinVal===getPin()){
-          localStorage.setItem('vc_loggedin','1');
-          pinVal=''; pinErr=''; nav='home'; loadAll();
-        } else {
-          pinErr='Hatalı şifre! Tekrar deneyin.';
-          updatePinUI();
-          setTimeout(()=>{ pinVal=''; pinErr=''; updatePinUI(); },900);
-        }
+        if(pinVal===getPin()){ localStorage.setItem('vc_loggedin','1'); pinVal=''; pinErr=''; nav='home'; loadAll(); }
+        else{ pinErr='Hatalı şifre!'; updatePinUI(); setTimeout(()=>{ pinVal=''; pinErr=''; updatePinUI(); },900); }
       }
     });
   });
 }
-
 function updatePinUI(){
-  // Sadece dots ve hata mesajını güncelle — sayfa yenileme YOK
-  const dotsEl=document.querySelector('.pin-dots');
-  if(dotsEl) dotsEl.innerHTML=[0,1,2,3].map(i=>`<div class="pin-dot ${i<pinVal.length?'filled':''}"></div>`).join('');
-  const errEl=document.getElementById('pin-err');
-  if(errEl){
-    errEl.textContent=pinErr||'\u00a0';
-    errEl.className='pin-error'+(pinErr?' shake':'');
-  }
+  const de=document.querySelector('.pin-dots'); if(de) de.innerHTML=[0,1,2,3].map(i=>`<div class="pin-dot ${i<pinVal.length?'filled':''}"></div>`).join('');
+  const ee=document.getElementById('pin-err'); if(ee){ ee.textContent=pinErr||'\u00a0'; ee.className='pin-error'+(pinErr?' shake':''); }
 }
 
-// ─── HEADER ───────────────────────────────────────────────────
-function buildHeader(){
-  const titles={home:'Ana Sayfa',persons:'Cari Hesaplar',detail:'Hesap Detayı',report:'Raporlar',settings:'Ayarlar'};
+// ─── HEADER & NAV ─────────────────────────────────────────────
+function buildHeader(overdueCount){
+  const titles={home:'Ana Sayfa',persons:'Cari Hesaplar',detail:'Hesap Detayı',report:'Raporlar',overdue:'Gecikme Takibi',settings:'Ayarlar'};
   const showBack=nav==='detail';
   const dp=detailPid?persons.find(p=>p.id===detailPid):null;
   return `<div class="header">
@@ -337,16 +345,18 @@ function buildHeader(){
     ${nav==='detail'?`<button class="hbtn" id="edit-person-btn">✏️</button>`:''}
   </div>`;
 }
-
-// ─── NAV ──────────────────────────────────────────────────────
-function buildNav(){
-  return `<div class="nav">${[
+function buildNav(overdueCount){
+  const items=[
     {id:'home',icon:'🏠',label:'Ana Sayfa'},
     {id:'persons',icon:'👥',label:'Cariler'},
+    {id:'overdue',icon:'⚠️',label:'Gecikme',badge:overdueCount},
     {id:'report',icon:'📊',label:'Raporlar'},
     {id:'settings',icon:'⚙️',label:'Ayarlar'},
-  ].map(it=>`<button class="nav-item ${nav===it.id||(nav==='detail'&&it.id==='persons')?'active':''}" data-nav="${it.id}">
-    <span class="ni">${it.icon}</span><span class="nl">${it.label}</span>
+  ];
+  return `<div class="nav">${items.map(it=>`<button class="nav-item ${nav===it.id||(nav==='detail'&&it.id==='persons')?'active':''}" data-nav="${it.id}">
+    <span class="ni">${it.icon}</span>
+    ${it.badge?`<span class="nav-badge">${it.badge}</span>`:''}
+    <span class="nl">${it.label}</span>
   </button>`).join('')}</div>`;
 }
 
@@ -355,8 +365,8 @@ function buildHome(){
   let totalBal=0,totalPaid=0;
   persons.forEach(p=>{ const b=getBalance(p.id); if(b>0) totalBal+=b; });
   txs.forEach(t=>{ if(t.type==='payment') totalPaid+=parseFloat(t.amount||0); });
-  const today=new Date().toISOString().slice(0,10);
-  const todayCt=txs.filter(t=>t.date===today).length;
+  const todayCt=txs.filter(t=>t.date===today()).length;
+  const overdueCount=getOverduePersons().length;
   const debtors=persons.filter(p=>getBalance(p.id)>0).sort((a,b)=>getBalance(b.id)-getBalance(a.id)).slice(0,3);
   const recent=txs.slice(0,5);
   return `
@@ -366,12 +376,15 @@ function buildHome(){
     <div class="stat-card sc-blue"><div class="lbl">Cari Sayısı</div><div class="val">${persons.length} kişi</div></div>
     <div class="stat-card sc-amber"><div class="lbl">Bugün İşlem</div><div class="val">${todayCt} adet</div></div>
   </div>
-  ${debtors.length?`<div class="sec-title">⚠️ Bekleyen Alacaklar</div>`+debtors.map(p=>`
-    <div class="list-item" data-person="${p.id}">
-      <div class="avatar">${initials(p.name)}</div>
-      <div class="ii"><div class="iname">${p.name}</div><div class="isub">${p.phone||'Telefon yok'}</div></div>
-      <div class="iright"><div class="amt amt-debt">-${fmt(getBalance(p.id))}</div><div style="font-size:10px;color:var(--gray4)">Borçlu</div></div>
-    </div>`).join(''):''}
+  ${overdueCount>0?`<div class="overdue-banner" style="cursor:pointer" data-nav="overdue"><div class="ob-icon">⚠️</div><div class="ob-text">${overdueCount} kişide ödeme gecikmiş! Görüntülemek için tıklayın.</div></div>`:''}
+  ${debtors.length?`<div class="sec-title">⚠️ Bekleyen Alacaklar</div>`+debtors.map(p=>{
+    const lastP=getLastPayment(p.id);
+    return `<div class="list-item" data-person="${p.id}">
+      <div class="avatar ${isOverdue(p.id)?'overdue-av':''}">${initials(p.name)}</div>
+      <div class="ii"><div class="iname">${p.name}</div><div class="isub">Son ödeme: ${lastP?fmtDate(lastP.date):'Hiç yok'}</div></div>
+      <div class="iright"><div class="amt amt-debt">-${fmt(getBalance(p.id))}</div></div>
+    </div>`;
+  }).join(''):''}
   <div class="sec-title">🕐 Son İşlemler</div>
   ${recent.length?recent.map(t=>{
     const p=persons.find(x=>x.id===t.person_id);
@@ -392,52 +405,86 @@ function buildPersons(){
   if(search) list=list.filter(p=>p.name.toLowerCase().includes(search.toLowerCase())||(p.phone&&p.phone.includes(search)));
   if(filterType==='debt') list=list.filter(p=>getBalance(p.id)>0);
   if(filterType==='clean') list=list.filter(p=>getBalance(p.id)<=0);
+  if(filterType==='overdue') list=list.filter(p=>isOverdue(p.id));
   list.sort((a,b)=>getBalance(b.id)-getBalance(a.id));
   return `
-  <div class="search-bar">
-    <span class="search-icon">🔍</span>
-    <input class="fi" id="search-input" placeholder="İsim veya telefon ara..." value="${search}">
-  </div>
+  <div class="search-bar"><span class="search-icon">🔍</span><input class="fi" id="search-input" placeholder="İsim veya telefon ara..." value="${search}"></div>
   <div class="chip-row">
-    ${[['all','Tümü'],['debt','Borçlu'],['clean','Temiz']].map(([k,l])=>`<div class="chip ${filterType===k?'active':''}" data-filter="${k}">${l}</div>`).join('')}
+    ${[['all','Tümü'],['debt','Borçlu'],['overdue','Gecikmiş 🔴'],['clean','Temiz']].map(([k,l])=>`<div class="chip ${k==='overdue'?'red-chip':''} ${filterType===k?'active':''}" data-filter="${k}">${l}</div>`).join('')}
   </div>
   ${list.length?list.map(p=>{
     const bal=getBalance(p.id);
-    return `<div class="list-item" data-person="${p.id}">
-      <div class="avatar">${initials(p.name)}</div>
-      <div class="ii"><div class="iname">${p.name}</div><div class="isub">${p.phone||'Telefon yok'}${p.address?' · '+p.address:''}</div></div>
+    const lastTx=getLastTx(p.id);
+    const lastPay=getLastPayment(p.id);
+    const over=isOverdue(p.id);
+    return `<div class="list-item ${over?'overdue':''}" data-person="${p.id}">
+      <div class="avatar ${over?'overdue-av':''}">${initials(p.name)}</div>
+      <div class="ii">
+        <div class="iname">${p.name}</div>
+        <div class="isub">Son işlem: ${lastTx?fmtDate(lastTx.date):'Yok'}</div>
+        <div class="isub2">Son ödeme: ${lastPay?fmtDate(lastPay.date):'Hiç ödeme yok'}</div>
+        ${over?`<span class="vade-badge vb-over">⚠️ Gecikmiş</span>`:''}
+      </div>
       <div class="iright">
         <div class="amt ${bal>0?'amt-debt':bal<0?'amt-cred':'amt-zero'}">${bal>0?'-':bal<0?'+':''}${fmt(bal)}</div>
-        <div style="font-size:10px;color:var(--gray4)">${bal>0?'Borçlu':bal<0?'Alacaklı':'Dengede'}</div>
+        <div style="font-size:10px;color:var(--gray4);margin-top:2px">${bal>0?'Borçlu':bal<0?'Alacaklı':'Dengede'}</div>
+        <button class="btn-sm btn-sm-wa wa-btn" data-pid="${p.id}" style="margin-top:4px;font-size:10px;padding:3px 7px" onclick="event.stopPropagation()">📱 WA</button>
       </div>
     </div>`;
   }).join(''):`<div class="empty"><div class="eicon">👥</div><p>Kayıt bulunamadı</p></div>`}`;
 }
 
+// ─── OVERDUE PAGE ─────────────────────────────────────────────
+function buildOverdue(){
+  const list=getOverduePersons();
+  return `
+  <div class="overdue-banner"><div class="ob-icon">⚠️</div><div class="ob-text">${list.length} kişide ödeme gecikmiş</div></div>
+  ${list.length?list.map(p=>{
+    const due=getEarliestDue(p.id);
+    const lastPay=getLastPayment(p.id);
+    const bal=getBalance(p.id);
+    const gün=due?Math.abs(daysDiff(due.due_date)):0;
+    return `<div class="list-item overdue" data-person="${p.id}">
+      <div class="avatar overdue-av">${initials(p.name)}</div>
+      <div class="ii">
+        <div class="iname">${p.name}</div>
+        <div class="isub">${p.phone||'Telefon yok'}</div>
+        <div class="isub2">Son ödeme: ${lastPay?fmtDate(lastPay.date):'Hiç yok'}</div>
+        <span class="vade-badge vb-over">⚠️ ${gün} gün gecikmiş</span>
+      </div>
+      <div class="iright">
+        <div class="amt amt-debt">-${fmt(bal)}</div>
+        <button class="btn-sm btn-sm-wa wa-btn" data-pid="${p.id}" style="margin-top:6px;font-size:10px;padding:3px 7px" onclick="event.stopPropagation()">📱 WA</button>
+      </div>
+    </div>`;
+  }).join(''):`<div class="empty"><div class="eicon">🎉</div><p>Gecikmiş ödeme yok!</p></div>`}`;
+}
+
 // ─── DETAIL ───────────────────────────────────────────────────
 function buildDetail(){
-  const p=persons.find(x=>x.id===detailPid);
-  if(!p) return '<p style="padding:20px">Kişi bulunamadı</p>';
+  const p=persons.find(x=>x.id===detailPid); if(!p) return '<p style="padding:20px">Kişi bulunamadı</p>';
   let ptxs=txs.filter(t=>t.person_id===detailPid);
-  let td=0,tp=0;
-  ptxs.forEach(t=>{ const a=parseFloat(t.amount||0); t.type==='payment'?tp+=a:td+=a; });
+  let td=0,tp=0; ptxs.forEach(t=>{ const a=parseFloat(t.amount||0); t.type==='payment'?tp+=a:td+=a; });
   const bal=td-tp;
+  const lastPay=getLastPayment(detailPid);
   if(txTab!=='all') ptxs=ptxs.filter(t=>t.type===txTab);
   return `
   <div class="detail-hero">
     <div class="dav">${initials(p.name)}</div>
     <div class="dname">${p.name}</div>
     <div class="dphone">${p.phone||''}${p.address?' · '+p.address:''}</div>
+    <div style="color:rgba(255,255,255,.5);font-size:11px;margin-top:4px">Son ödeme: ${lastPay?fmtDate(lastPay.date):'Hiç ödeme yapılmadı'}</div>
   </div>
   <div class="balance-box">
     <div class="bal-b"><div class="bal-lbl">Borç</div><div class="bal-val" style="color:var(--red)">-${fmt(td)}</div></div>
     <div class="bal-b"><div class="bal-lbl">Ödenen</div><div class="bal-val" style="color:var(--green)">+${fmt(tp)}</div></div>
     <div class="bal-b"><div class="bal-lbl">Bakiye</div><div class="bal-val" style="color:${bal>0?'var(--red)':bal===0?'var(--gray4)':'var(--green)'}">${bal>0?'-':bal<0?'+':''}${fmt(bal)}</div></div>
   </div>
-  <div style="display:flex;gap:8px;margin-bottom:14px">
-    <button class="btn-p" id="add-tx-btn" style="font-size:13px;padding:10px">+ İşlem Ekle</button>
-    <button class="btn-sm btn-sm-b" id="person-report-btn" style="padding:10px 12px;font-size:12px">📊 Rapor</button>
-    <button class="btn-sm btn-sm-r" id="delete-person-btn" style="padding:10px 12px;font-size:12px">🗑 Sil</button>
+  <div style="display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap">
+    <button class="btn-p" id="add-tx-btn" style="font-size:12px;padding:9px;flex:2">+ İşlem Ekle</button>
+    <button class="btn-sm btn-sm-b" id="person-report-btn" style="padding:9px 12px;font-size:11px">📊 Rapor</button>
+    <button class="btn-sm btn-sm-wa" id="wa-detail-btn" style="padding:9px 12px;font-size:11px">📱 WA</button>
+    <button class="btn-sm btn-sm-r" id="delete-person-btn" style="padding:9px 10px;font-size:11px">🗑</button>
   </div>
   <div class="tabs">
     ${[['all','Tümü'],['general','Genel'],['service','Hekimlik'],['drug','İlaç'],['payment','Ödeme']].map(([k,l])=>`
@@ -451,6 +498,7 @@ function buildDetail(){
       <div class="tx-info">
         <div class="tx-desc">${t.desc||tp2.label}</div>
         <div class="tx-meta">${fmtDate(t.date)}${t.note?' · '+t.note:''}</div>
+        ${t.due_date&&t.type!=='payment'?vadeBadge(t.due_date):''}
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
         <div class="tx-amt ${isPos?'tx-pos':'tx-neg'}">${isPos?'+':'-'}${fmt(t.amount)}</div>
@@ -466,9 +514,10 @@ function buildReport(){
   persons.forEach(p=>{ const b=getBalance(p.id); if(b>0) totalBal+=b; });
   txs.forEach(t=>{ const a=parseFloat(t.amount||0); t.type==='payment'?totalPaid+=a:totalDebt+=a; });
   const debtors=persons.filter(p=>getBalance(p.id)>0).sort((a,b)=>getBalance(b.id)-getBalance(a.id));
+  const overdueList=getOverduePersons();
   const monthly={};
-  txs.forEach(t=>{ const m=t.date.slice(0,7); if(!monthly[m]) monthly[m]={d:0,p:0}; t.type==='payment'?monthly[m].p+=parseFloat(t.amount||0):monthly[m].d+=parseFloat(t.amount||0); });
-  const months=Object.keys(monthly).sort().reverse().slice(0,6);
+  txs.forEach(t=>{ const m=t.date?t.date.slice(0,7):'?'; if(!monthly[m]) monthly[m]={d:0,p:0}; t.type==='payment'?monthly[m].p+=parseFloat(t.amount||0):monthly[m].d+=parseFloat(t.amount||0); });
+  const months=Object.keys(monthly).filter(m=>m!=='?').sort().reverse().slice(0,6);
   return `
   <div class="stats-grid">
     <div class="stat-card sc-red"><div class="lbl">Net Alacak</div><div class="val">${fmt(totalBal)}</div></div>
@@ -476,17 +525,29 @@ function buildReport(){
     <div class="stat-card sc-blue"><div class="lbl">Toplam İşlem</div><div class="val">${txs.length}</div></div>
     <div class="stat-card sc-amber"><div class="lbl">Borçlu Kişi</div><div class="val">${debtors.length}</div></div>
   </div>
+
+  ${overdueList.length?`
+  <div class="sec-title" style="color:var(--red)">⚠️ Gecikmiş Ödemeler (${overdueList.length} kişi)</div>
+  ${overdueList.map(p=>{
+    const due=getEarliestDue(p.id);
+    const gün=due?Math.abs(daysDiff(due.due_date)):0;
+    return `<div class="list-item overdue" data-person="${p.id}">
+      <div class="avatar overdue-av">${initials(p.name)}</div>
+      <div class="ii"><div class="iname">${p.name}</div><div class="isub">${p.phone||''}</div><span class="vade-badge vb-over">⚠️ ${gün} gün gecikmiş</span></div>
+      <div class="iright"><div class="amt amt-debt">-${fmt(getBalance(p.id))}</div><button class="btn-sm btn-sm-wa wa-btn" data-pid="${p.id}" style="margin-top:4px;font-size:10px;padding:3px 7px" onclick="event.stopPropagation()">📱 WA</button></div>
+    </div>`;
+  }).join('')}`:''}
+
   <div class="sec-title">📅 Aylık Özet</div>
-  ${months.map(m=>{
-    const mo=monthly[m];
-    return `<div style="background:#fff;border-radius:10px;padding:12px;border:1px solid var(--gray2);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;box-shadow:var(--shadow)">
+  ${months.map(m=>{ const mo=monthly[m]; return `
+    <div style="background:#fff;border-radius:10px;padding:12px;border:1px solid var(--gray2);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;box-shadow:var(--shadow)">
       <div style="font-weight:700;font-size:13px">${m}</div>
       <div style="display:flex;gap:16px">
         <div style="text-align:right"><div style="font-size:10px;color:var(--gray4)">Borç</div><div style="font-family:'Nunito',sans-serif;font-weight:800;color:var(--red);font-size:13px">-${fmt(mo.d)}</div></div>
         <div style="text-align:right"><div style="font-size:10px;color:var(--gray4)">Tahsil</div><div style="font-family:'Nunito',sans-serif;font-weight:800;color:var(--green);font-size:13px">+${fmt(mo.p)}</div></div>
       </div>
-    </div>`;
-  }).join('')||`<div class="empty"><div class="eicon">📅</div><p>Henüz işlem yok</p></div>`}
+    </div>`;}).join('')||`<div class="empty"><div class="eicon">📅</div><p>Henüz işlem yok</p></div>`}
+
   <div class="sec-title">🔴 En Yüksek Borçlular</div>
   ${debtors.slice(0,10).map(p=>`
     <div class="list-item" data-person="${p.id}">
@@ -499,8 +560,8 @@ function buildReport(){
 
 // ─── SETTINGS ─────────────────────────────────────────────────
 function buildSettings(){
-  const card=(title,content)=>`<div style="background:#fff;border-radius:var(--radius);padding:16px;border:1px solid var(--gray2);box-shadow:var(--shadow);margin-bottom:10px"><div style="font-family:'Nunito',sans-serif;font-weight:800;font-size:14px;margin-bottom:12px">${title}</div>${content}</div>`;
-  return card('👨‍⚕️ Hekim Bilgisi',`<div style="font-size:13px;color:var(--text2);line-height:1.9"><div><b>Ad Soyad:</b> Cemil Baş</div><div><b>Ünvan:</b> Veteriner Hekim</div><div><b>Versiyon:</b> 1.1</div><div><b>Kayıtlı Kişi:</b> ${persons.length} · <b>İşlem:</b> ${txs.length}</div></div>`)
+  const card=(t,c)=>`<div style="background:#fff;border-radius:var(--radius);padding:16px;border:1px solid var(--gray2);box-shadow:var(--shadow);margin-bottom:10px"><div style="font-family:'Nunito',sans-serif;font-weight:800;font-size:14px;margin-bottom:12px">${t}</div>${c}</div>`;
+  return card('👨‍⚕️ Hekim Bilgisi',`<div style="font-size:13px;color:var(--text2);line-height:1.9"><div><b>Ad Soyad:</b> Cemil Baş</div><div><b>Ünvan:</b> Veteriner Hekim</div><div><b>Versiyon:</b> 1.2</div><div><b>Kayıtlı Kişi:</b> ${persons.length} · <b>İşlem:</b> ${txs.length}</div></div>`)
   +card('🔐 Şifre Değiştir',`
     <div class="fg"><label class="fl">Mevcut Şifre</label><input class="fi" type="password" id="old-pin" maxlength="4" inputmode="numeric" placeholder="****"></div>
     <div class="fg"><label class="fl">Yeni Şifre</label><input class="fi" type="password" id="new-pin" maxlength="4" inputmode="numeric" placeholder="****"></div>
@@ -511,25 +572,29 @@ function buildSettings(){
 }
 
 // ─── MODALS ───────────────────────────────────────────────────
-function mWrap(title,body){
-  return `<div class="modal-overlay" id="modal-overlay"><div class="modal"><div class="mhandle"></div><div class="mtitle">${title}</div>${body}</div></div>`;
-}
+function mWrap(title,body){ return `<div class="modal-overlay" id="modal-overlay"><div class="modal"><div class="mhandle"></div><div class="mtitle">${title}</div>${body}</div></div>`; }
 
 function txFormHTML(v){
   const pid=v.person_id||detailPid||'';
+  const isDebt=v.type&&v.type!=='payment';
   const sorted=[...persons].sort((a,b)=>a.name.localeCompare(b.name,'tr'));
   return `
   <div class="fg"><label class="fl">Cari Kişi *</label><select class="fi" id="f-pid">
     <option value="">-- Seçiniz --</option>
     ${sorted.map(p=>`<option value="${p.id}" ${p.id===pid?'selected':''}>${p.name}</option>`).join('')}
   </select></div>
-  <div class="fg"><label class="fl">İşlem Türü *</label><select class="fi" id="f-type">
+  <div class="fg"><label class="fl">İşlem Türü *</label><select class="fi" id="f-type" onchange="toggleDueDate(this.value)">
     <option value="">-- Seçiniz --</option>
     ${Object.entries(TX_TYPES).map(([k,tv])=>`<option value="${k}" ${k===v.type?'selected':''}>${tv.icon} ${tv.label}</option>`).join('')}
   </select></div>
   <div class="fg"><label class="fl">Açıklama</label><input class="fi" id="f-desc" value="${v.desc||''}" placeholder="İşlem açıklaması..."></div>
   <div class="fg"><label class="fl">Tutar (₺) *</label><input class="fi" id="f-amount" type="number" inputmode="decimal" min="0" step="0.01" value="${v.amount||''}" placeholder="0.00"></div>
-  <div class="fg"><label class="fl">Tarih *</label><input class="fi" id="f-date" type="date" value="${v.date||new Date().toISOString().slice(0,10)}"></div>
+  <div class="fg"><label class="fl">Tarih *</label><input class="fi" id="f-date" type="date" value="${v.date||today()}"></div>
+  <div class="fg" id="due-date-group" style="${v.type==='payment'?'display:none':''}">
+    <label class="fl">Vade Tarihi (ödeme son tarihi)</label>
+    <input class="fi" id="f-due" type="date" value="${v.due_date||''}">
+    <div style="font-size:11px;color:var(--gray4);margin-top:4px">Bu tarihe kadar ödeme yapılmazsa gecikme uyarısı verilir</div>
+  </div>
   <div class="fg"><label class="fl">Not</label><textarea class="fi" id="f-note" placeholder="Hayvan bilgisi, ilaç adı...">${v.note||''}</textarea></div>`;
 }
 
@@ -562,8 +627,9 @@ function buildModal(){
       </div>
     </div>
     <div class="fg"><label class="fl">Tutar (₺) *</label><input class="fi" id="f-amount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00"></div>
+    <div class="fg"><label class="fl">Vade Tarihi</label><input class="fi" id="f-due" type="date"><div style="font-size:11px;color:var(--gray4);margin-top:4px">Ödeme beklenen son tarih (ödeme türü için boş bırakın)</div></div>
     <div class="fg"><label class="fl">Açıklama</label><input class="fi" id="f-desc" placeholder="İşlem açıklaması..."></div>
-    <div class="fg"><label class="fl">Tarih</label><input class="fi" id="f-date" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+    <div class="fg"><label class="fl">Tarih</label><input class="fi" id="f-date" type="date" value="${today()}"></div>
     <div class="btn-row"><button class="btn-o" id="modal-cancel">İptal</button><button class="btn-p" id="save-quick-tx-btn">Kaydet</button></div>`); }
 
   if(modal==='person-report'){ const p=persons.find(x=>x.id===detailPid); if(!p) return '';
@@ -575,11 +641,11 @@ function buildModal(){
       <div><div style="font-size:10px;color:var(--gray4);font-weight:700">ÖDENEN</div><div style="font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;color:var(--green)">+${fmt(pd)}</div></div>
       <div><div style="font-size:10px;color:var(--gray4);font-weight:700">BAKİYE</div><div style="font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;color:${b>0?'var(--red)':'var(--green)'}">${b>0?'-':'+'}${fmt(Math.abs(b))}</div></div>
     </div>
-    <div style="max-height:300px;overflow-y:auto">
+    <div style="max-height:280px;overflow-y:auto">
       ${ptxs.map(t=>{ const tp=TX_TYPES[t.type]||{icon:'📌',label:t.type}; const isPos=t.type==='payment';
         return `<div style="display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--gray2)">
           <span style="font-size:16px">${tp.icon}</span>
-          <div style="flex:1"><div style="font-size:12px;font-weight:700">${t.desc||tp.label}</div><div style="font-size:10px;color:var(--gray4)">${fmtDate(t.date)}${t.note?' · '+t.note:''}</div></div>
+          <div style="flex:1"><div style="font-size:12px;font-weight:700">${t.desc||tp.label}</div><div style="font-size:10px;color:var(--gray4)">${fmtDate(t.date)}${t.due_date&&t.type!=='payment'?' · Vade:'+fmtDate(t.due_date):''}</div></div>
           <div style="font-family:'Nunito',sans-serif;font-weight:800;font-size:13px;color:${isPos?'var(--green)':'var(--red)'}">${isPos?'+':'-'}${fmt(t.amount)}</div>
         </div>`;
       }).join('')||'<div class="empty"><p>İşlem yok</p></div>'}
@@ -597,81 +663,106 @@ function buildModal(){
   return '';
 }
 
+// ─── WHATSAPP ─────────────────────────────────────────────────
+function sendWhatsApp(pid){
+  const p=persons.find(x=>x.id===pid); if(!p||!p.phone){ alert('Bu kişinin telefon numarası kayıtlı değil!'); return; }
+  const bal=getBalance(pid);
+  const lastPay=getLastPayment(pid);
+  const phone=p.phone.replace(/\D/g,'');
+  const fullPhone=phone.startsWith('0')?'90'+phone.slice(1):phone.startsWith('90')?phone:'90'+phone;
+  const tarih=new Date().toLocaleDateString('tr-TR',{day:'2-digit',month:'long',year:'numeric'});
+  const msg=
+`🩺 *DR. CEMİL BAŞ VETERİNER HEKİMLİK*
+━━━━━━━━━━━━━━━━━━━━━━
+📋 *CARİ HESAP BİLDİRİMİ*
+━━━━━━━━━━━━━━━━━━━━━━
+Sayın *${p.name}*,
+
+Cari hesabınıza ait bakiye bilginizi aşağıda bulabilirsiniz.
+
+💰 *Mevcut Bakiye:* ${bal>0?`-${fmt(bal)} (Borçlu)`:bal===0?'Dengede':'+'+fmt(Math.abs(bal))+' (Alacaklı)'}
+${lastPay?`💵 *Son Ödeme:* ${fmtDate(lastPay.date)} — +${fmt(lastPay.amount)}`:'💵 *Son Ödeme:* Kayıt bulunamadı'}
+📅 *Bildirim Tarihi:* ${tarih}
+
+${bal>0?'⚠️ Lütfen en kısa sürede ödemenizi gerçekleştiriniz.\n\nBu mesaj otomatik olarak sistem tarafından iletilmiştir.':'✅ Hesabınız günceldir. Teşekkür ederiz.'}
+
+_Dr. Cemil Baş Veteriner Hekimlik_`;
+
+  const url=`https://wa.me/${fullPhone}?text=${encodeURIComponent(msg)}`;
+  window.open(url,'_blank');
+}
+
+// ─── TOGGLE DUE DATE ──────────────────────────────────────────
+window.toggleDueDate = function(val){
+  const g=document.getElementById('due-date-group');
+  if(g) g.style.display=val==='payment'?'none':'';
+};
+
 // ─── EVENTS ───────────────────────────────────────────────────
 function bindEvents(){
   if(!localStorage.getItem('vc_loggedin')){ bindLoginEvents(); return; }
 
-  // Nav
   document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click',()=>{ nav=b.dataset.nav; if(nav!=='detail') detailPid=null; modal=null; txTab='all'; render(); }));
-  // Back
   document.getElementById('back-btn')?.addEventListener('click',()=>{ nav='persons'; detailPid=null; render(); });
-  // Person → detail
   document.querySelectorAll('[data-person]').forEach(el=>el.addEventListener('click',()=>{ detailPid=el.dataset.person; nav='detail'; txTab='all'; render(); }));
-  // Search
   document.getElementById('search-input')?.addEventListener('input',e=>{ search=e.target.value; render(); });
-  // Chips
   document.querySelectorAll('[data-filter]').forEach(c=>c.addEventListener('click',()=>{ filterType=c.dataset.filter; render(); }));
-  // Tabs
   document.querySelectorAll('[data-tab]').forEach(t=>t.addEventListener('click',()=>{ txTab=t.dataset.tab; render(); }));
-  // Modal açıcılar
   document.getElementById('add-person-btn')?.addEventListener('click',()=>{ modal='add-person'; render(); });
   document.getElementById('edit-person-btn')?.addEventListener('click',()=>{ modal='edit-person'; render(); });
   document.getElementById('add-tx-btn')?.addEventListener('click',()=>{ modal='add-tx'; render(); });
   document.getElementById('quick-add-btn')?.addEventListener('click',()=>{ modal='quick-add'; render(); });
   document.getElementById('person-report-btn')?.addEventListener('click',()=>{ modal='person-report'; render(); });
   document.getElementById('delete-person-btn')?.addEventListener('click',()=>{ modal='confirm-delete'; render(); });
+  document.getElementById('wa-detail-btn')?.addEventListener('click',()=>sendWhatsApp(detailPid));
   document.getElementById('download-report-btn')?.addEventListener('click',()=>dlFullReport());
   document.getElementById('download-person-report-btn')?.addEventListener('click',()=>dlPersonReport(detailPid));
-  // Modal kapat
+  document.getElementById('logout-btn')?.addEventListener('click',()=>{ localStorage.removeItem('vc_loggedin'); render(); });
+
+  // WhatsApp butonları (listede)
+  document.querySelectorAll('.wa-btn').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); sendWhatsApp(b.dataset.pid); }));
+
   document.getElementById('modal-overlay')?.addEventListener('click',e=>{ if(e.target.id==='modal-overlay'){ modal=null; render(); } });
   document.getElementById('modal-cancel')?.addEventListener('click',()=>{ modal=null; render(); });
-  // Edit tx
   document.querySelectorAll('.edit-tx-btn').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); editTxId=b.dataset.txid; modal='edit-tx'; render(); }));
-  // Save person
+
   document.getElementById('save-person-btn')?.addEventListener('click',async()=>{
-    const name=document.getElementById('f-name').value.trim();
-    if(!name){ alert('Ad Soyad zorunludur!'); return; }
+    const name=document.getElementById('f-name').value.trim(); if(!name){ alert('Ad Soyad zorunludur!'); return; }
     await addPerson({id:uid(),name,phone:document.getElementById('f-phone').value.trim(),address:document.getElementById('f-address').value.trim(),note:document.getElementById('f-note').value.trim(),created_at:new Date().toISOString()});
     modal=null; toast('✅ Cari kaydedildi'); render();
   });
-  // Update person
   document.getElementById('update-person-btn')?.addEventListener('click',async()=>{
-    const name=document.getElementById('f-name').value.trim();
-    if(!name){ alert('Ad Soyad zorunludur!'); return; }
+    const name=document.getElementById('f-name').value.trim(); if(!name){ alert('Ad Soyad zorunludur!'); return; }
     await updatePerson(detailPid,{name,phone:document.getElementById('f-phone').value.trim(),address:document.getElementById('f-address').value.trim(),note:document.getElementById('f-note').value.trim()});
     modal=null; toast('✅ Güncellendi'); render();
   });
-  // Confirm delete
   document.getElementById('confirm-delete-btn')?.addEventListener('click',async()=>{
-    await deletePerson(detailPid);
-    modal=null; nav='persons'; detailPid=null; toast('🗑 Cari silindi'); render();
+    await deletePerson(detailPid); modal=null; nav='persons'; detailPid=null; toast('🗑 Cari silindi'); render();
   });
-  // Save tx
   document.getElementById('save-tx-btn')?.addEventListener('click',async()=>{
     const pid=document.getElementById('f-pid').value, type=document.getElementById('f-type').value,
           amount=document.getElementById('f-amount').value, date=document.getElementById('f-date').value;
     if(!pid||!type||!amount||!date){ alert('Zorunlu alanları doldurun!'); return; }
-    await addTx({id:uid(),person_id:pid,type,desc:document.getElementById('f-desc').value.trim(),amount:parseFloat(amount),date,note:document.getElementById('f-note').value.trim(),created_at:new Date().toISOString()});
+    const due=document.getElementById('f-due')?.value||null;
+    await addTx({id:uid(),person_id:pid,type,desc:document.getElementById('f-desc').value.trim(),amount:parseFloat(amount),date,due_date:type!=='payment'?due:null,note:document.getElementById('f-note').value.trim(),created_at:new Date().toISOString()});
     modal=null; toast('✅ İşlem kaydedildi'); render();
   });
-  // Quick tx
   document.getElementById('save-quick-tx-btn')?.addEventListener('click',async()=>{
     const pid=document.getElementById('f-pid').value, typeEl=document.querySelector('input[name="qtype"]:checked'),
           amount=document.getElementById('f-amount').value, date=document.getElementById('f-date').value;
     if(!pid||!typeEl||!amount){ alert('Zorunlu alanları doldurun!'); return; }
-    await addTx({id:uid(),person_id:pid,type:typeEl.value,desc:document.getElementById('f-desc').value.trim(),amount:parseFloat(amount),date,note:'',created_at:new Date().toISOString()});
+    const due=document.getElementById('f-due')?.value||null;
+    await addTx({id:uid(),person_id:pid,type:typeEl.value,desc:document.getElementById('f-desc').value.trim(),amount:parseFloat(amount),date,due_date:typeEl.value!=='payment'?due:null,note:'',created_at:new Date().toISOString()});
     modal=null; toast('✅ İşlem kaydedildi'); render();
   });
-  // Update tx
   document.getElementById('update-tx-btn')?.addEventListener('click',async()=>{
     const amount=document.getElementById('f-amount').value, date=document.getElementById('f-date').value;
     if(!amount||!date){ alert('Tutar ve tarih zorunludur!'); return; }
-    await updateTx(editTxId,{person_id:document.getElementById('f-pid').value,type:document.getElementById('f-type').value,desc:document.getElementById('f-desc').value.trim(),amount:parseFloat(amount),date,note:document.getElementById('f-note').value.trim()});
+    const type=document.getElementById('f-type').value;
+    const due=document.getElementById('f-due')?.value||null;
+    await updateTx(editTxId,{person_id:document.getElementById('f-pid').value,type,desc:document.getElementById('f-desc').value.trim(),amount:parseFloat(amount),date,due_date:type!=='payment'?due:null,note:document.getElementById('f-note').value.trim()});
     modal=null; toast('✅ Güncellendi'); render();
   });
-  // Logout
-  document.getElementById('logout-btn')?.addEventListener('click',()=>{ localStorage.removeItem('vc_loggedin'); render(); });
-  // Change pin
   document.getElementById('change-pin-btn')?.addEventListener('click',()=>{
     const old=document.getElementById('old-pin').value, n1=document.getElementById('new-pin').value, n2=document.getElementById('new-pin2').value;
     const msg=document.getElementById('pin-msg');
@@ -682,17 +773,18 @@ function bindEvents(){
   });
 }
 
-// ─── DOWNLOAD REPORTS ─────────────────────────────────────────
+// ─── REPORTS ──────────────────────────────────────────────────
 function dlFullReport(){
   const sorted=[...persons].sort((a,b)=>a.name.localeCompare(b.name,'tr'));
   let td=0,tp=0; txs.forEach(t=>{ const a=parseFloat(t.amount||0); t.type==='payment'?tp+=a:td+=a; });
+  const overdueList=getOverduePersons();
   const html=`<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><title>Cari Rapor</title>
   <style>body{font-family:Arial,sans-serif;margin:30px;font-size:13px;color:#222}h1{color:#0C447C;font-size:19px}
   .sub{color:#666;font-size:11px;margin-bottom:18px}.sum{display:flex;gap:20px;background:#EAF2FB;padding:12px;border-radius:8px;margin-bottom:18px}
   .sb{text-align:center}.sl{font-size:10px;font-weight:bold;color:#666;text-transform:uppercase}.sv{font-size:15px;font-weight:900;margin-top:2px}
   table{width:100%;border-collapse:collapse;margin-bottom:22px}th{background:#0C447C;color:#fff;padding:8px;font-size:11px;text-align:left}
   td{padding:7px 8px;border-bottom:1px solid #eee;font-size:12px}tr:nth-child(even) td{background:#f9f9f9}
-  .dr{color:#C0392B;font-weight:bold}.dp{color:#1A7A4A;font-weight:bold}
+  .dr{color:#C0392B;font-weight:bold}.dp{color:#1A7A4A;font-weight:bold}.dw{color:#D97706;font-weight:bold}
   h2{color:#0C447C;font-size:14px;border-bottom:2px solid #EAF2FB;padding-bottom:5px;margin:18px 0 10px}.pb{page-break-before:always}</style></head><body>
   <h1>🩺 Veteriner Cari Hesap Raporu</h1>
   <div class="sub">Dr. Cemil Baş · ${new Date().toLocaleDateString('tr-TR',{day:'2-digit',month:'long',year:'numeric'})}</div>
@@ -700,22 +792,25 @@ function dlFullReport(){
     <div class="sb"><div class="sl">Toplam Borç</div><div class="sv" style="color:#C0392B">-${fmt(td)}</div></div>
     <div class="sb"><div class="sl">Tahsil Edilen</div><div class="sv" style="color:#1A7A4A">+${fmt(tp)}</div></div>
     <div class="sb"><div class="sl">Net Alacak</div><div class="sv">${fmt(td-tp)}</div></div>
-    <div class="sb"><div class="sl">Cari Sayısı</div><div class="sv">${persons.length}</div></div>
+    <div class="sb"><div class="sl">Gecikmiş</div><div class="sv" style="color:#C0392B">${overdueList.length} kişi</div></div>
   </div>
+  ${overdueList.length?`<h2>⚠️ Gecikmiş Ödemeler</h2>
+  <table><tr><th>Ad Soyad</th><th>Telefon</th><th>Bakiye</th><th>Gecikme</th></tr>
+  ${overdueList.map(p=>{ const due=getEarliestDue(p.id); const g=due?Math.abs(daysDiff(due.due_date)):0;
+    return `<tr><td>${p.name}</td><td>${p.phone||'-'}</td><td class="dr">-${fmt(getBalance(p.id))}</td><td class="dw">${g} gün</td></tr>`;
+  }).join('')}</table>`:''}
   <h2>Cari Hesap Özeti</h2>
   <table><tr><th>Ad Soyad</th><th>Telefon</th><th>Adres</th><th>Toplam Borç</th><th>Ödenen</th><th>Bakiye</th></tr>
   ${sorted.map(p=>{let d=0,pd=0;txs.filter(t=>t.person_id===p.id).forEach(t=>{const a=parseFloat(t.amount||0);t.type==='payment'?pd+=a:d+=a;});const b=d-pd;
     return `<tr><td>${p.name}</td><td>${p.phone||'-'}</td><td>${p.address||'-'}</td><td class="dr">-${fmt(d)}</td><td class="dp">+${fmt(pd)}</td><td class="${b>0?'dr':'dp'}">${b>0?'-':'+'}${fmt(Math.abs(b))}</td></tr>`;
   }).join('')}</table>
   <div class="pb"></div><h2>Tüm İşlemler</h2>
-  <table><tr><th>Tarih</th><th>Kişi</th><th>Tür</th><th>Açıklama</th><th>Not</th><th>Tutar</th></tr>
+  <table><tr><th>Tarih</th><th>Kişi</th><th>Tür</th><th>Açıklama</th><th>Vade</th><th>Tutar</th></tr>
   ${[...txs].sort((a,b)=>new Date(b.date)-new Date(a.date)).map(t=>{const p=sorted.find(x=>x.id===t.person_id);const tp=TX_TYPES[t.type]||{icon:'',label:t.type};const isPos=t.type==='payment';
-    return `<tr><td>${fmtDate(t.date)}</td><td>${p?p.name:'-'}</td><td>${tp.icon} ${tp.label}</td><td>${t.desc||'-'}</td><td>${t.note||'-'}</td><td class="${isPos?'dp':'dr'}">${isPos?'+':'-'}${fmt(t.amount)}</td></tr>`;
+    return `<tr><td>${fmtDate(t.date)}</td><td>${p?p.name:'-'}</td><td>${tp.icon} ${tp.label}</td><td>${t.desc||'-'}</td><td>${t.due_date?fmtDate(t.due_date):'-'}</td><td class="${isPos?'dp':'dr'}">${isPos?'+':'-'}${fmt(t.amount)}</td></tr>`;
   }).join('')}</table>
   <script>window.onload=()=>window.print()<\/script></body></html>`;
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([html],{type:'text/html'}));
-  a.download=`cari-rapor-${new Date().toISOString().slice(0,10)}.html`; a.click();
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([html],{type:'text/html'})); a.download=`cari-rapor-${today()}.html`; a.click();
 }
 
 function dlPersonReport(pid){
@@ -736,17 +831,17 @@ function dlPersonReport(pid){
     <div class="sb"><div class="sl">Ödenen</div><div class="sv" style="color:#1A7A4A">+${fmt(pd)}</div></div>
     <div class="sb"><div class="sl">Bakiye</div><div class="sv" style="color:${b>0?'#C0392B':'#1A7A4A'}">${b>0?'-':'+'}${fmt(Math.abs(b))}</div></div>
   </div>
-  <table><tr><th>Tarih</th><th>Tür</th><th>Açıklama</th><th>Not</th><th>Tutar</th></tr>
+  <table><tr><th>Tarih</th><th>Tür</th><th>Açıklama</th><th>Vade</th><th>Not</th><th>Tutar</th></tr>
   ${ptxs.map(t=>{const tp=TX_TYPES[t.type]||{icon:'',label:t.type};const isPos=t.type==='payment';
-    return `<tr><td>${fmtDate(t.date)}</td><td>${tp.icon} ${tp.label}</td><td>${t.desc||'-'}</td><td>${t.note||'-'}</td><td class="${isPos?'dp':'dr'}">${isPos?'+':'-'}${fmt(t.amount)}</td></tr>`;
+    return `<tr><td>${fmtDate(t.date)}</td><td>${tp.icon} ${tp.label}</td><td>${t.desc||'-'}</td><td>${t.due_date?fmtDate(t.due_date):'-'}</td><td>${t.note||'-'}</td><td class="${isPos?'dp':'dr'}">${isPos?'+':'-'}${fmt(t.amount)}</td></tr>`;
   }).join('')}</table>
   <script>window.onload=()=>window.print()<\/script></body></html>`;
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([html],{type:'text/html'}));
-  a.download=`${p.name.replace(/\s+/g,'-')}-hesap-${new Date().toISOString().slice(0,10)}.html`; a.click();
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([html],{type:'text/html'})); a.download=`${p.name.replace(/\s+/g,'-')}-hesap-${today()}.html`; a.click();
 }
 
 // ─── INIT ─────────────────────────────────────────────────────
+// Supabase'e due_date sütununu eklemek için SQL:
+// ALTER TABLE vc_txs ADD COLUMN IF NOT EXISTS due_date text;
 if(localStorage.getItem('vc_loggedin')) loadAll(); else render();
 </script>
 </body>
