@@ -139,7 +139,7 @@ textarea.form-input{resize:none;height:80px}
 .tx-icon.payment{background:var(--green-light)}
 .tx-icon.service{background:var(--blue-light)}
 .tx-icon.drug{background:var(--amber-light)}
-.tx-icon.debt{background:var(--red-light)}
+.tx-icon.general{background:var(--red-light)}
 .tx-info{flex:1}
 .tx-desc{font-weight:700;font-size:13px;color:var(--text)}
 .tx-meta{font-size:10px;color:var(--gray4);margin-top:2px}
@@ -210,7 +210,7 @@ const DB = {
     const txs=this.getTxs().filter(t=>t.personId===pid);
     let balance=0;
     txs.forEach(t=>{
-      if(t.type==='debt') balance+=parseFloat(t.amount||0);
+      if(t.type==='general'||t.type==='service'||t.type==='drug') balance+=parseFloat(t.amount||0);
       if(t.type==='payment') balance-=parseFloat(t.amount||0);
     });
     return balance;
@@ -233,10 +233,10 @@ const initials = (name)=>{
   return name.substring(0,2).toUpperCase();
 };
 const TX_TYPES = {
-  debt:     { label:'Borç Açma',  icon:'💳', dir:'negative' },
-  payment:  { label:'Ödeme',      icon:'💵', dir:'positive' },
+  general:  { label:'Genel',      icon:'📋', dir:'negative' },
   service:  { label:'Hekimlik',   icon:'🩺', dir:'negative' },
   drug:     { label:'İlaç/Malz.', icon:'💊', dir:'negative' },
+  payment:  { label:'Ödeme',      icon:'💵', dir:'positive' },
 };
 
 // ─── STATE ─────────────────────────────────────────────────────
@@ -440,7 +440,7 @@ function detailPage(){
   let totalDebt=0,totalPaid=0,totalService=0,totalDrug=0;
   DB.getTxs().filter(t=>t.personId===S.detailPid).forEach(t=>{
     const a=parseFloat(t.amount||0);
-    if(t.type==='debt') totalDebt+=a;
+    if(t.type==='general') totalDebt+=a;
     if(t.type==='payment') totalPaid+=a;
     if(t.type==='service') totalDebt+=a;
     if(t.type==='drug') totalDebt+=a;
@@ -452,16 +452,16 @@ function detailPage(){
     <div class="phone">${p.phone||''}${p.address?' · '+p.address:''}</div>
   </div>
   <div class="balance-box">
-    <div class="b"><div class="lbl">Borç Toplamı</div><div class="val" style="color:var(--red)">${fmt(totalDebt)}</div></div>
-    <div class="b"><div class="lbl">Ödenen</div><div class="val" style="color:var(--green)">${fmt(totalPaid)}</div></div>
-    <div class="b"><div class="lbl">Bakiye</div><div class="val" style="color:${bal>0?'var(--red)':bal<0?'var(--green)':'var(--gray4)'}">${fmt(Math.abs(bal))}</div></div>
+    <div class="b"><div class="lbl">Borç Toplamı</div><div class="val" style="color:var(--red)">-${fmt(totalDebt)}</div></div>
+    <div class="b"><div class="lbl">Ödenen</div><div class="val" style="color:var(--green)">+${fmt(totalPaid)}</div></div>
+    <div class="b"><div class="lbl">Bakiye</div><div class="val" style="color:${bal>0?'var(--red)':bal<0?'var(--green)':'var(--gray4)'}">${bal>0?'-':bal<0?'+':''}${fmt(Math.abs(bal))}</div></div>
   </div>
   <div style="display:flex;gap:8px;margin-bottom:14px">
     <button class="btn-primary" id="add-tx-btn" style="font-size:13px;padding:10px">+ İşlem Ekle</button>
     <button class="btn-sm blue" id="person-report-btn" style="padding:10px 14px;font-size:13px">📊 Rapor</button>
   </div>
   <div class="tabs">
-    ${[['all','Tümü'],['debt','Borç'],['payment','Ödeme'],['service','Hekimlik'],['drug','İlaç']].map(([k,l])=>`
+    ${[['all','Tümü'],['general','Genel'],['service','Hekimlik'],['drug','İlaç'],['payment','Ödeme']].map(([k,l])=>`
       <button class="tab-btn ${S.txTab===k?'active':''}" data-tab="${k}">${l}</button>`).join('')}
   </div>
   ${txs.length?txs.map(t=>{
