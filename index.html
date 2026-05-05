@@ -30,8 +30,10 @@ html,body{height:100%;background:var(--gray);font-family:'Nunito Sans',sans-seri
 .login-logo h1{color:#fff;font-family:'Nunito',sans-serif;font-size:22px;font-weight:900;letter-spacing:-.3px}
 .login-logo p{color:rgba(255,255,255,.55);font-size:12px;margin-top:4px}
 .login-card{background:rgba(255,255,255,.97);border-radius:20px;padding:24px 22px;width:100%;max-width:360px;box-shadow:0 20px 60px rgba(0,0,0,.3);animation:fadeUp .6s .1s ease both}
-.login-card h2{font-family:'Nunito',sans-serif;font-size:17px;font-weight:800;color:var(--text);margin-bottom:2px}
-.login-card .hint{font-size:12px;color:var(--gray4);margin-bottom:14px}
+.login-card h2{font-family:'Nunito',sans-serif;font-size:17px;font-weight:800;color:var(--text);margin-bottom:16px}
+.login-err{color:var(--red);font-size:12px;font-weight:700;min-height:18px;margin-bottom:8px;text-align:center}
+.login-err.shake{animation:shake .4s ease}
+/* eski pin stilleri kalsın */
 .pin-dots{display:flex;justify-content:center;gap:16px;margin:14px 0}
 .pin-dot{width:16px;height:16px;border-radius:50%;background:var(--gray2);border:2px solid var(--gray3);transition:.2s}
 .pin-dot.filled{background:var(--blue);border-color:var(--blue);transform:scale(1.1)}
@@ -163,6 +165,18 @@ textarea.fi{resize:none;height:76px}
 .overdue-banner{background:var(--red-light);border:1px solid #f5c6c0;border-radius:10px;padding:12px;margin-bottom:12px;display:flex;align-items:center;gap:10px}
 .overdue-banner .ob-icon{font-size:22px}
 .overdue-banner .ob-text{font-size:12px;font-weight:700;color:var(--red)}
+/* ADMIN */
+.admin-user-card{background:#fff;border-radius:var(--radius-sm);border:1px solid var(--gray2);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow)}
+.admin-user-card .au-av{width:40px;height:40px;border-radius:11px;background:var(--blue-light);display:flex;align-items:center;justify-content:center;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;color:var(--blue);flex-shrink:0}
+.admin-user-card .au-av.admin{background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff}
+.admin-user-card .au-info{flex:1}
+.admin-user-card .au-name{font-weight:700;font-size:14px}
+.admin-user-card .au-meta{font-size:11px;color:var(--gray4);margin-top:2px}
+.au-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;margin-left:6px}
+.au-badge.admin{background:var(--blue-light);color:var(--blue)}
+.au-badge.active{background:var(--green-light);color:var(--green)}
+.au-badge.pending{background:var(--amber-light);color:var(--amber)}
+.au-badge.inactive{background:var(--red-light);color:var(--red)}
 
 /* TAKVİM */
 .cal-wrap{background:#fff;border-radius:var(--radius);border:1px solid var(--gray2);box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden}
@@ -221,6 +235,13 @@ textarea.fi{resize:none;height:76px}
 // ─── CONFIG ───────────────────────────────────────────────────
 const SUPABASE_URL = 'https://srbjawvtbzqxypuwskxw.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyYmphd3Z0YnpxeHlwdXdza3h3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5MDQ0OTAsImV4cCI6MjA5MzQ4MDQ5MH0.o3_pwC1HDRgXDahDtVaC3MOFmam3tTSCd54zuxV94cc';
+
+// Oturum - localStorage'da sakla
+let currentUser = JSON.parse(localStorage.getItem('vc_current_user')||'null');
+function setCurrentUser(u){ currentUser=u; localStorage.setItem('vc_current_user',JSON.stringify(u)); }
+function clearCurrentUser(){ currentUser=null; localStorage.removeItem('vc_current_user'); localStorage.removeItem('vc_loggedin'); }
+function isAdmin(){ return currentUser&&currentUser.role==='admin'; }
+function userId(){ return currentUser?currentUser.id:null; }
 const DEFAULT_PIN = '1234';
 
 const TX_TYPES = {
@@ -250,12 +271,12 @@ let calSelectedDay=null;
 // Hatırlatmalar — Supabase + localStorage yedek
 let reminders=[];
 async function loadReminders(){
-  try{ reminders=await sbReq('GET','vc_reminders?order=date.asc'); }
-  catch{ reminders=JSON.parse(localStorage.getItem('vc_reminders')||'[]'); }
+  try{ reminders=await sbReq('GET',`vc_reminders?user_id=eq.${userId()}&order=date.asc`); }
+  catch{ reminders=JSON.parse(localStorage.getItem('vc_reminders_'+userId())||'[]'); }
 }
-function saveRemindersLocal(){ localStorage.setItem('vc_reminders',JSON.stringify(reminders)); }
+function saveRemindersLocal(){ localStorage.setItem('vc_reminders_'+userId(),JSON.stringify(reminders)); }
 async function addReminder(r){
-  const nr={...r,id:uid()};
+  const nr={...r,id:uid(),user_id:userId()};
   try{ const res=await sbReq('POST','vc_reminders',nr); reminders=[...reminders,...(Array.isArray(res)?res:[res])]; }
   catch{ reminders=[...reminders,nr]; }
   reminders.sort((a,b)=>a.date.localeCompare(b.date));
@@ -316,23 +337,28 @@ async function sbReq(method,path,body){
 async function loadAll(){
   dataLoading=true; render();
   try{
+    const uid_filter=`user_id=eq.${userId()}`;
     [persons,txs]=await Promise.all([
-      sbReq('GET','vc_persons?order=name.asc'),
-      sbReq('GET','vc_txs?order=date.desc,created_at.desc'),
+      sbReq('GET',`vc_persons?${uid_filter}&order=name.asc`),
+      sbReq('GET',`vc_txs?${uid_filter}&order=date.desc,created_at.desc`),
     ]);
     txs=txs.map(t=>({...t,desc:t.description||t.desc||''}));
   }catch(e){
-    persons=JSON.parse(localStorage.getItem('vc_persons')||'[]');
-    txs=JSON.parse(localStorage.getItem('vc_txs')||'[]');
+    persons=JSON.parse(localStorage.getItem('vc_persons_'+userId())||'[]');
+    txs=JSON.parse(localStorage.getItem('vc_txs_'+userId())||'[]');
   }
   await loadReminders();
   dataLoading=false; render();
 }
-function saveLocal(){ localStorage.setItem('vc_persons',JSON.stringify(persons)); localStorage.setItem('vc_txs',JSON.stringify(txs)); }
+function saveLocal(){
+  localStorage.setItem('vc_persons_'+userId(),JSON.stringify(persons));
+  localStorage.setItem('vc_txs_'+userId(),JSON.stringify(txs));
+}
 
 async function addPerson(p){
-  try{ const r=await sbReq('POST','vc_persons',p); persons=[...persons,...(Array.isArray(r)?r:[r])]; }
-  catch{ persons=[...persons,p]; }
+  const np={...p, user_id:userId()};
+  try{ const r=await sbReq('POST','vc_persons',np); persons=[...persons,...(Array.isArray(r)?r:[r])]; }
+  catch{ persons=[...persons,np]; }
   persons.sort((a,b)=>a.name.localeCompare(b.name,'tr')); saveLocal();
 }
 async function updatePerson(id,upd){
@@ -344,9 +370,10 @@ async function deletePerson(id){
   txs=txs.filter(t=>t.person_id!==id); persons=persons.filter(p=>p.id!==id); saveLocal();
 }
 async function addTx(t){
-  const sbT={...t,description:t.desc||'',due_date:t.due_date||null}; delete sbT.desc;
+  const nt={...t, user_id:userId()};
+  const sbT={...nt,description:nt.desc||'',due_date:nt.due_date||null}; delete sbT.desc;
   try{ const r=await sbReq('POST','vc_txs',sbT); const saved={...(Array.isArray(r)?r[0]:r),desc:sbT.description}; txs=[saved,...txs]; }
-  catch{ txs=[t,...txs]; saveLocal(); }
+  catch{ txs=[nt,...txs]; saveLocal(); }
 }
 async function updateTx(id,upd){
   const sbUpd={...upd,description:upd.desc||''}; delete sbUpd.desc;
@@ -364,7 +391,7 @@ window.closeModal = function(){ modal=null; render(); };
 function render(){ document.getElementById('app').innerHTML=buildHTML(); bindEvents(); }
 
 function buildHTML(){
-  if(!localStorage.getItem('vc_loggedin')) return buildLogin();
+  if(!currentUser) return buildLogin();
   const overdueCount=getOverduePersons().length;
   return buildHeader(overdueCount)+`<div class="content">`+(dataLoading?`<div class="loading"><div class="spinner"></div><p>Yükleniyor...</p></div>`:buildPage())+`</div>`+buildNav(overdueCount)+(modal?buildModal():'');
 }
@@ -375,52 +402,55 @@ function buildPage(){
   if(nav==='report') return buildReport();
   if(nav==='overdue') return buildOverdue();
   if(nav==='settings') return buildSettings();
+  if(nav==='admin'&&isAdmin()) return buildAdmin();
   return '';
 }
 
 // ─── LOGIN ────────────────────────────────────────────────────
 function buildLogin(){
-  const dots=[0,1,2,3].map(i=>`<div class="pin-dot ${i<pinVal.length?'filled':''}"></div>`).join('');
   return `<div class="login-wrap">
-  <div class="login-logo"><div class="icon">🩺</div><h1>Veteriner Cari Hesap</h1><p>Sayın Dr. Cemil Baş — Hoş Geldiniz</p></div>
+  <div class="login-logo">
+    <div class="icon">🩺</div>
+    <h1>Veteriner Cari Hesap</h1>
+    <p>Hesabınıza giriş yapın</p>
+  </div>
   <div class="login-card">
-    <h2>Şifrenizi Girin</h2><p class="hint">4 haneli şifrenizi tuşlayın</p>
-    <div class="pin-dots">${dots}</div>
-    <div class="pin-error ${pinErr?'shake':''}" id="pin-err">${pinErr}&nbsp;</div>
-    <div class="numpad">
-      ${[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map(n=>n===''?'<div></div>':`<button class="num-btn ${n==='⌫'?'del':''}" data-num="${n}">${n}</button>`).join('')}
-    </div>
+    <h2>Giriş Yap</h2>
+    <div class="fg"><label class="fl">Kullanıcı Adı</label><input class="fi" id="login-username" placeholder="kullaniciadi" autocomplete="username" autocapitalize="none"></div>
+    <div class="fg"><label class="fl">Şifre</label><input class="fi" id="login-password" type="password" placeholder="••••••" autocomplete="current-password"></div>
+    <div class="login-err" id="login-err">&nbsp;</div>
+    <button class="btn-p" id="login-btn">Giriş Yap</button>
   </div></div>`;
 }
 function bindLoginEvents(){
-  document.querySelectorAll('.num-btn').forEach(btn=>{
-    btn.addEventListener('click',()=>{
-      const v=btn.dataset.num;
-      if(v==='⌫'){ pinVal=pinVal.slice(0,-1); pinErr=''; updatePinUI(); return; }
-      if(pinVal.length>=4) return;
-      pinVal+=v; updatePinUI();
-      if(pinVal.length===4){
-        if(pinVal===getPin()){ localStorage.setItem('vc_loggedin','1'); pinVal=''; pinErr=''; nav='home'; loadAll(); }
-        else{ pinErr='Hatalı şifre!'; updatePinUI(); setTimeout(()=>{ pinVal=''; pinErr=''; updatePinUI(); },900); }
-      }
-    });
-  });
-}
-function updatePinUI(){
-  const de=document.querySelector('.pin-dots'); if(de) de.innerHTML=[0,1,2,3].map(i=>`<div class="pin-dot ${i<pinVal.length?'filled':''}"></div>`).join('');
-  const ee=document.getElementById('pin-err'); if(ee){ ee.textContent=pinErr||'\u00a0'; ee.className='pin-error'+(pinErr?' shake':''); }
+  const doLogin=async()=>{
+    const username=document.getElementById('login-username').value.trim().toLowerCase();
+    const password=document.getElementById('login-password').value;
+    const err=document.getElementById('login-err');
+    if(!username||!password){ err.textContent='Kullanıcı adı ve şifre giriniz!'; err.className='login-err shake'; return; }
+    try{
+      const res=await sbReq('GET',`vc_users?username=eq.${username}&password=eq.${password}&select=*`);
+      if(!res||!res.length){ err.textContent='Kullanıcı adı veya şifre hatalı!'; err.className='login-err shake'; return; }
+      const user=res[0];
+      if(!user.active){ err.textContent='Hesabınız henüz onaylanmamış. Lütfen admin ile iletişime geçin.'; err.className='login-err'; return; }
+      setCurrentUser(user);
+      await loadAll();
+    }catch(e){ err.textContent='Bağlantı hatası, tekrar deneyin.'; err.className='login-err'; }
+  };
+  document.getElementById('login-btn')?.addEventListener('click',doLogin);
+  document.getElementById('login-password')?.addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
 }
 
 // ─── HEADER & NAV ─────────────────────────────────────────────
 function buildHeader(overdueCount){
-  const titles={home:'Ana Sayfa',persons:'Cari Hesaplar',detail:'Hesap Detayı',report:'Raporlar',overdue:'Gecikme Takibi',settings:'Ayarlar'};
+  const titles={home:'Ana Sayfa',persons:'Cari Hesaplar',detail:'Hesap Detayı',report:'Raporlar',overdue:'Gecikme Takibi',settings:'Ayarlar',admin:'Kullanıcı Yönetimi'};
   const showBack=nav==='detail';
   const dp=detailPid?persons.find(p=>p.id===detailPid):null;
   return `<div class="header">
     ${showBack?`<button class="back-btn" id="back-btn">‹</button>`:`<span style="font-size:22px">🩺</span>`}
     <div class="header-title">
       <div class="main">${showBack&&dp?dp.name:titles[nav]||''}</div>
-      <div class="sub">Dr. Cemil Baş Veteriner Hekimlik</div>
+      <div class="sub">${currentUser?currentUser.full_name:''} · Dr. Cemil Baş Veteriner Hekimlik</div>
     </div>
     ${nav==='persons'?`<button class="hbtn" id="add-person-btn" style="font-size:22px;font-weight:300">+</button>`:''}
     ${nav==='detail'?`<button class="hbtn" id="edit-person-btn">✏️</button>`:''}
@@ -434,6 +464,7 @@ function buildNav(overdueCount){
     {id:'report',icon:'📊',label:'Raporlar'},
     {id:'settings',icon:'⚙️',label:'Ayarlar'},
   ];
+  if(isAdmin()) items.splice(4,0,{id:'admin',icon:'👑',label:'Admin'});
   return `<div class="nav">${items.map(it=>`<button class="nav-item ${nav===it.id||(nav==='detail'&&it.id==='persons')?'active':''}" data-nav="${it.id}">
     <span class="ni">${it.icon}</span>
     ${it.badge?`<span class="nav-badge">${it.badge}</span>`:''}
@@ -795,11 +826,17 @@ function buildReport(){
 // ─── SETTINGS ─────────────────────────────────────────────────
 function buildSettings(){
   const card=(t,c)=>`<div style="background:#fff;border-radius:var(--radius);padding:16px;border:1px solid var(--gray2);box-shadow:var(--shadow);margin-bottom:10px"><div style="font-family:'Nunito',sans-serif;font-weight:800;font-size:14px;margin-bottom:12px">${t}</div>${c}</div>`;
-  return card('👨‍⚕️ Hekim Bilgisi',`<div style="font-size:13px;color:var(--text2);line-height:1.9"><div><b>Ad Soyad:</b> Cemil Baş</div><div><b>Ünvan:</b> Veteriner Hekim</div><div><b>Versiyon:</b> 1.2</div><div><b>Kayıtlı Kişi:</b> ${persons.length} · <b>İşlem:</b> ${txs.length}</div></div>`)
+  return card('👤 Hesap Bilgisi',`<div style="font-size:13px;color:var(--text2);line-height:1.9">
+    <div><b>Ad Soyad:</b> ${currentUser?.full_name||''}</div>
+    <div><b>Kullanıcı Adı:</b> ${currentUser?.username||''}</div>
+    <div><b>Rol:</b> ${isAdmin()?'👑 Admin':'👤 Kullanıcı'}</div>
+    <div><b>Versiyon:</b> 1.3</div>
+    <div><b>Kayıtlı Kişi:</b> ${persons.length} · <b>İşlem:</b> ${txs.length}</div>
+  </div>`)
   +card('🔐 Şifre Değiştir',`
-    <div class="fg"><label class="fl">Mevcut Şifre</label><input class="fi" type="password" id="old-pin" maxlength="4" inputmode="numeric" placeholder="****"></div>
-    <div class="fg"><label class="fl">Yeni Şifre</label><input class="fi" type="password" id="new-pin" maxlength="4" inputmode="numeric" placeholder="****"></div>
-    <div class="fg"><label class="fl">Yeni Şifre (Tekrar)</label><input class="fi" type="password" id="new-pin2" maxlength="4" inputmode="numeric" placeholder="****"></div>
+    <div class="fg"><label class="fl">Mevcut Şifre</label><input class="fi" type="password" id="old-pin" placeholder="Mevcut şifreniz"></div>
+    <div class="fg"><label class="fl">Yeni Şifre</label><input class="fi" type="password" id="new-pin" placeholder="Yeni şifre"></div>
+    <div class="fg"><label class="fl">Yeni Şifre (Tekrar)</label><input class="fi" type="password" id="new-pin2" placeholder="Yeni şifre tekrar"></div>
     <p id="pin-msg" style="font-size:12px;margin-bottom:10px;min-height:16px"></p>
     <button class="btn-p" id="change-pin-btn">Şifreyi Güncelle</button>`)
   +`<button class="btn-d" id="logout-btn" style="margin-top:6px">🚪 Çıkış Yap</button>`;
@@ -891,6 +928,7 @@ function buildModal(){
 
   if(modal==='add-reminder') return buildAddReminderModal();
   if(modal==='edit-reminder') return buildEditReminderModal();
+  if(modal==='add-user') return buildAddUserModal();
   if(modal==='bulk-wa') return buildBulkWaModal();
   if(modal==='bulk-wa-sending') return buildBulkWaSendingModal();
   if(modal==='confirm-delete'){ const p=persons.find(x=>x.id===detailPid);
@@ -938,7 +976,65 @@ function buildEditReminderModal(){
     </div>`);
 }
 
-// ─── TOPLU WHATSAPP ───────────────────────────────────────────
+// ─── ADMIN SAYFASI ────────────────────────────────────────────
+let allUsers=[];
+async function loadAllUsers(){
+  try{ allUsers=await sbReq('GET','vc_users?order=created_at.asc'); }catch{}
+}
+
+function buildAdmin(){
+  const pending=allUsers.filter(u=>!u.active&&u.role!=='admin');
+  const active=allUsers.filter(u=>u.active||u.role==='admin');
+  return `
+  <div style="display:flex;gap:8px;margin-bottom:14px">
+    <button class="btn-p" id="add-user-btn" style="font-size:13px">+ Yeni Kullanıcı Ekle</button>
+    <button class="btn-sm btn-sm-b" id="refresh-users-btn" style="padding:10px 14px">🔄</button>
+  </div>
+  ${pending.length?`
+  <div class="sec-title" style="color:var(--amber)">⏳ Onay Bekleyenler (${pending.length})</div>
+  ${pending.map(u=>`
+    <div class="admin-user-card">
+      <div class="au-av">${initials(u.full_name)}</div>
+      <div class="au-info">
+        <div class="au-name">${u.full_name} <span class="au-badge pending">Bekliyor</span></div>
+        <div class="au-meta">@${u.username}</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn-sm btn-sm-g approve-user-btn" data-uid="${u.id}" style="padding:6px 10px">✅ Onayla</button>
+        <button class="btn-sm btn-sm-r reject-user-btn" data-uid="${u.id}" style="padding:6px 10px">✕</button>
+      </div>
+    </div>`).join('')}`:''}
+  <div class="sec-title">👥 Aktif Kullanıcılar (${active.length})</div>
+  ${active.map(u=>`
+    <div class="admin-user-card">
+      <div class="au-av ${u.role==='admin'?'admin':''}">${initials(u.full_name)}</div>
+      <div class="au-info">
+        <div class="au-name">${u.full_name}
+          ${u.role==='admin'?'<span class="au-badge admin">👑 Admin</span>':'<span class="au-badge active">Aktif</span>'}
+        </div>
+        <div class="au-meta">@${u.username}</div>
+      </div>
+      ${u.role!=='admin'?`<button class="btn-sm btn-sm-r deactivate-user-btn" data-uid="${u.id}" style="padding:6px 10px">🚫</button>`:''}
+    </div>`).join('')}`;
+}
+function buildAddUserModal(){
+  return mWrap('👤 Yeni Kullanıcı Ekle',`
+    <div class="fg"><label class="fl">Ad Soyad *</label><input class="fi" id="u-fullname" placeholder="Ahmet Yılmaz"></div>
+    <div class="fg"><label class="fl">Kullanıcı Adı *</label><input class="fi" id="u-username" placeholder="ahmetyilmaz" autocapitalize="none"></div>
+    <div class="fg"><label class="fl">Şifre *</label><input class="fi" id="u-password" type="password" placeholder="Şifre belirleyin"></div>
+    <div class="fg">
+      <label class="fl">Durum</label>
+      <select class="fi" id="u-active">
+        <option value="true">Aktif (hemen giriş yapabilir)</option>
+        <option value="false">Beklemede (onay gerekli)</option>
+      </select>
+    </div>
+    <div class="btn-row">
+      <button class="modal-cancel-btn btn-o" type="button" onclick="closeModal()">İptal</button>
+      <button class="btn-p" id="save-user-btn">Kaydet</button>
+    </div>`);
+}
+
 function buildBulkWaModal(){
   const debtors=persons.filter(p=>getBalance(p.id)>0).sort((a,b)=>getBalance(b.id)-getBalance(a.id));
   const limit=bulkWaLimit||0;
@@ -1066,7 +1162,11 @@ window.toggleDueDate = function(val){
 function bindEvents(){
   if(!localStorage.getItem('vc_loggedin')){ bindLoginEvents(); return; }
 
-  document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click',()=>{ nav=b.dataset.nav; if(nav!=='detail') detailPid=null; modal=null; txTab='all'; render(); }));
+  document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click',async()=>{
+    nav=b.dataset.nav; if(nav!=='detail') detailPid=null; modal=null; txTab='all';
+    if(nav==='admin') await loadAllUsers();
+    render();
+  }));
   document.getElementById('back-btn')?.addEventListener('click',()=>{ nav='persons'; detailPid=null; render(); });
   document.querySelectorAll('[data-person]').forEach(el=>el.addEventListener('click',()=>{ detailPid=el.dataset.person; nav='detail'; txTab='all'; render(); }));
   document.getElementById('search-input')?.addEventListener('input',e=>{ search=e.target.value; render(); });
@@ -1205,15 +1305,53 @@ function bindEvents(){
     await updateTx(editTxId,{person_id:document.getElementById('f-pid').value,type,desc:document.getElementById('f-desc').value.trim(),amount:parseFloat(amount),date,due_date:type!=='payment'?due:null,note:document.getElementById('f-note').value.trim()});
     modal=null; toast('✅ Güncellendi'); render();
   });
-  document.getElementById('logout-btn')?.addEventListener('click',()=>{ localStorage.removeItem('vc_loggedin'); render(); });
-  document.getElementById('change-pin-btn')?.addEventListener('click',()=>{
-    const old=document.getElementById('old-pin').value, n1=document.getElementById('new-pin').value, n2=document.getElementById('new-pin2').value;
+  document.getElementById('logout-btn')?.addEventListener('click',()=>{ clearCurrentUser(); persons=[]; txs=[]; reminders=[]; render(); });
+
+  // Şifre değiştir
+  document.getElementById('change-pin-btn')?.addEventListener('click',async()=>{
+    const old=document.getElementById('old-pin').value;
+    const n1=document.getElementById('new-pin').value;
+    const n2=document.getElementById('new-pin2').value;
     const msg=document.getElementById('pin-msg');
-    if(old!==getPin()){ msg.style.color='var(--red)'; msg.textContent='Mevcut şifre hatalı!'; return; }
-    if(n1.length!==4){ msg.style.color='var(--red)'; msg.textContent='Yeni şifre 4 haneli olmalı!'; return; }
+    if(old!==currentUser.password){ msg.style.color='var(--red)'; msg.textContent='Mevcut şifre hatalı!'; return; }
+    if(!n1){ msg.style.color='var(--red)'; msg.textContent='Yeni şifre boş olamaz!'; return; }
     if(n1!==n2){ msg.style.color='var(--red)'; msg.textContent='Şifreler eşleşmiyor!'; return; }
-    localStorage.setItem('vc_pin',n1); msg.style.color='var(--green)'; msg.textContent='✅ Şifre güncellendi!';
+    try{
+      await sbReq('PATCH',`vc_users?id=eq.${currentUser.id}`,{password:n1});
+      setCurrentUser({...currentUser,password:n1});
+      msg.style.color='var(--green)'; msg.textContent='✅ Şifre güncellendi!';
+    }catch{ msg.style.color='var(--red)'; msg.textContent='Hata oluştu!'; }
   });
+
+  // Admin işlemleri
+  document.getElementById('add-user-btn')?.addEventListener('click',()=>{ modal='add-user'; render(); });
+  document.getElementById('refresh-users-btn')?.addEventListener('click',async()=>{ await loadAllUsers(); render(); });
+  document.getElementById('save-user-btn')?.addEventListener('click',async()=>{
+    const fullname=document.getElementById('u-fullname').value.trim();
+    const username=document.getElementById('u-username').value.trim().toLowerCase();
+    const password=document.getElementById('u-password').value;
+    const active=document.getElementById('u-active').value==='true';
+    if(!fullname||!username||!password){ alert('Tüm alanlar zorunludur!'); return; }
+    try{
+      await sbReq('POST','vc_users',{id:uid(),username,full_name:fullname,password,role:'user',active,created_at:new Date().toISOString()});
+      await loadAllUsers();
+      modal=null; toast('✅ Kullanıcı eklendi'); render();
+    }catch(e){ alert('Hata: Kullanıcı adı zaten mevcut olabilir.'); }
+  });
+  document.querySelectorAll('.approve-user-btn').forEach(b=>b.addEventListener('click',async()=>{
+    await sbReq('PATCH',`vc_users?id=eq.${b.dataset.uid}`,{active:true});
+    await loadAllUsers(); toast('✅ Kullanıcı onaylandı'); render();
+  }));
+  document.querySelectorAll('.reject-user-btn').forEach(b=>b.addEventListener('click',async()=>{
+    if(!confirm('Kullanıcı silinsin mi?')) return;
+    await sbReq('DELETE',`vc_users?id=eq.${b.dataset.uid}`);
+    await loadAllUsers(); toast('🗑 Silindi'); render();
+  }));
+  document.querySelectorAll('.deactivate-user-btn').forEach(b=>b.addEventListener('click',async()=>{
+    if(!confirm('Kullanıcı pasife alınsın mı?')) return;
+    await sbReq('PATCH',`vc_users?id=eq.${b.dataset.uid}`,{active:false});
+    await loadAllUsers(); toast('🚫 Pasife alındı'); render();
+  }));
 }
 
 // ─── REPORTS ──────────────────────────────────────────────────
@@ -1283,9 +1421,7 @@ function dlPersonReport(pid){
 }
 
 // ─── INIT ─────────────────────────────────────────────────────
-// Supabase'e due_date sütununu eklemek için SQL:
-// ALTER TABLE vc_txs ADD COLUMN IF NOT EXISTS due_date text;
-if(localStorage.getItem('vc_loggedin')) loadAll(); else render();
+if(currentUser) loadAll(); else render();
 </script>
 </body>
 </html>
