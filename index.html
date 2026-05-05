@@ -166,41 +166,53 @@ textarea.fi{resize:none;height:76px}
 
 /* TAKVİM */
 .cal-wrap{background:#fff;border-radius:var(--radius);border:1px solid var(--gray2);box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden}
-.cal-header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:linear-gradient(135deg,var(--blue) 0%,var(--blue2) 100%)}
-.cal-header .cal-title{color:#fff;font-family:'Nunito',sans-serif;font-weight:800;font-size:15px}
-.cal-nav{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:16px;font-weight:700}
-.cal-nav:active{background:rgba(255,255,255,.25)}
-.cal-days-header{display:grid;grid-template-columns:repeat(7,1fr);padding:8px 8px 4px;gap:2px}
-.cal-day-name{text-align:center;font-size:10px;font-weight:800;color:var(--gray4);text-transform:uppercase;padding:4px 0}
-.cal-days-header .cal-day-name:first-child{color:var(--red)}
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);padding:4px 8px 10px;gap:2px}
-.cal-cell{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:10px;cursor:pointer;position:relative;transition:.15s;min-height:38px}
-.cal-cell:active{transform:scale(.93)}
-.cal-cell.empty{cursor:default}
-.cal-cell.today{background:var(--blue);color:#fff!important}
-.cal-cell.today .cal-num{color:#fff!important;font-weight:900}
-.cal-cell.selected{background:var(--blue-light);border:2px solid var(--blue)}
-.cal-cell.other-month{opacity:.3}
-.cal-num{font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;color:var(--text);line-height:1}
-.cal-cell.today .cal-num{color:#fff}
-.cal-dots{display:flex;gap:2px;margin-top:2px;justify-content:center}
-.cal-dot{width:5px;height:5px;border-radius:50%}
+.cal-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:linear-gradient(135deg,var(--blue) 0%,var(--blue2) 100%)}
+.cal-title{color:#fff;font-family:'Nunito',sans-serif;font-weight:900;font-size:16px;text-align:center;flex:1}
+.cal-nav{background:rgba(255,255,255,.18);border:none;color:#fff;border-radius:8px;width:34px;height:34px;cursor:pointer;font-size:20px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cal-nav:active{background:rgba(255,255,255,.3)}
+.cal-legend{display:flex;gap:10px;padding:8px 12px;background:#f8fafd;border-bottom:1px solid var(--gray2);flex-wrap:wrap}
+.cal-leg-item{display:flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:var(--gray4)}
+.cal-leg-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.cal-days-row{display:grid;grid-template-columns:repeat(7,1fr);padding:8px 6px 2px}
+.cal-day-name{text-align:center;font-size:10px;font-weight:800;color:var(--gray4);padding:4px 0;text-transform:uppercase}
+.cal-day-name.sun{color:var(--red)}
+.cal-day-name.sat{color:var(--blue)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);padding:4px 6px 10px;gap:3px}
+.cal-cell{height:46px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:5px;border-radius:10px;cursor:pointer;position:relative;transition:.12s}
+.cal-cell:active{transform:scale(.94)}
+.cal-cell.empty{cursor:default;pointer-events:none}
+.cal-cell.today .cal-num{background:var(--blue);color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center}
+.cal-cell.selected{background:var(--blue-light);border:1.5px solid var(--blue)}
+.cal-cell.has-reminder{background:var(--purple-light)}
+.cal-num{font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;color:var(--text);line-height:1;width:24px;height:24px;display:flex;align-items:center;justify-content:center}
+.cal-dots{display:flex;gap:2px;margin-top:2px;justify-content:center;flex-wrap:wrap;max-width:28px}
+.cal-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
 .cd-red{background:var(--red)}
 .cd-amber{background:var(--amber)}
 .cd-green{background:var(--green)}
+.cd-purple{background:var(--purple)}
 
 /* HATIRLATMA PANELİ */
-.reminder-panel{background:var(--gray);border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;border:1px solid var(--gray2)}
-.reminder-panel .rp-title{font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:var(--gray4);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px}
-.reminder-item{display:flex;align-items:center;gap:10px;padding:8px 10px;background:#fff;border-radius:var(--radius-sm);margin-bottom:6px;border-left:3px solid var(--gray3);cursor:pointer}
-.reminder-item.ri-over{border-left-color:var(--red);background:#fffafa}
-.reminder-item.ri-warn{border-left-color:var(--amber);background:#fffdf5}
-.reminder-item.ri-ok{border-left-color:var(--green);background:#f9fffc}
-.ri-icon{font-size:16px;flex-shrink:0}
+.reminder-panel{background:#fff;border-radius:var(--radius);border:1px solid var(--gray2);box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden}
+.rp-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--gray);border-bottom:1px solid var(--gray2)}
+.rp-title{font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:var(--text);text-transform:uppercase;letter-spacing:.4px}
+.rp-add-btn{background:var(--blue);color:#fff;border:none;border-radius:7px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer}
+.rp-body{padding:10px 12px}
+.reminder-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--radius-sm);margin-bottom:6px;border-left:4px solid var(--gray3);cursor:pointer;transition:.12s}
+.reminder-item:last-child{margin-bottom:0}
+.reminder-item:active{opacity:.8}
+.ri-vade-over{border-left-color:var(--red);background:#fff5f5}
+.ri-vade-warn{border-left-color:var(--amber);background:#fffbf0}
+.ri-vade-ok{border-left-color:var(--green);background:#f5fff8}
+.ri-manual{border-left-color:var(--purple);background:#faf5ff}
+.ri-icon{font-size:18px;flex-shrink:0;width:26px;text-align:center}
 .ri-info{flex:1;min-width:0}
-.ri-name{font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ri-meta{font-size:10px;color:var(--gray4);margin-top:1px}
-.ri-amt{font-family:'Nunito',sans-serif;font-weight:900;font-size:12px;color:var(--red);flex-shrink:0}
+.ri-name{font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ri-meta{font-size:10px;color:var(--gray4);margin-top:2px}
+.ri-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0}
+.ri-amt{font-family:'Nunito',sans-serif;font-weight:900;font-size:13px;color:var(--red)}
+.ri-del{background:var(--red-light);color:var(--red);border:none;border-radius:5px;padding:2px 7px;font-size:10px;font-weight:700;cursor:pointer}
+.rp-empty{text-align:center;padding:16px;color:var(--gray4);font-size:12px}
 </style>
 </head>
 <body>
@@ -235,6 +247,11 @@ let modal=null, editTxId=null;
 let bulkWaList=[], bulkWaIndex=0, bulkWaLimit=0;
 let calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
 let calSelectedDay=null;
+// Manuel hatırlatmalar localStorage'da tutulur
+function getReminders(){ return JSON.parse(localStorage.getItem('vc_reminders')||'[]'); }
+function saveReminders(r){ localStorage.setItem('vc_reminders',JSON.stringify(r)); }
+function addReminder(r){ const all=getReminders(); all.push({...r,id:uid()}); saveReminders(all); }
+function deleteReminder(id){ saveReminders(getReminders().filter(r=>r.id!==id)); }
 
 // ─── COMPUTED ─────────────────────────────────────────────────
 function getBalance(pid){
@@ -404,68 +421,84 @@ function buildNav(overdueCount){
 // ─── HOME ─────────────────────────────────────────────────────
 // ─── TAKVİM YARDIMCI ──────────────────────────────────────────
 function getDueDatesMap(){
-  // gün → [{person, tx, status}] map
   const map={};
   txs.forEach(t=>{
     if(!t.due_date||t.type==='payment') return;
     const p=persons.find(x=>x.id===t.person_id); if(!p) return;
-    if(getBalance(t.person_id)<=0) return; // ödendi
+    if(getBalance(t.person_id)<=0) return;
     if(!map[t.due_date]) map[t.due_date]=[];
     const d=daysDiff(t.due_date);
-    map[t.due_date].push({person:p,tx:t,status:d<0?'over':d<=7?'warn':'ok'});
+    const status=d<0?'over':d<=7?'warn':'ok';
+    map[t.due_date].push({person:p,tx:t,status});
   });
   return map;
 }
 
 function buildCalendar(){
   const now=new Date();
-  const minYear=now.getFullYear()-1;
-  const maxYear=now.getFullYear()+1;
-  // sınırla
+  const minYear=now.getFullYear()-1, maxYear=now.getFullYear()+1;
   if(calYear<minYear){calYear=minYear;calMonth=0;}
   if(calYear>maxYear){calYear=maxYear;calMonth=11;}
   const dueMap=getDueDatesMap();
+  const reminders=getReminders();
+  const reminderDays=new Set(reminders.map(r=>r.date));
   const monthNames=['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
-  const dayNames=['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'];
-  // Haftanın başı Pazartesi
   const firstDay=new Date(calYear,calMonth,1);
-  const lastDay=new Date(calYear,calMonth+1,0);
-  let startDow=firstDay.getDay(); // 0=Pazar
-  startDow=startDow===0?6:startDow-1; // Pazartesi=0
+  const lastDay=new Date(calYear,calMonth+1,0).getDate();
+  let startDow=firstDay.getDay(); startDow=startDow===0?6:startDow-1;
   const todayStr=today();
-  const cells=[];
-  // Boş hücreler
-  for(let i=0;i<startDow;i++) cells.push({empty:true});
-  // Günler
-  for(let d=1;d<=lastDay.getDate();d++){
-    const dateStr=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const dues=dueMap[dateStr]||[];
-    const hasOver=dues.some(x=>x.status==='over');
-    const hasWarn=dues.some(x=>x.status==='warn');
-    const hasOk=dues.some(x=>x.status==='ok');
-    cells.push({d,dateStr,isToday:dateStr===todayStr,dues,hasOver,hasWarn,hasOk,selected:calSelectedDay===dateStr});
-  }
   const canPrev=!(calYear===minYear&&calMonth===0);
   const canNext=!(calYear===maxYear&&calMonth===11);
+
+  // Her güne ait hücreleri oluştur
+  let cells=[];
+  for(let i=0;i<startDow;i++) cells.push(null);
+  for(let d=1;d<=lastDay;d++){
+    const ds=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dues=dueMap[ds]||[];
+    cells.push({d,ds,isToday:ds===todayStr,dues,
+      hasOver:dues.some(x=>x.status==='over'),
+      hasWarn:dues.some(x=>x.status==='warn'),
+      hasOk:dues.some(x=>x.status==='ok'),
+      hasReminder:reminderDays.has(ds),
+      selected:calSelectedDay===ds
+    });
+  }
+  // 6 satır = 42 hücre olacak şekilde doldur (sabit boyut)
+  while(cells.length<42) cells.push(null);
+
   return `<div class="cal-wrap">
     <div class="cal-header">
-      <button class="cal-nav" id="cal-prev" ${!canPrev?'disabled style="opacity:.4"':''}>‹</button>
+      <button class="cal-nav" id="cal-prev" ${!canPrev?'disabled style="opacity:.35"':''}>‹</button>
       <div class="cal-title">${monthNames[calMonth]} ${calYear}</div>
-      <button class="cal-nav" id="cal-next" ${!canNext?'disabled style="opacity:.4"':''}>›</button>
+      <button class="cal-nav" id="cal-next" ${!canNext?'disabled style="opacity:.35"':''}>›</button>
     </div>
-    <div class="cal-days-header">
-      ${['Pts','Sal','Çar','Per','Cum','Cmt','Paz'].map(d=>`<div class="cal-day-name">${d}</div>`).join('')}
+    <div class="cal-legend">
+      <div class="cal-leg-item"><div class="cal-leg-dot cd-red"></div>Gecikmiş</div>
+      <div class="cal-leg-item"><div class="cal-leg-dot cd-amber"></div>7 gün içinde</div>
+      <div class="cal-leg-item"><div class="cal-leg-dot cd-green"></div>İleride vadeli</div>
+      <div class="cal-leg-item"><div class="cal-leg-dot cd-purple"></div>Hatırlatma</div>
+    </div>
+    <div class="cal-days-row">
+      ${['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'].map((d,i)=>`<div class="cal-day-name ${i===6?'sun':i===5?'sat':''}">${d}</div>`).join('')}
     </div>
     <div class="cal-grid">
       ${cells.map(c=>{
-        if(c.empty) return `<div class="cal-cell empty"></div>`;
+        if(!c) return `<div class="cal-cell empty"></div>`;
         const dots=[];
-        if(c.hasOver) dots.push(`<div class="cal-dot cd-red"></div>`);
-        if(c.hasWarn) dots.push(`<div class="cal-dot cd-amber"></div>`);
-        if(c.hasOk)   dots.push(`<div class="cal-dot cd-green"></div>`);
-        return `<div class="cal-cell ${c.isToday?'today':''} ${c.selected?'selected':''}" data-calday="${c.dateStr}">
+        if(c.hasOver)    dots.push(`<div class="cal-dot cd-red"></div>`);
+        if(c.hasWarn)    dots.push(`<div class="cal-dot cd-amber"></div>`);
+        if(c.hasOk)      dots.push(`<div class="cal-dot cd-green"></div>`);
+        if(c.hasReminder)dots.push(`<div class="cal-dot cd-purple"></div>`);
+        const cls=[
+          'cal-cell',
+          c.isToday?'today':'',
+          c.selected?'selected':'',
+          c.hasReminder&&!c.isToday?'has-reminder':'',
+        ].filter(Boolean).join(' ');
+        return `<div class="${cls}" data-calday="${c.ds}">
           <div class="cal-num">${c.d}</div>
-          ${dots.length?`<div class="cal-dots">${dots.join('')}</div>`:''}
+          ${dots.length?`<div class="cal-dots">${dots.slice(0,3).join('')}</div>`:''}
         </div>`;
       }).join('')}
     </div>
@@ -474,38 +507,64 @@ function buildCalendar(){
 
 function buildReminderPanel(){
   const dueMap=getDueDatesMap();
-  // Seçili gün varsa onu göster, yoksa bugün + 7 gün
-  let items=[];
-  let panelTitle='';
-  if(calSelectedDay&&dueMap[calSelectedDay]){
-    items=dueMap[calSelectedDay];
-    panelTitle=`📅 ${fmtDate(calSelectedDay)} Vadeleri`;
+  const reminders=getReminders();
+  let title='', dueItems=[], manualItems=[];
+
+  if(calSelectedDay){
+    title=`📅 ${fmtDate(calSelectedDay)}`;
+    dueItems=dueMap[calSelectedDay]||[];
+    manualItems=reminders.filter(r=>r.date===calSelectedDay);
   } else {
-    // Bugün ve önümüzdeki 7 gün + geçmiş gecikmeler
-    panelTitle='⏰ Yaklaşan & Gecikmiş Vadeler';
+    title='⏰ Yaklaşan & Gecikmiş';
     Object.entries(dueMap).forEach(([date,list])=>{
-      const d=daysDiff(date);
-      if(d<=7) items=[...items,...list];
+      if(daysDiff(date)<=14) dueItems=[...dueItems,...list];
     });
-    items.sort((a,b)=>new Date(a.tx.due_date)-new Date(b.tx.due_date));
+    dueItems.sort((a,b)=>new Date(a.tx.due_date)-new Date(b.tx.due_date));
+    const upcoming=reminders.filter(r=>{ const d=daysDiff(r.date); return d>=0&&d<=14; });
+    const past=reminders.filter(r=>daysDiff(r.date)<0);
+    manualItems=[...past,...upcoming].sort((a,b)=>new Date(a.date)-new Date(b.date));
   }
-  if(!items.length) return `<div class="reminder-panel"><div class="rp-title">${panelTitle}</div><div style="font-size:12px;color:var(--gray4);text-align:center;padding:8px 0">✅ Yaklaşan vade yok</div></div>`;
+
+  const total=dueItems.length+manualItems.length;
+  const addBtn=calSelectedDay
+    ?`<button class="rp-add-btn" id="add-reminder-btn">+ Hatırlatma Ekle</button>`
+    :`<button class="rp-add-btn" id="add-reminder-btn" style="background:var(--gray4)">+ Gün Seç & Ekle</button>`;
+
   return `<div class="reminder-panel">
-    <div class="rp-title">${panelTitle} (${items.length})</div>
-    ${items.map(item=>{
-      const d=daysDiff(item.tx.due_date);
-      const cls=item.status==='over'?'ri-over':item.status==='warn'?'ri-warn':'ri-ok';
-      const icon=item.status==='over'?'🔴':item.status==='warn'?'🟡':'🟢';
-      const meta=d<0?`${Math.abs(d)} gün gecikmiş`:d===0?'Bugün vadesi doluyor':`${d} gün kaldı`;
-      return `<div class="reminder-item ${cls}" data-person="${item.person.id}">
-        <div class="ri-icon">${icon}</div>
-        <div class="ri-info">
-          <div class="ri-name">${item.person.name}</div>
-          <div class="ri-meta">${item.tx.desc||'Borç'} · ${meta}</div>
-        </div>
-        <div class="ri-amt">-${fmt(item.tx.amount)}</div>
-      </div>`;
-    }).join('')}
+    <div class="rp-header">
+      <div class="rp-title">${title}${total?' ('+total+')':''}</div>
+      ${addBtn}
+    </div>
+    <div class="rp-body">
+      ${dueItems.length?dueItems.map(item=>{
+        const d=daysDiff(item.tx.due_date);
+        const cls=item.status==='over'?'ri-vade-over':item.status==='warn'?'ri-vade-warn':'ri-vade-ok';
+        const icon=item.status==='over'?'🔴':item.status==='warn'?'🟡':'🟢';
+        const meta=d<0?`${Math.abs(d)} gün gecikmiş`:d===0?'Bugün vade!':d===1?'Yarın vade!':d+' gün kaldı';
+        return `<div class="reminder-item ${cls}" data-person="${item.person.id}">
+          <div class="ri-icon">${icon}</div>
+          <div class="ri-info">
+            <div class="ri-name">${item.person.name}</div>
+            <div class="ri-meta">💳 ${item.tx.desc||'Borç'} · ${meta} · ${fmtDate(item.tx.due_date)}</div>
+          </div>
+          <div class="ri-right"><div class="ri-amt">-${fmt(item.tx.amount)}</div></div>
+        </div>`;
+      }).join(''):''}
+      ${manualItems.length?manualItems.map(r=>{
+        const p=r.person_id?persons.find(x=>x.id===r.person_id):null;
+        const d=daysDiff(r.date);
+        const meta=d<0?`${Math.abs(d)} gün geçti`:d===0?'Bugün!':d===1?'Yarın!':d+' gün kaldı';
+        return `<div class="reminder-item ri-manual">
+          <div class="ri-icon">🔔</div>
+          <div class="ri-info">
+            <div class="ri-name">${r.text}</div>
+            <div class="ri-meta">${p?p.name+' · ':''}${meta} · ${fmtDate(r.date)}</div>
+          </div>
+          <div class="ri-right"><button class="ri-del del-reminder-btn" data-rid="${r.id}">✕</button></div>
+        </div>`;
+      }).join(''):''}
+      ${!total?`<div class="rp-empty">✅ ${calSelectedDay?'Bu gün için kayıt yok':'Yaklaşan vade veya hatırlatma yok'}</div>`:''}
+    </div>
   </div>`;
 }
 
@@ -808,6 +867,7 @@ function buildModal(){
       <button class="btn-p" id="download-person-report-btn">⬇️ İndir</button>
     </div>`); }
 
+  if(modal==='add-reminder') return buildAddReminderModal();
   if(modal==='bulk-wa') return buildBulkWaModal();
   if(modal==='bulk-wa-sending') return buildBulkWaSendingModal();
   if(modal==='confirm-delete'){ const p=persons.find(x=>x.id===detailPid);
@@ -816,6 +876,30 @@ function buildModal(){
       <div class="btn-row"><button class="btn-o" id="modal-cancel">İptal</button><button class="btn-d" id="confirm-delete-btn">Evet, Sil</button></div>`); }
 
   return '';
+}
+
+function buildAddReminderModal(){
+  const sorted=[...persons].sort((a,b)=>a.name.localeCompare(b.name,'tr'));
+  return mWrap('🔔 Hatırlatma Ekle',`
+    <div class="fg">
+      <label class="fl">Tarih *</label>
+      <input class="fi" id="r-date" type="date" value="${calSelectedDay||today()}">
+    </div>
+    <div class="fg">
+      <label class="fl">Hatırlatma Notu *</label>
+      <input class="fi" id="r-text" placeholder="Örn: Ayşe hanımı ara, ödeme kontrolü..." autofocus>
+    </div>
+    <div class="fg">
+      <label class="fl">İlgili Kişi (opsiyonel)</label>
+      <select class="fi" id="r-person">
+        <option value="">— Kişi seçin (opsiyonel) —</option>
+        ${sorted.map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}
+      </select>
+    </div>
+    <div class="btn-row">
+      <button class="btn-o" id="modal-cancel">İptal</button>
+      <button class="btn-p" id="save-reminder-btn" style="background:linear-gradient(135deg,var(--purple),#7C3AED)">🔔 Kaydet</button>
+    </div>`);
 }
 
 // ─── TOPLU WHATSAPP ───────────────────────────────────────────
@@ -964,13 +1048,27 @@ function bindEvents(){
     el.addEventListener('click',()=>{
       const d=el.dataset.calday;
       calSelectedDay=calSelectedDay===d?null:d;
-      // Sayfayı yeniden render et ama scroll pozisyonunu koru
       const scrollY=document.querySelector('.content')?.scrollTop||0;
       render();
       setTimeout(()=>{ const c=document.querySelector('.content'); if(c) c.scrollTop=scrollY; },10);
     });
   });
-
+  // Hatırlatma ekle butonu
+  document.getElementById('add-reminder-btn')?.addEventListener('click',()=>{ modal='add-reminder'; render(); });
+  // Hatırlatma kaydet
+  document.getElementById('save-reminder-btn')?.addEventListener('click',()=>{
+    const date=document.getElementById('r-date').value;
+    const text=document.getElementById('r-text').value.trim();
+    const pid=document.getElementById('r-person').value;
+    if(!date||!text){ alert('Tarih ve not zorunludur!'); return; }
+    addReminder({date,text,person_id:pid||null,created_at:new Date().toISOString()});
+    if(date) calSelectedDay=date;
+    modal=null; toast('🔔 Hatırlatma eklendi'); render();
+  });
+  // Hatırlatma sil
+  document.querySelectorAll('.del-reminder-btn').forEach(b=>{
+    b.addEventListener('click',e=>{ e.stopPropagation(); deleteReminder(b.dataset.rid); toast('Silindi'); render(); });
+  });
   // Hatırlatma panelinden kişiye git
   document.querySelectorAll('.reminder-item[data-person]').forEach(el=>{
     el.addEventListener('click',()=>{ detailPid=el.dataset.person; nav='detail'; txTab='all'; render(); });
