@@ -1054,7 +1054,10 @@ function bindEvents(){
     });
   });
   // Hatırlatma ekle butonu
-  document.getElementById('add-reminder-btn')?.addEventListener('click',()=>{ modal='add-reminder'; render(); });
+  document.getElementById('add-reminder-btn')?.addEventListener('click',()=>{
+    if(!calSelectedDay) calSelectedDay=today();
+    modal='add-reminder'; render();
+  });
   // Hatırlatma kaydet
   document.getElementById('save-reminder-btn')?.addEventListener('click',()=>{
     const date=document.getElementById('r-date').value;
@@ -1075,6 +1078,7 @@ function bindEvents(){
   });
   document.getElementById('add-person-btn')?.addEventListener('click',()=>{ modal='add-person'; render(); });
   document.getElementById('edit-person-btn')?.addEventListener('click',()=>{ modal='edit-person'; render(); });
+  document.getElementById('add-tx-btn')?.addEventListener('click',()=>{ modal='add-tx'; render(); });
   document.getElementById('quick-add-btn')?.addEventListener('click',()=>{ modal='quick-add'; render(); });
   document.getElementById('person-report-btn')?.addEventListener('click',()=>{ modal='person-report'; render(); });
   document.getElementById('delete-person-btn')?.addEventListener('click',()=>{ modal='confirm-delete'; render(); });
@@ -1114,7 +1118,7 @@ function bindEvents(){
 
   document.getElementById('download-report-btn')?.addEventListener('click',()=>dlFullReport());
   document.getElementById('modal-overlay')?.addEventListener('click',e=>{ if(e.target.id==='modal-overlay'){ modal=null; render(); } });
-  document.getElementById('modal-cancel')?.addEventListener('click',()=>{ modal=null; render(); });
+  document.querySelectorAll('#modal-cancel').forEach(b=>b.addEventListener('click',()=>{ modal=null; render(); }));
 
   document.querySelectorAll('.edit-tx-btn').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); editTxId=b.dataset.txid; modal='edit-tx'; render(); }));
     const name=document.getElementById('f-name').value.trim(); if(!name){ alert('Ad Soyad zorunludur!'); return; }
