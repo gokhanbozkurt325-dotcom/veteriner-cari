@@ -243,15 +243,34 @@ const daysDiff = (d)=>{ const ms=new Date(d)-new Date(today()); return Math.ceil
 let persons=[], txs=[], dataLoading=true;
 let pinVal='', pinErr='';
 let nav='home', detailPid=null, txTab='all', filterType='all', search='';
-let modal=null, editTxId=null;
+let modal=null, editTxId=null, editReminderId=null;
 let bulkWaList=[], bulkWaIndex=0, bulkWaLimit=0;
 let calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
 let calSelectedDay=null;
-// Manuel hatırlatmalar localStorage'da tutulur
-function getReminders(){ return JSON.parse(localStorage.getItem('vc_reminders')||'[]'); }
-function saveReminders(r){ localStorage.setItem('vc_reminders',JSON.stringify(r)); }
-function addReminder(r){ const all=getReminders(); all.push({...r,id:uid()}); saveReminders(all); }
-function deleteReminder(id){ saveReminders(getReminders().filter(r=>r.id!==id)); }
+// Hatırlatmalar — Supabase + localStorage yedek
+let reminders=[];
+async function loadReminders(){
+  try{ reminders=await sbReq('GET','vc_reminders?order=date.asc'); }
+  catch{ reminders=JSON.parse(localStorage.getItem('vc_reminders')||'[]'); }
+}
+function saveRemindersLocal(){ localStorage.setItem('vc_reminders',JSON.stringify(reminders)); }
+async function addReminder(r){
+  const nr={...r,id:uid()};
+  try{ const res=await sbReq('POST','vc_reminders',nr); reminders=[...reminders,...(Array.isArray(res)?res:[res])]; }
+  catch{ reminders=[...reminders,nr]; }
+  reminders.sort((a,b)=>a.date.localeCompare(b.date));
+  saveRemindersLocal();
+}
+async function updateReminder(id,upd){
+  try{ await sbReq('PATCH','vc_reminders?id=eq.'+id,upd); }catch{}
+  reminders=reminders.map(r=>r.id===id?{...r,...upd}:r);
+  saveRemindersLocal();
+}
+async function deleteReminder(id){
+  try{ await sbReq('DELETE','vc_reminders?id=eq.'+id); }catch{}
+  reminders=reminders.filter(r=>r.id!==id);
+  saveRemindersLocal();
+}
 
 // ─── COMPUTED ─────────────────────────────────────────────────
 function getBalance(pid){
@@ -306,6 +325,7 @@ async function loadAll(){
     persons=JSON.parse(localStorage.getItem('vc_persons')||'[]');
     txs=JSON.parse(localStorage.getItem('vc_txs')||'[]');
   }
+  await loadReminders();
   dataLoading=false; render();
 }
 function saveLocal(){ localStorage.setItem('vc_persons',JSON.stringify(persons)); localStorage.setItem('vc_txs',JSON.stringify(txs)); }
@@ -440,7 +460,6 @@ function buildCalendar(){
   if(calYear<minYear){calYear=minYear;calMonth=0;}
   if(calYear>maxYear){calYear=maxYear;calMonth=11;}
   const dueMap=getDueDatesMap();
-  const reminders=getReminders();
   const reminderDays=new Set(reminders.map(r=>r.date));
   const monthNames=['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
   const firstDay=new Date(calYear,calMonth,1);
@@ -507,7 +526,6 @@ function buildCalendar(){
 
 function buildReminderPanel(){
   const dueMap=getDueDatesMap();
-  const reminders=getReminders();
   let title='', dueItems=[], manualItems=[];
 
   if(calSelectedDay){
@@ -522,13 +540,11 @@ function buildReminderPanel(){
     dueItems.sort((a,b)=>new Date(a.tx.due_date)-new Date(b.tx.due_date));
     const upcoming=reminders.filter(r=>{ const d=daysDiff(r.date); return d>=0&&d<=14; });
     const past=reminders.filter(r=>daysDiff(r.date)<0);
-    manualItems=[...past,...upcoming].sort((a,b)=>new Date(a.date)-new Date(b.date));
+    manualItems=[...past,...upcoming].sort((a,b)=>a.date.localeCompare(b.date));
   }
 
   const total=dueItems.length+manualItems.length;
-  const addBtn=calSelectedDay
-    ?`<button class="rp-add-btn" id="add-reminder-btn">+ Hatırlatma Ekle</button>`
-    :`<button class="rp-add-btn" id="add-reminder-btn" style="background:var(--gray4)">+ Gün Seç & Ekle</button>`;
+  const addBtn=`<button class="rp-add-btn" id="add-reminder-btn">+ Ekle</button>`;
 
   return `<div class="reminder-panel">
     <div class="rp-header">
@@ -560,7 +576,10 @@ function buildReminderPanel(){
             <div class="ri-name">${r.text}</div>
             <div class="ri-meta">${p?p.name+' · ':''}${meta} · ${fmtDate(r.date)}</div>
           </div>
-          <div class="ri-right"><button class="ri-del del-reminder-btn" data-rid="${r.id}">✕</button></div>
+          <div class="ri-right" style="display:flex;gap:5px">
+            <button class="ri-del edit-reminder-btn" data-rid="${r.id}" style="background:var(--blue-light);color:var(--blue)">✏️</button>
+            <button class="ri-del del-reminder-btn" data-rid="${r.id}">✕</button>
+          </div>
         </div>`;
       }).join(''):''}
       ${!total?`<div class="rp-empty">✅ ${calSelectedDay?'Bu gün için kayıt yok':'Yaklaşan vade veya hatırlatma yok'}</div>`:''}
@@ -868,6 +887,7 @@ function buildModal(){
     </div>`); }
 
   if(modal==='add-reminder') return buildAddReminderModal();
+  if(modal==='edit-reminder') return buildEditReminderModal();
   if(modal==='bulk-wa') return buildBulkWaModal();
   if(modal==='bulk-wa-sending') return buildBulkWaSendingModal();
   if(modal==='confirm-delete'){ const p=persons.find(x=>x.id===detailPid);
@@ -878,27 +898,40 @@ function buildModal(){
   return '';
 }
 
-function buildAddReminderModal(){
+function reminderFormFields(r){
   const sorted=[...persons].sort((a,b)=>a.name.localeCompare(b.name,'tr'));
-  return mWrap('🔔 Hatırlatma Ekle',`
+  return `
     <div class="fg">
       <label class="fl">Tarih *</label>
-      <input class="fi" id="r-date" type="date" value="${calSelectedDay||today()}">
+      <input class="fi" id="r-date" type="date" value="${r.date||calSelectedDay||today()}">
     </div>
     <div class="fg">
       <label class="fl">Hatırlatma Notu *</label>
-      <input class="fi" id="r-text" placeholder="Örn: Ayşe hanımı ara, ödeme kontrolü..." autofocus>
+      <input class="fi" id="r-text" placeholder="Örn: Ayşe hanımı ara, ödeme kontrolü..." value="${r.text||''}">
     </div>
     <div class="fg">
       <label class="fl">İlgili Kişi (opsiyonel)</label>
       <select class="fi" id="r-person">
-        <option value="">— Kişi seçin (opsiyonel) —</option>
-        ${sorted.map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}
+        <option value="">— Kişi seçin —</option>
+        ${sorted.map(p=>`<option value="${p.id}" ${p.id===r.person_id?'selected':''}>${p.name}</option>`).join('')}
       </select>
-    </div>
+    </div>`;
+}
+
+function buildAddReminderModal(){
+  return mWrap('🔔 Hatırlatma Ekle', reminderFormFields({})+`
     <div class="btn-row">
       <button class="btn-o" id="modal-cancel">İptal</button>
       <button class="btn-p" id="save-reminder-btn" style="background:linear-gradient(135deg,var(--purple),#7C3AED)">🔔 Kaydet</button>
+    </div>`);
+}
+
+function buildEditReminderModal(){
+  const r=reminders.find(x=>x.id===editReminderId)||{};
+  return mWrap('✏️ Hatırlatmayı Düzenle', reminderFormFields(r)+`
+    <div class="btn-row">
+      <button class="btn-o" id="modal-cancel">İptal</button>
+      <button class="btn-p" id="update-reminder-btn" style="background:linear-gradient(135deg,var(--purple),#7C3AED)">💾 Güncelle</button>
     </div>`);
 }
 
@@ -1059,18 +1092,32 @@ function bindEvents(){
     modal='add-reminder'; render();
   });
   // Hatırlatma kaydet
-  document.getElementById('save-reminder-btn')?.addEventListener('click',()=>{
+  document.getElementById('save-reminder-btn')?.addEventListener('click',async()=>{
     const date=document.getElementById('r-date').value;
     const text=document.getElementById('r-text').value.trim();
     const pid=document.getElementById('r-person').value;
     if(!date||!text){ alert('Tarih ve not zorunludur!'); return; }
-    addReminder({date,text,person_id:pid||null,created_at:new Date().toISOString()});
-    if(date) calSelectedDay=date;
+    await addReminder({date,text,person_id:pid||null,created_at:new Date().toISOString()});
+    calSelectedDay=date;
     modal=null; toast('🔔 Hatırlatma eklendi'); render();
+  });
+  // Hatırlatma güncelle
+  document.getElementById('update-reminder-btn')?.addEventListener('click',async()=>{
+    const date=document.getElementById('r-date').value;
+    const text=document.getElementById('r-text').value.trim();
+    const pid=document.getElementById('r-person').value;
+    if(!date||!text){ alert('Tarih ve not zorunludur!'); return; }
+    await updateReminder(editReminderId,{date,text,person_id:pid||null});
+    calSelectedDay=date;
+    modal=null; toast('✅ Hatırlatma güncellendi'); render();
+  });
+  // Hatırlatma düzenle butonu
+  document.querySelectorAll('.edit-reminder-btn').forEach(b=>{
+    b.addEventListener('click',e=>{ e.stopPropagation(); editReminderId=b.dataset.rid; modal='edit-reminder'; render(); });
   });
   // Hatırlatma sil
   document.querySelectorAll('.del-reminder-btn').forEach(b=>{
-    b.addEventListener('click',e=>{ e.stopPropagation(); deleteReminder(b.dataset.rid); toast('Silindi'); render(); });
+    b.addEventListener('click',async e=>{ e.stopPropagation(); if(!confirm('Hatırlatma silinsin mi?')) return; await deleteReminder(b.dataset.rid); toast('🗑 Silindi'); render(); });
   });
   // Hatırlatma panelinden kişiye git
   document.querySelectorAll('.reminder-item[data-person]').forEach(el=>{
