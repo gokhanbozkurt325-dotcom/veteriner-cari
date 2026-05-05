@@ -1157,17 +1157,15 @@ function bindEvents(){
 
   // Toplu WA durdur
   document.getElementById('wa-stop-btn')?.addEventListener('click',()=>{ modal=null; bulkWaList=[]; bulkWaIndex=0; render(); });
-  document.getElementById('save-person-btn')?.addEventListener('click',async()=>{
-  document.getElementById('download-person-report-btn')?.addEventListener('click',()=>dlPersonReport(detailPid));
 
-  // WhatsApp butonları (listede)
-  document.querySelectorAll('.wa-btn').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); sendWhatsApp(b.dataset.pid); }));
-
-  document.getElementById('download-report-btn')?.addEventListener('click',()=>dlFullReport());
   document.getElementById('modal-overlay')?.addEventListener('click',e=>{ if(e.target.id==='modal-overlay'){ modal=null; render(); } });
   document.querySelectorAll('.modal-cancel-btn').forEach(b=>b.addEventListener('click',()=>{ modal=null; render(); }));
-
   document.querySelectorAll('.edit-tx-btn').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); editTxId=b.dataset.txid; modal='edit-tx'; render(); }));
+  document.querySelectorAll('.wa-btn').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); sendWhatsApp(b.dataset.pid); }));
+  document.getElementById('download-report-btn')?.addEventListener('click',()=>dlFullReport());
+  document.getElementById('download-person-report-btn')?.addEventListener('click',()=>dlPersonReport(detailPid));
+
+  document.getElementById('save-person-btn')?.addEventListener('click',async()=>{
     const name=document.getElementById('f-name').value.trim(); if(!name){ alert('Ad Soyad zorunludur!'); return; }
     await addPerson({id:uid(),name,phone:document.getElementById('f-phone').value.trim(),address:document.getElementById('f-address').value.trim(),note:document.getElementById('f-note').value.trim(),created_at:new Date().toISOString()});
     modal=null; toast('✅ Cari kaydedildi'); render();
