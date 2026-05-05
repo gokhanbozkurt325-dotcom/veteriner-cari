@@ -357,6 +357,9 @@ async function updateTx(id,upd){
 // ─── TOAST ────────────────────────────────────────────────────
 function toast(msg){ document.querySelectorAll('.toast').forEach(e=>e.remove()); const d=document.createElement('div'); d.className='toast'; d.textContent=msg; document.body.appendChild(d); setTimeout(()=>d.remove(),2200); }
 
+// Global modal kapatıcı — onclick ile çağrılır
+window.closeModal = function(){ modal=null; render(); };
+
 // ─── RENDER ───────────────────────────────────────────────────
 function render(){ document.getElementById('app').innerHTML=buildHTML(); bindEvents(); }
 
@@ -835,20 +838,20 @@ function buildModal(){
     <div class="fg"><label class="fl">Telefon</label><input class="fi" id="f-phone" type="tel" inputmode="numeric" placeholder="05XX XXX XX XX"></div>
     <div class="fg"><label class="fl">Adres / Köy</label><input class="fi" id="f-address" placeholder="Burdur / Yeşilova..."></div>
     <div class="fg"><label class="fl">Not</label><textarea class="fi" id="f-note" placeholder="Ek bilgiler..."></textarea></div>
-    <div class="btn-row"><button class="modal-cancel-btn btn-o">İptal</button><button class="btn-p" id="save-person-btn">Kaydet</button></div>`);
+    <div class="btn-row"><button class="modal-cancel-btn btn-o" onclick="closeModal()">İptal</button><button class="btn-p" id="save-person-btn">Kaydet</button></div>`);
 
   if(modal==='edit-person'){ const p=persons.find(x=>x.id===detailPid)||{}; return mWrap('Kişiyi Düzenle',`
     <div class="fg"><label class="fl">Ad Soyad *</label><input class="fi" id="f-name" value="${p.name||''}"></div>
     <div class="fg"><label class="fl">Telefon</label><input class="fi" id="f-phone" type="tel" inputmode="numeric" value="${p.phone||''}"></div>
     <div class="fg"><label class="fl">Adres / Köy</label><input class="fi" id="f-address" value="${p.address||''}"></div>
     <div class="fg"><label class="fl">Not</label><textarea class="fi" id="f-note">${p.note||''}</textarea></div>
-    <div class="btn-row"><button class="modal-cancel-btn btn-o">İptal</button><button class="btn-p" id="update-person-btn">Güncelle</button></div>`); }
+    <div class="btn-row"><button class="modal-cancel-btn btn-o" onclick="closeModal()">İptal</button><button class="btn-p" id="update-person-btn">Güncelle</button></div>`); }
 
   if(modal==='add-tx') return mWrap('Yeni İşlem', txFormHTML({person_id:detailPid})+`
-    <div class="btn-row"><button class="modal-cancel-btn btn-o">İptal</button><button class="btn-p" id="save-tx-btn">Kaydet</button></div>`);
+    <div class="btn-row"><button class="modal-cancel-btn btn-o" onclick="closeModal()">İptal</button><button class="btn-p" id="save-tx-btn">Kaydet</button></div>`);
 
   if(modal==='edit-tx'){ const t=txs.find(x=>x.id===editTxId)||{}; return mWrap('İşlemi Düzenle', txFormHTML(t)+`
-    <div class="btn-row"><button class="modal-cancel-btn btn-o">İptal</button><button class="btn-p" id="update-tx-btn">Güncelle</button></div>`); }
+    <div class="btn-row"><button class="modal-cancel-btn btn-o" onclick="closeModal()">İptal</button><button class="btn-p" id="update-tx-btn">Güncelle</button></div>`); }
 
   if(modal==='quick-add'){ const sorted=[...persons].sort((a,b)=>a.name.localeCompare(b.name,'tr')); return mWrap('⚡ Hızlı İşlem',`
     <div class="fg"><label class="fl">Cari Kişi *</label><select class="fi" id="f-pid"><option value="">-- Seçiniz --</option>${sorted.map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}</select></div>
@@ -861,7 +864,7 @@ function buildModal(){
     <div class="fg"><label class="fl">Vade Tarihi</label><input class="fi" id="f-due" type="date"><div style="font-size:11px;color:var(--gray4);margin-top:4px">Ödeme beklenen son tarih (ödeme türü için boş bırakın)</div></div>
     <div class="fg"><label class="fl">Açıklama</label><input class="fi" id="f-desc" placeholder="İşlem açıklaması..."></div>
     <div class="fg"><label class="fl">Tarih</label><input class="fi" id="f-date" type="date" value="${today()}"></div>
-    <div class="btn-row"><button class="modal-cancel-btn btn-o">İptal</button><button class="btn-p" id="save-quick-tx-btn">Kaydet</button></div>`); }
+    <div class="btn-row"><button class="modal-cancel-btn btn-o" onclick="closeModal()">İptal</button><button class="btn-p" id="save-quick-tx-btn">Kaydet</button></div>`); }
 
   if(modal==='person-report'){ const p=persons.find(x=>x.id===detailPid); if(!p) return '';
     const ptxs=txs.filter(t=>t.person_id===p.id).sort((a,b)=>new Date(a.date)-new Date(b.date));
@@ -882,7 +885,7 @@ function buildModal(){
       }).join('')||'<div class="empty"><p>İşlem yok</p></div>'}
     </div>
     <div class="btn-row" style="margin-top:14px">
-      <button class="modal-cancel-btn btn-o">Kapat</button>
+      <button class="modal-cancel-btn btn-o" onclick="closeModal()">Kapat</button>
       <button class="btn-p" id="download-person-report-btn">⬇️ İndir</button>
     </div>`); }
 
@@ -893,7 +896,7 @@ function buildModal(){
   if(modal==='confirm-delete'){ const p=persons.find(x=>x.id===detailPid);
     return mWrap('⚠️ Cariyi Sil',`
       <p style="font-size:14px;color:var(--text2);margin-bottom:18px"><b>${p?p.name:''}</b> adlı kişiyi ve tüm işlem kayıtlarını silmek istiyor musunuz?<br><br>⚠️ Bu işlem <b>geri alınamaz.</b></p>
-      <div class="btn-row"><button class="modal-cancel-btn btn-o">İptal</button><button class="btn-d" id="confirm-delete-btn">Evet, Sil</button></div>`); }
+      <div class="btn-row"><button class="modal-cancel-btn btn-o" onclick="closeModal()">İptal</button><button class="btn-d" id="confirm-delete-btn">Evet, Sil</button></div>`); }
 
   return '';
 }
@@ -921,7 +924,7 @@ function reminderFormFields(r){
 function buildAddReminderModal(){
   return mWrap('🔔 Hatırlatma Ekle', reminderFormFields({})+`
     <div class="btn-row">
-      <button class="modal-cancel-btn btn-o">İptal</button>
+      <button class="modal-cancel-btn btn-o" onclick="closeModal()">İptal</button>
       <button class="btn-p" id="save-reminder-btn" style="background:linear-gradient(135deg,var(--purple),#7C3AED)">🔔 Kaydet</button>
     </div>`);
 }
@@ -930,7 +933,7 @@ function buildEditReminderModal(){
   const r=reminders.find(x=>x.id===editReminderId)||{};
   return mWrap('✏️ Hatırlatmayı Düzenle', reminderFormFields(r)+`
     <div class="btn-row">
-      <button class="modal-cancel-btn btn-o">İptal</button>
+      <button class="modal-cancel-btn btn-o" onclick="closeModal()">İptal</button>
       <button class="btn-p" id="update-reminder-btn" style="background:linear-gradient(135deg,var(--purple),#7C3AED)">💾 Güncelle</button>
     </div>`);
 }
@@ -953,7 +956,7 @@ function buildBulkWaModal(){
       ${buildWaPreview(filtered,limit)}
     </div>
     <div class="btn-row">
-      <button class="modal-cancel-btn btn-o">İptal</button>
+      <button class="modal-cancel-btn btn-o" onclick="closeModal()">İptal</button>
       <button class="btn-p" id="wa-filter-btn">🔍 Filtrele</button>
       <button class="btn-wa" id="wa-start-btn" ${filtered.length===0?'disabled style="opacity:.5"':''}>▶️ Başlat (${filtered.length} kişi)</button>
     </div>`);
@@ -998,7 +1001,7 @@ function buildBulkWaSendingModal(){
       📱 ${p.phone?'WhatsApp Aç & Gönder':'Telefon No Yok — Atla'}
     </button>
     <button class="btn-o" id="wa-skip-btn">⏭ Bu Kişiyi Atla</button>
-    `:`<button class="modal-cancel-btn btn-p">✅ Tamamlandı, Kapat</button>`}
+    `:`<button class="modal-cancel-btn btn-p" onclick="closeModal()">✅ Tamamlandı, Kapat</button>`}
     <button class="btn-d" id="wa-stop-btn" style="margin-top:8px">⏹ Durdur</button>`);
 }
 
