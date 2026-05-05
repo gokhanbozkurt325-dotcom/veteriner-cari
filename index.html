@@ -194,6 +194,7 @@ let persons=[], txs=[], dataLoading=true;
 let pinVal='', pinErr='';
 let nav='home', detailPid=null, txTab='all', filterType='all', search='';
 let modal=null, editTxId=null;
+let bulkWaList=[], bulkWaIndex=0, bulkWaLimit=0;
 
 // ─── COMPUTED ─────────────────────────────────────────────────
 function getBalance(pid){
@@ -555,7 +556,8 @@ function buildReport(){
       <div class="ii"><div class="iname">${p.name}</div><div class="isub">${p.phone||''}</div></div>
       <div class="amt amt-debt">-${fmt(getBalance(p.id))}</div>
     </div>`).join('')||`<div class="empty"><p>Borçlu yok 🎉</p></div>`}
-  <button class="btn-p" id="download-report-btn" style="margin-top:10px">⬇️ Tüm Raporu İndir</button>`;
+  <button class="btn-p" id="download-report-btn" style="margin-top:10px">⬇️ Tüm Raporu İndir</button>
+  <button class="btn-wa" id="bulk-wa-btn" style="margin-top:8px">📱 Toplu WhatsApp Gönder</button>`;
 }
 
 // ─── SETTINGS ─────────────────────────────────────────────────
@@ -655,12 +657,103 @@ function buildModal(){
       <button class="btn-p" id="download-person-report-btn">⬇️ İndir</button>
     </div>`); }
 
+  if(modal==='bulk-wa') return buildBulkWaModal();
+  if(modal==='bulk-wa-sending') return buildBulkWaSendingModal();
   if(modal==='confirm-delete'){ const p=persons.find(x=>x.id===detailPid);
     return mWrap('⚠️ Cariyi Sil',`
       <p style="font-size:14px;color:var(--text2);margin-bottom:18px"><b>${p?p.name:''}</b> adlı kişiyi ve tüm işlem kayıtlarını silmek istiyor musunuz?<br><br>⚠️ Bu işlem <b>geri alınamaz.</b></p>
       <div class="btn-row"><button class="btn-o" id="modal-cancel">İptal</button><button class="btn-d" id="confirm-delete-btn">Evet, Sil</button></div>`); }
 
   return '';
+}
+
+// ─── TOPLU WHATSAPP ───────────────────────────────────────────
+function buildBulkWaModal(){
+  const debtors=persons.filter(p=>getBalance(p.id)>0).sort((a,b)=>getBalance(b.id)-getBalance(a.id));
+  const limit=bulkWaLimit||0;
+  const filtered=limit>0?debtors.filter(p=>getBalance(p.id)>=limit):debtors;
+  return mWrap('📱 Toplu WhatsApp Gönder',`
+    <div style="background:var(--amber-light);border-radius:10px;padding:12px;margin-bottom:16px;font-size:12px;color:var(--amber);font-weight:600">
+      ⚠️ Her mesaj için WhatsApp açılır, siz "Gönder" butonuna basarsınız. Sıradaki otomatik gelir.
+    </div>
+    <div class="fg">
+      <label class="fl">Minimum Borç Limiti (₺)</label>
+      <input class="fi" id="wa-limit" type="number" inputmode="numeric" min="0" step="100" value="${limit||''}" placeholder="0 = tümü">
+      <div style="font-size:11px;color:var(--gray4);margin-top:4px">Bu tutarın üzerinde borcu olanlara mesaj gönderilir. 0 bırakırsanız tüm borçlulara gönderilir.</div>
+    </div>
+    <div id="wa-preview">
+      ${buildWaPreview(filtered,limit)}
+    </div>
+    <div class="btn-row">
+      <button class="btn-o" id="modal-cancel">İptal</button>
+      <button class="btn-p" id="wa-filter-btn">🔍 Filtrele</button>
+      <button class="btn-wa" id="wa-start-btn" ${filtered.length===0?'disabled style="opacity:.5"':''}>▶️ Başlat (${filtered.length} kişi)</button>
+    </div>`);
+}
+
+function buildWaPreview(list, limit){
+  if(!list.length) return `<div class="empty"><div class="eicon">👥</div><p>${limit>0?limit.toLocaleString('tr-TR')+' ₺ üzeri borçlu yok':'Borçlu kişi yok'}</p></div>`;
+  return `<div style="font-size:11px;font-weight:700;color:var(--gray4);margin-bottom:8px;text-transform:uppercase">${list.length} kişi listeye alındı</div>
+  <div style="max-height:220px;overflow-y:auto">
+    ${list.map((p,i)=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--gray2)">
+        <div style="width:22px;height:22px;border-radius:50%;background:var(--blue-light);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:var(--blue);flex-shrink:0">${i+1}</div>
+        <div style="flex:1"><div style="font-size:13px;font-weight:700">${p.name}</div><div style="font-size:10px;color:var(--gray4)">${p.phone||'⚠️ Telefon yok'}</div></div>
+        <div style="font-family:'Nunito',sans-serif;font-weight:800;color:var(--red);font-size:13px">-${fmt(getBalance(p.id))}</div>
+      </div>`).join('')}
+  </div>`;
+}
+
+function buildBulkWaSendingModal(){
+  const total=bulkWaList.length;
+  const current=bulkWaIndex;
+  const done=current;
+  const remaining=total-done;
+  const p=current<total?bulkWaList[current]:null;
+  const pct=total>0?Math.round((done/total)*100):0;
+  return mWrap('📱 Toplu Gönderim',`
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:36px;margin-bottom:8px">${done>=total?'🎉':'📱'}</div>
+      <div style="font-family:'Nunito',sans-serif;font-size:22px;font-weight:900;color:var(--blue)">${done} / ${total}</div>
+      <div style="font-size:12px;color:var(--gray4);margin-top:4px">${done>=total?'Tüm mesajlar gönderildi!':remaining+' kişi kaldı'}</div>
+    </div>
+    <div style="background:var(--gray);border-radius:10px;height:10px;margin-bottom:16px;overflow:hidden">
+      <div style="background:linear-gradient(90deg,var(--blue),var(--blue2));height:100%;width:${pct}%;border-radius:10px;transition:.3s"></div>
+    </div>
+    ${done<total&&p?`
+    <div style="background:var(--blue-light);border-radius:12px;padding:14px;margin-bottom:16px">
+      <div style="font-size:11px;color:var(--gray4);font-weight:700;margin-bottom:4px">SIRADAKI KİŞİ</div>
+      <div style="font-family:'Nunito',sans-serif;font-weight:800;font-size:16px">${p.name}</div>
+      <div style="font-size:12px;color:var(--gray4);margin-top:2px">${p.phone||'Telefon yok'} · -${fmt(getBalance(p.id))}</div>
+    </div>
+    <button class="btn-wa" id="wa-send-next-btn" style="margin-bottom:8px" ${!p.phone?'disabled style="opacity:.5"':''}>
+      📱 ${p.phone?'WhatsApp Aç & Gönder':'Telefon No Yok — Atla'}
+    </button>
+    <button class="btn-o" id="wa-skip-btn">⏭ Bu Kişiyi Atla</button>
+    `:`<button class="btn-p" id="modal-cancel">✅ Tamamlandı, Kapat</button>`}
+    <button class="btn-d" id="wa-stop-btn" style="margin-top:8px">⏹ Durdur</button>`);
+}
+
+function startBulkWa(list){
+  bulkWaList=list;
+  bulkWaIndex=0;
+  modal='bulk-wa-sending';
+  render();
+}
+
+function bulkWaSendCurrent(){
+  const p=bulkWaList[bulkWaIndex];
+  if(!p) return;
+  if(p.phone) sendWhatsApp(p.id);
+  bulkWaIndex++;
+  modal='bulk-wa-sending';
+  render();
+}
+
+function bulkWaSkip(){
+  bulkWaIndex++;
+  modal='bulk-wa-sending';
+  render();
 }
 
 // ─── WHATSAPP ─────────────────────────────────────────────────
@@ -715,18 +808,44 @@ function bindEvents(){
   document.getElementById('person-report-btn')?.addEventListener('click',()=>{ modal='person-report'; render(); });
   document.getElementById('delete-person-btn')?.addEventListener('click',()=>{ modal='confirm-delete'; render(); });
   document.getElementById('wa-detail-btn')?.addEventListener('click',()=>sendWhatsApp(detailPid));
-  document.getElementById('download-report-btn')?.addEventListener('click',()=>dlFullReport());
+  document.getElementById('bulk-wa-btn')?.addEventListener('click',()=>{ bulkWaLimit=0; modal='bulk-wa'; render(); });
+
+  // Toplu WA filtrele
+  document.getElementById('wa-filter-btn')?.addEventListener('click',()=>{
+    const lv=document.getElementById('wa-limit')?.value;
+    bulkWaLimit=parseFloat(lv)||0;
+    modal='bulk-wa'; render();
+  });
+
+  // Toplu WA başlat
+  document.getElementById('wa-start-btn')?.addEventListener('click',()=>{
+    const lv=document.getElementById('wa-limit')?.value;
+    bulkWaLimit=parseFloat(lv)||0;
+    const debtors=persons.filter(p=>getBalance(p.id)>0).sort((a,b)=>getBalance(b.id)-getBalance(a.id));
+    const filtered=bulkWaLimit>0?debtors.filter(p=>getBalance(p.id)>=bulkWaLimit):debtors;
+    if(!filtered.length){ toast('Listeye uygun kişi bulunamadı!'); return; }
+    startBulkWa(filtered);
+  });
+
+  // Toplu WA gönder & sonraki
+  document.getElementById('wa-send-next-btn')?.addEventListener('click',()=>bulkWaSendCurrent());
+
+  // Toplu WA atla
+  document.getElementById('wa-skip-btn')?.addEventListener('click',()=>bulkWaSkip());
+
+  // Toplu WA durdur
+  document.getElementById('wa-stop-btn')?.addEventListener('click',()=>{ modal=null; bulkWaList=[]; bulkWaIndex=0; render(); });
+  document.getElementById('save-person-btn')?.addEventListener('click',async()=>{
   document.getElementById('download-person-report-btn')?.addEventListener('click',()=>dlPersonReport(detailPid));
-  document.getElementById('logout-btn')?.addEventListener('click',()=>{ localStorage.removeItem('vc_loggedin'); render(); });
 
   // WhatsApp butonları (listede)
   document.querySelectorAll('.wa-btn').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); sendWhatsApp(b.dataset.pid); }));
 
+  document.getElementById('download-report-btn')?.addEventListener('click',()=>dlFullReport());
   document.getElementById('modal-overlay')?.addEventListener('click',e=>{ if(e.target.id==='modal-overlay'){ modal=null; render(); } });
   document.getElementById('modal-cancel')?.addEventListener('click',()=>{ modal=null; render(); });
-  document.querySelectorAll('.edit-tx-btn').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); editTxId=b.dataset.txid; modal='edit-tx'; render(); }));
 
-  document.getElementById('save-person-btn')?.addEventListener('click',async()=>{
+  document.querySelectorAll('.edit-tx-btn').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); editTxId=b.dataset.txid; modal='edit-tx'; render(); }));
     const name=document.getElementById('f-name').value.trim(); if(!name){ alert('Ad Soyad zorunludur!'); return; }
     await addPerson({id:uid(),name,phone:document.getElementById('f-phone').value.trim(),address:document.getElementById('f-address').value.trim(),note:document.getElementById('f-note').value.trim(),created_at:new Date().toISOString()});
     modal=null; toast('✅ Cari kaydedildi'); render();
@@ -763,6 +882,7 @@ function bindEvents(){
     await updateTx(editTxId,{person_id:document.getElementById('f-pid').value,type,desc:document.getElementById('f-desc').value.trim(),amount:parseFloat(amount),date,due_date:type!=='payment'?due:null,note:document.getElementById('f-note').value.trim()});
     modal=null; toast('✅ Güncellendi'); render();
   });
+  document.getElementById('logout-btn')?.addEventListener('click',()=>{ localStorage.removeItem('vc_loggedin'); render(); });
   document.getElementById('change-pin-btn')?.addEventListener('click',()=>{
     const old=document.getElementById('old-pin').value, n1=document.getElementById('new-pin').value, n2=document.getElementById('new-pin2').value;
     const msg=document.getElementById('pin-msg');
