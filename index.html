@@ -1160,7 +1160,7 @@ window.toggleDueDate = function(val){
 
 // ─── EVENTS ───────────────────────────────────────────────────
 function bindEvents(){
-  if(!localStorage.getItem('vc_loggedin')){ bindLoginEvents(); return; }
+  if(!currentUser){ bindLoginEvents(); return; }
 
   document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click',async()=>{
     nav=b.dataset.nav; if(nav!=='detail') detailPid=null; modal=null; txTab='all';
