@@ -397,7 +397,7 @@ window.closeModal = function(){ modal=null; render(); };
 function render(){ 
   document.getElementById('app').innerHTML=buildHTML(); 
   bindEvents(); 
-  if(nav==='farms'){
+  if(nav==='farms' && typeof renderFarm === 'function'){
     renderFarm();
   }
 }
@@ -1456,7 +1456,7 @@ function dlPersonReport(pid){
 }
 
 // ─── INIT ─────────────────────────────────────────────────────
-if(currentUser) loadAll(); else render();
+// init aşağıda tüm fonksiyonlar yüklendikten sonra çalışır
 </script>
 
 <!-- SÜRÜ MODÜLÜ CSS -->
@@ -2003,8 +2003,8 @@ function renderFarm(){
 }
 
 // ─── NAV ENTEGRASYONU ─────────────────────────────────────────
-// Ana render'a farm sekmesi eklendi
-const _origBuildPage=window._origBuildPage;
+// ─── INIT ─────────────────────────────────────────────────────
+if(currentUser) loadAll(); else render();
 </script>
 </body>
 </html>
