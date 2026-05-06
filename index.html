@@ -56,11 +56,11 @@ html,body{height:100%;background:var(--gray);font-family:'Nunito Sans',sans-seri
 .back-btn{background:none;border:none;color:#fff;font-size:26px;cursor:pointer;padding:0 8px 0 0;line-height:1}
 
 /* NAV */
-.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:1px solid var(--gray2);display:flex;justify-content:space-around;padding:6px 0 10px;z-index:200;box-shadow:0 -2px 12px rgba(0,0,0,.05);overflow-x:auto}
+.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:1px solid var(--gray2);display:flex;justify-content:space-around;padding:4px 0 8px;z-index:200;box-shadow:0 -2px 12px rgba(0,0,0,.05)}
 .nav::-webkit-scrollbar{display:none}
-.nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:10px;position:relative;min-width:52px;flex-shrink:0}
-.nav-item .ni{font-size:20px;transition:.15s}
-.nav-item .nl{font-size:9px;font-weight:700;color:var(--gray3)}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;cursor:pointer;padding:2px 4px;border-radius:8px;position:relative;flex:1}
+.nav-item .ni{font-size:18px;transition:.15s}
+.nav-item .nl{font-size:8px;font-weight:700;color:var(--gray3)}
 .nav-item.active .nl{color:var(--blue)}
 .nav-item.active .ni{transform:scale(1.15)}
 .nav-badge{position:absolute;top:0;right:4px;background:var(--red);color:#fff;font-size:9px;font-weight:900;border-radius:10px;padding:1px 5px;min-width:16px;text-align:center}
