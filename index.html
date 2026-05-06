@@ -2707,23 +2707,57 @@ function bindFarmEvents() {
     const file = document.getElementById('excel-file')?.files[0];
     if(!file) { alert('Dosya seçin!'); return; }
     const text = await file.text();
-    const lines = text.split('\n').filter(l => l.trim()).slice(1);
-    let count = 0;
+    const lines = text.split('\n').filter(l => l.trim()).slice(1); // başlık satırını atla
+    let count = 0, errors = 0;
     for(const line of lines) {
-      const c = line.split(',').map(x => x.trim().replace(/"/g,''));
+      // CSV parse (tırnak içi virgülleri dikkate al)
+      const c = line.match(/(".*?"|[^,]+)(?=,|$)/g)?.map(x=>x.trim().replace(/^"|"$/g,'')) || line.split(',').map(x=>x.trim());
       if(!c[0]) continue;
-      await addAnimal({
-        farm_id: selectedFarmId,
-        ear_tag: fmtEarTag(c[0]),
-        breed: c[1]?.toLowerCase() || 'other',
-        birth_date: c[2] || null,
-        lactation_no: parseInt(c[3]) || 0,
-        status: c[4]?.toLowerCase() || 'open',
-      });
-      count++;
+      try {
+        const insemDate   = c[5]||null;
+        const pregChkDate = c[6]||null;
+        const lastBirth   = c[7]||null;
+        const heatDate    = c[8]||null;
+        const status      = c[4]?.toLowerCase()||'open';
+        const lac         = status==='heifer'?0:parseInt(c[3])||0;
+
+        // Beklenen doğum hesapla
+        let expectedBirth=null, pregDay=null;
+        if(insemDate&&pregChkDate) {
+          pregDay=daysBetween(insemDate,pregChkDate);
+          expectedBirth=addDays(pregChkDate,GESTATION_DAYS-pregDay);
+        } else if(insemDate&&['pregnant','dry'].includes(status)) {
+          expectedBirth=addDays(insemDate,GESTATION_DAYS);
+        }
+
+        const saved = await addAnimal({
+          farm_id:selectedFarmId,
+          ear_tag:fmtEarTag(c[0]),
+          breed:c[1]?.toLowerCase()||'holstein',
+          birth_date:c[2]||null,
+          lactation_no:lac,
+          status,
+          last_insemination_date:insemDate,
+          pregnancy_check_date:pregChkDate,
+          pregnancy_check_day:pregDay,
+          last_birth_date:lastBirth,
+          last_heat_date:heatDate,
+          expected_birth_date:expectedBirth,
+          notes:c[9]||null,
+        });
+
+        if(saved) {
+          // Olayları kaydet
+          if(insemDate) await addAnimalEvent({animal_id:saved.id,event_type:'insemination',event_date:insemDate,event_day:null,notes:''});
+          if(pregChkDate) await addAnimalEvent({animal_id:saved.id,event_type:'pregnancy_check',event_date:pregChkDate,event_day:pregDay,notes:''});
+          if(lastBirth) await addAnimalEvent({animal_id:saved.id,event_type:'birth',event_date:lastBirth,event_day:null,notes:''});
+          if(heatDate) await addAnimalEvent({animal_id:saved.id,event_type:'heat',event_date:heatDate,event_day:null,notes:''});
+          count++;
+        }
+      } catch(e) { console.error('Satır hatası:',e,c); errors++; }
     }
-    modal = null;
-    toast(`✅ ${count} hayvan aktarıldı`);
+    modal=null;
+    toast(`✅ ${count} hayvan aktarıldı${errors?` (${errors} hata)`:''}`);
     renderFarm();
   });
 }
