@@ -1458,430 +1458,1082 @@ function dlPersonReport(pid){
 if(currentUser) loadAll(); else render();
 </script>
 
+
 <!-- SÜRÜ MODÜLÜ CSS -->
 <style>
-.farm-card{background:#fff;border-radius:var(--radius);border:1px solid var(--gray2);padding:14px;margin-bottom:10px;cursor:pointer;box-shadow:var(--shadow);transition:.15s}
+.farm-card{background:#fff;border-radius:var(--radius);border:1px solid var(--gray2);padding:14px;margin-bottom:10px;cursor:pointer;box-shadow:var(--shadow)}
 .farm-card:active{background:var(--blue-light)}
-.farm-card .fc-header{display:flex;align-items:center;gap:12px;margin-bottom:8px}
-.farm-card .fc-av{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#16a34a,#15803d);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
-.farm-card .fc-info{flex:1}.farm-card .fc-name{font-weight:800;font-size:15px;font-family:"Nunito",sans-serif}
-.farm-card .fc-meta{font-size:11px;color:var(--gray4);margin-top:2px}
-.farm-card .fc-stats{display:flex;gap:8px;flex-wrap:wrap}
+.fc-header{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.fc-av{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#16a34a,#15803d);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.fc-info{flex:1}.fc-name{font-weight:800;font-size:15px;font-family:'Nunito',sans-serif}.fc-meta{font-size:11px;color:var(--gray4);margin-top:2px}
+.fc-stats{display:flex;gap:8px;flex-wrap:wrap}
 .fc-stat{background:var(--gray);border-radius:7px;padding:5px 10px;font-size:11px;font-weight:700;color:var(--text2)}
-.fc-stat.red{background:var(--red-light);color:var(--red)}.fc-stat.green{background:var(--green-light);color:var(--green)}
-.animal-card{background:#fff;border-radius:var(--radius-sm);border:1px solid var(--gray2);padding:12px;margin-bottom:8px;cursor:pointer;box-shadow:var(--shadow);display:flex;align-items:center;gap:10px}
+.fc-stat.red{background:var(--red-light);color:var(--red)}.fc-stat.green{background:var(--green-light);color:var(--green)}.fc-stat.amber{background:var(--amber-light);color:var(--amber)}
+.animal-card{background:#fff;border-radius:var(--radius-sm);border:1px solid var(--gray2);padding:12px;margin-bottom:8px;cursor:pointer;box-shadow:var(--shadow);display:flex;align-items:flex-start;gap:10px}
 .animal-card:active{background:var(--blue-light)}
-.animal-card.alert-red{border-left:3px solid var(--red)}.animal-card.alert-amber{border-left:3px solid var(--amber)}.animal-card.alert-green{border-left:3px solid var(--green)}.animal-card.alert-purple{border-left:3px solid var(--purple)}
+.animal-card.al-red{border-left:3px solid var(--red)}.animal-card.al-amber{border-left:3px solid var(--amber)}.animal-card.al-blue{border-left:3px solid var(--blue)}.animal-card.al-purple{border-left:3px solid var(--purple)}
 .ac-icon{width:38px;height:38px;border-radius:10px;background:var(--green-light);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-.ac-info{flex:1;min-width:0}.ac-tag{font-weight:800;font-size:13px;color:var(--text);font-family:"Nunito",sans-serif}
-.ac-meta{font-size:10px;color:var(--gray4);margin-top:2px}
-.ac-alerts{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
-.ac-alert{font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px}
-.ac-alert.red{background:var(--red-light);color:var(--red)}.ac-alert.amber{background:var(--amber-light);color:var(--amber)}
-.ac-alert.blue{background:var(--blue-light);color:var(--blue)}.ac-alert.purple{background:var(--purple-light);color:var(--purple)}
-.animal-detail-hero{background:linear-gradient(135deg,#16a34a,#15803d);padding:20px 16px 18px;text-align:center;margin:-14px -14px 16px}
-.adh-tag{color:#fff;font-family:"Nunito",sans-serif;font-size:20px;font-weight:900}
-.adh-meta{color:rgba(255,255,255,.65);font-size:12px;margin-top:4px}
-.timeline-item{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--gray2)}
+.ac-info{flex:1;min-width:0}.ac-tag{font-weight:800;font-size:13px;color:var(--text);font-family:'Nunito',sans-serif}
+.ac-meta{font-size:10px;color:var(--gray4);margin-top:2px}.ac-alerts{display:flex;gap:4px;margin-top:5px;flex-wrap:wrap}
+.ac-al{font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;white-space:nowrap}
+.ac-al.red{background:var(--red-light);color:var(--red)}.ac-al.amber{background:var(--amber-light);color:var(--amber)}
+.ac-al.blue{background:var(--blue-light);color:var(--blue)}.ac-al.purple{background:var(--purple-light);color:var(--purple)}
+.ac-al.green{background:var(--green-light);color:var(--green)}
+.adh{background:linear-gradient(135deg,#16a34a,#15803d);padding:20px 16px 18px;text-align:center;margin:-14px -14px 16px}
+.adh-tag{color:#fff;font-family:'Nunito',sans-serif;font-size:20px;font-weight:900}.adh-sub{color:rgba(255,255,255,.65);font-size:12px;margin-top:4px}
+.tl-item{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--gray2)}
 .tl-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:4px}
 .tl-info{flex:1}.tl-type{font-weight:700;font-size:13px}.tl-date{font-size:11px;color:var(--gray4);margin-top:2px}
-.alert-box{border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:8px}
-.alert-box.red{background:var(--red-light)}.alert-box.amber{background:var(--amber-light)}
-.alert-box.blue{background:var(--blue-light)}.alert-box.green{background:var(--green-light)}.alert-box.purple{background:var(--purple-light)}
-.ab-icon{font-size:18px;flex-shrink:0}.ab-text{font-size:12px;font-weight:700;flex:1}.ab-days{font-size:11px;color:var(--gray4);margin-top:2px}
+.al-box{border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:flex-start;gap:8px}
+.al-box.red{background:#fff5f5;border:1px solid #fca5a5}.al-box.amber{background:#fffbf0;border:1px solid #fcd34d}
+.al-box.blue{background:var(--blue-light);border:1px solid var(--blue-mid)}.al-box.green{background:var(--green-light);border:1px solid #86efac}
+.al-box.purple{background:var(--purple-light);border:1px solid #c4b5fd}
+.al-icon{font-size:18px;flex-shrink:0;margin-top:1px}.al-body{flex:1}.al-title{font-size:12px;font-weight:800}.al-detail{font-size:11px;color:var(--gray4);margin-top:2px}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.info-box{background:#fff;border-radius:10px;padding:10px;border:1px solid var(--gray2)}
+.info-lbl{font-size:9px;font-weight:700;color:var(--gray4);text-transform:uppercase;letter-spacing:.4px}
+.info-val{font-size:12px;font-weight:700;color:var(--text);margin-top:3px}
+.heat-track{background:var(--amber-light);border:1px solid #fcd34d;border-radius:10px;padding:12px;margin-bottom:10px}
+.heat-track-title{font-size:12px;font-weight:800;color:var(--amber);margin-bottom:8px}
+.heat-window{display:flex;align-items:center;justify-content:space-between}
+.heat-window .hw-date{font-size:13px;font-weight:800;color:var(--text)}
+.heat-window .hw-range{font-size:11px;color:var(--gray4)}
 </style>
 
 <script>
-// ─── SÜRÜ MODÜLÜ ─────────────────────────────────────────────
-const BREEDS={holstein:"Holstein",simental:"Simental",montofon:"Montofon",other:"Diğer"};
-const BREED_ICONS={holstein:"🐄",simental:"🐂",montofon:"🐮",other:"🐄"};
-const EVENT_TYPES={
-  insemination:{label:"Tohumlama",icon:"💉",color:"blue"},
-  heat:{label:"Kızgınlık",icon:"🔥",color:"red"},
-  pregnancy_check:{label:"Gebelik Kontrolü",icon:"🔬",color:"purple"},
-  birth:{label:"Doğum",icon:"🐣",color:"green"},
-  dry_off:{label:"Kuruya Alma",icon:"🛑",color:"amber"},
-  vaccination:{label:"Aşılama",icon:"💊",color:"blue"},
-  treatment:{label:"Tedavi",icon:"🩺",color:"red"},
-  milk:{label:"Süt Ölçümü",icon:"🥛",color:"green"},
-  other:{label:"Diğer",icon:"📝",color:"gray"},
+// ═══════════════════════════════════════════════════════════════
+// SÜRÜ MODÜLÜ — Tam Algoritma
+// ═══════════════════════════════════════════════════════════════
+
+// ─── SABITLER ────────────────────────────────────────────────
+const GESTATION_DAYS = 280;
+const DRY_PERIOD = 60;
+const HEAT_MIN = 18, HEAT_MAX = 24;
+const OPEN_WARN_1 = 80;   // doğum sonrası kızgınlık bekle
+const OPEN_WARN_2 = 100;  // tohumlama gecikiyor
+const PREG_CHECK_DAY = 35; // gebelik kontrolü
+
+const ANIMAL_STATUS = {
+  open:    {label:'Açık',     icon:'🟡', color:'amber'},
+  pregnant:{label:'🤰 Gebe',  icon:'🤰', color:'green'},
+  dry:     {label:'🛑 Kuru',  icon:'🛑', color:'gray'},
+  heifer:  {label:'Düve',     icon:'🐄', color:'blue'},
+  sold:    {label:'Satıldı',  icon:'💰', color:'gray'},
+  dead:    {label:'Öldü',     icon:'💀', color:'gray'},
 };
 
-const daysBetween=(d1,d2)=>{if(!d1||!d2)return 0;return Math.round((new Date(d2)-new Date(d1))/(1000*60*60*24));};
-const ageStr=(bd)=>{if(!bd)return "-";const d=daysBetween(bd,today());if(d<30)return d+" gün";if(d<365)return Math.floor(d/30)+" ay";const y=Math.floor(d/365),m=Math.floor((d%365)/30);return y+"y "+(m?m+"a":"");};
-const fmtEarTag=(v)=>{if(!v)return"";const c=v.toUpperCase().replace(/[^A-Z0-9]/g,"");if(c.startsWith("TR")&&c.length>2){const r=c.slice(2);return r.length>2?"TR-"+r.slice(0,2)+"-"+r.slice(2):"TR-"+r;}return v.toUpperCase();};
-window.formatEarTag=fmtEarTag;
+const BREEDS = {
+  holstein:'Holstein', simental:'Simental', montofon:'Montofon', other:'Diğer'
+};
+const BREED_ICONS = {
+  holstein:'🐄', simental:'🐂', montofon:'🐮', other:'🐄'
+};
 
-async function loadFarmData(){
-  try{
-    [farms,animals,animalEvents]=await Promise.all([
-      sbReq("GET","vc_farms?user_id=eq."+userId()+"&order=owner_name.asc"),
-      sbReq("GET","vc_animals?user_id=eq."+userId()+"&order=ear_tag.asc"),
-      sbReq("GET","vc_animal_events?user_id=eq."+userId()+"&order=event_date.desc"),
+const EVENT_TYPES = {
+  insemination:    {label:'Tohumlama',        icon:'💉', color:'blue'},
+  heat:            {label:'Kızgınlık',         icon:'🔥', color:'red'},
+  pregnancy_check: {label:'Gebelik Kontrolü', icon:'🔬', color:'purple'},
+  birth:           {label:'Doğum',            icon:'🐣', color:'green'},
+  dry_off:         {label:'Kuruya Alma',       icon:'🛑', color:'amber'},
+  vaccination:     {label:'Aşılama',           icon:'💊', color:'blue'},
+  treatment:       {label:'Tedavi',            icon:'🩺', color:'red'},
+  milk:            {label:'Süt Ölçümü',        icon:'🥛', color:'green'},
+  other:           {label:'Diğer',             icon:'📝', color:'gray'},
+};
+
+// ─── HELPERS ─────────────────────────────────────────────────
+const daysBetween = (d1, d2) => {
+  if(!d1||!d2) return 0;
+  return Math.round((new Date(d2) - new Date(d1)) / 86400000);
+};
+const addDays = (d, n) => {
+  if(!d) return null;
+  const dt = new Date(d); dt.setDate(dt.getDate() + n);
+  return dt.toISOString().slice(0,10);
+};
+const ageStr = (bd) => {
+  if(!bd) return '-';
+  const d = daysBetween(bd, today());
+  if(d < 0) return '-';
+  if(d < 30) return d + ' gün';
+  if(d < 365) return Math.floor(d/30) + ' ay';
+  const y = Math.floor(d/365), m = Math.floor((d%365)/30);
+  return y + 'y' + (m ? ' ' + m + 'a' : '');
+};
+const fmtEarTag = (v) => {
+  if(!v) return '';
+  const c = v.toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if(c.startsWith('TR') && c.length > 2) {
+    const r = c.slice(2);
+    return r.length > 2 ? 'TR-' + r.slice(0,2) + '-' + r.slice(2) : 'TR-' + r;
+  }
+  return v.toUpperCase();
+};
+window.formatEarTag = fmtEarTag;
+
+// ─── FARM DATA OPS ───────────────────────────────────────────
+async function loadFarmData() {
+  try {
+    [farms, animals, animalEvents] = await Promise.all([
+      sbReq('GET', 'vc_farms?user_id=eq.' + userId() + '&order=owner_name.asc'),
+      sbReq('GET', 'vc_animals?user_id=eq.' + userId() + '&order=ear_tag.asc'),
+      sbReq('GET', 'vc_animal_events?user_id=eq.' + userId() + '&order=event_date.desc'),
     ]);
-  }catch(e){console.error(e);farms=[];animals=[];animalEvents=[];}
+  } catch(e) {
+    console.error('Farm yükleme hatası:', e);
+    farms = []; animals = []; animalEvents = [];
+  }
 }
-async function addFarm(f){try{const r=await sbReq("POST","vc_farms",{...f,id:uid(),user_id:userId(),created_at:new Date().toISOString()});farms=[...farms,...(Array.isArray(r)?r:[r])];}catch(e){alert("Hata: "+e.message);}}
-async function addAnimal(a){try{const r=await sbReq("POST","vc_animals",{...a,id:uid(),user_id:userId(),created_at:new Date().toISOString()});animals=[...animals,...(Array.isArray(r)?r:[r])];}catch(e){alert("Hata: "+e.message);}}
-async function updateAnimal(id,upd){try{await sbReq("PATCH","vc_animals?id=eq."+id,upd);animals=animals.map(a=>a.id===id?{...a,...upd}:a);}catch(e){console.error(e);}}
-async function addAnimalEvent(e){try{const r=await sbReq("POST","vc_animal_events",{...e,id:uid(),user_id:userId(),created_at:new Date().toISOString()});animalEvents=[(Array.isArray(r)?r[0]:r),...animalEvents];}catch(err){console.error(err);}}
-async function deleteFarm(id){
-  const ids=animals.filter(a=>a.farm_id===id).map(a=>a.id);
-  try{if(ids.length){await sbReq("DELETE","vc_animal_events?animal_id=in.("+ids.join(",")+")");}await sbReq("DELETE","vc_animals?farm_id=eq."+id);await sbReq("DELETE","vc_farms?id=eq."+id);}catch{}
-  farms=farms.filter(f=>f.id!==id);animals=animals.filter(a=>a.farm_id!==id);animalEvents=animalEvents.filter(e=>!ids.includes(e.animal_id));
+
+async function addFarm(f) {
+  try {
+    const r = await sbReq('POST','vc_farms',{...f, id:uid(), user_id:userId(), created_at:new Date().toISOString()});
+    farms = [...farms, ...(Array.isArray(r)?r:[r])];
+    farms.sort((a,b) => (a.owner_name||'').localeCompare(b.owner_name||'', 'tr'));
+  } catch(e) { alert('İşletme eklenemedi: ' + e.message); }
 }
-async function deleteAnimal(id){try{await sbReq("DELETE","vc_animal_events?animal_id=eq."+id);await sbReq("DELETE","vc_animals?id=eq."+id);}catch{}animals=animals.filter(a=>a.id!==id);animalEvents=animalEvents.filter(e=>e.animal_id!==id);}
 
-function getAnimalAlerts(a){
-  const alerts=[];
-  const evs=animalEvents.filter(e=>e.animal_id===a.id);
-  const lastInsem=evs.find(e=>e.event_type==="insemination");
-  const lastHeat=evs.find(e=>e.event_type==="heat");
-  const lastBirth=evs.find(e=>e.event_type==="birth");
-  const lastPregChk=evs.find(e=>e.event_type==="pregnancy_check");
-  const lastDry=evs.find(e=>e.event_type==="dry_off");
+async function updateFarm(id, upd) {
+  try { await sbReq('PATCH','vc_farms?id=eq.'+id, upd); }
+  catch(e) { console.error(e); }
+  farms = farms.map(f => f.id===id ? {...f,...upd} : f);
+}
 
-  if(lastInsem&&a.status!=="pregnant"){
-    const d=daysBetween(lastInsem.event_date,today());
-    if(d>=33&&d<=42&&!lastPregChk) alerts.push({type:"amber",icon:"🔬",text:"Gebelik Kontrolü",detail:"Tohumlamadan "+d+" gün geçti — 35. gün kontrolü"});
-    if(d>42&&a.status==="open") alerts.push({type:"red",icon:"⚠️",text:"Gebelik Kontrolü Yapılmadı",detail:"Tohumlamadan "+d+" gün geçti"});
-  }
-  if(lastHeat&&a.status==="open"){
-    const d=daysBetween(lastHeat.event_date,today());
-    if(d>=19&&d<=23) alerts.push({type:"red",icon:"🔥",text:"Kızgınlık Tekrarı",detail:"Son kızgınlıktan "+d+" gün — 21. gün"});
-  }
-  if(lastBirth&&a.status!=="pregnant"){
-    const d=daysBetween(lastBirth.event_date,today());
-    if(d>=19&&d<=23) alerts.push({type:"blue",icon:"🔥",text:"İlk Kızgınlık",detail:"Doğumdan "+d+" gün — 21. gün"});
-    if(d>=79&&d<=105) alerts.push({type:"red",icon:"💉",text:"Tohumlama Zamanı",detail:"Doğumdan "+d+" gün — 80-100. gün"});
-    if(d>105) alerts.push({type:"red",icon:"⚠️",text:"Tohumlama Gecikmiş",detail:"Doğumdan "+d+" gün geçti"});
-  }
-  if(a.status==="pregnant"){
-    let exp=a.expected_birth_date;
-    if(!exp&&lastPregChk&&lastInsem){const pd=a.pregnancy_check_day||daysBetween(lastInsem.event_date,lastPregChk.event_date);const rem=280-pd;const ed=new Date(lastPregChk.event_date);ed.setDate(ed.getDate()+rem);exp=ed.toISOString().slice(0,10);}
-    else if(!exp&&lastInsem){const ed=new Date(lastInsem.event_date);ed.setDate(ed.getDate()+280);exp=ed.toISOString().slice(0,10);}
-    if(exp){
-      const dtc=daysBetween(today(),exp);
-      if(dtc<=60&&dtc>14&&!lastDry) alerts.push({type:"amber",icon:"🛑",text:"Kuruya Alma Zamanı",detail:"Doğuma "+dtc+" gün kaldı"});
-      if(dtc<=14&&dtc>=0) alerts.push({type:"purple",icon:"🐣",text:"Yakın Doğum!",detail:"Doğuma "+dtc+" gün kaldı"});
-      if(dtc<0) alerts.push({type:"red",icon:"⚠️",text:"Doğum Tarihi Geçti",detail:Math.abs(dtc)+" gün gecikmeli"});
+async function deleteFarm(id) {
+  const animalIds = animals.filter(a => a.farm_id===id).map(a => a.id);
+  try {
+    if(animalIds.length) {
+      await sbReq('DELETE', 'vc_animal_events?animal_id=in.(' + animalIds.join(',') + ')');
+      await sbReq('DELETE', 'vc_animals?farm_id=eq.' + id);
+    }
+    await sbReq('DELETE', 'vc_farms?id=eq.' + id);
+  } catch(e) { console.error(e); }
+  animalEvents = animalEvents.filter(e => !animalIds.includes(e.animal_id));
+  animals = animals.filter(a => a.farm_id !== id);
+  farms = farms.filter(f => f.id !== id);
+}
+
+async function addAnimal(a) {
+  try {
+    const r = await sbReq('POST','vc_animals',{...a, id:uid(), user_id:userId(), created_at:new Date().toISOString()});
+    const saved = Array.isArray(r) ? r[0] : r;
+    animals = [...animals, saved];
+    return saved;
+  } catch(e) { alert('Hayvan eklenemedi: ' + e.message); return null; }
+}
+
+async function updateAnimal(id, upd) {
+  try { await sbReq('PATCH','vc_animals?id=eq.'+id, upd); }
+  catch(e) { console.error(e); }
+  animals = animals.map(a => a.id===id ? {...a,...upd} : a);
+}
+
+async function deleteAnimal(id) {
+  try {
+    await sbReq('DELETE', 'vc_animal_events?animal_id=eq.' + id);
+    await sbReq('DELETE', 'vc_animals?id=eq.' + id);
+  } catch(e) { console.error(e); }
+  animalEvents = animalEvents.filter(e => e.animal_id !== id);
+  animals = animals.filter(a => a.id !== id);
+}
+
+async function addAnimalEvent(ev) {
+  try {
+    const r = await sbReq('POST','vc_animal_events',{...ev, id:uid(), user_id:userId(), created_at:new Date().toISOString()});
+    const saved = Array.isArray(r) ? r[0] : r;
+    animalEvents = [saved, ...animalEvents];
+    return saved;
+  } catch(e) { console.error(e); return null; }
+}
+
+// ─── UYARI ALGORİTMASI ───────────────────────────────────────
+function getAnimalAlerts(animal) {
+  const alerts = [];
+  const evs = animalEvents.filter(e => e.animal_id === animal.id);
+  const tdStr = today();
+
+  // Olayları bul
+  const inseminations = evs.filter(e => e.event_type === 'insemination')
+    .sort((a,b) => b.event_date.localeCompare(a.event_date)); // en yeni önce
+  const heats = evs.filter(e => e.event_type === 'heat')
+    .sort((a,b) => b.event_date.localeCompare(a.event_date));
+  const births = evs.filter(e => e.event_type === 'birth')
+    .sort((a,b) => b.event_date.localeCompare(a.event_date));
+  const pregChecks = evs.filter(e => e.event_type === 'pregnancy_check')
+    .sort((a,b) => b.event_date.localeCompare(a.event_date));
+  const dryOffs = evs.filter(e => e.event_type === 'dry_off')
+    .sort((a,b) => b.event_date.localeCompare(a.event_date));
+
+  const lastInsem = inseminations[0] || null;
+  const lastHeat = heats[0] || null;
+  const lastBirth = births[0] || null;
+  const lastPregCheck = pregChecks[0] || null;
+  const lastDryOff = dryOffs[0] || null;
+
+  const status = animal.status;
+
+  // ── DÜVE UYARILARI ──
+  if(status === 'heifer' && animal.birth_date) {
+    const ageMonths = Math.floor(daysBetween(animal.birth_date, tdStr) / 30);
+    if(ageMonths >= 10 && ageMonths < 12) {
+      alerts.push({priority:2, type:'blue', icon:'📅', title:'Tohumlamaya Hazırlan', detail:`Düve ${ageMonths} aylık — 12. ayda tohumlama planlanabilir`});
+    }
+    if(ageMonths >= 12) {
+      alerts.push({priority:1, type:'amber', icon:'💉', title:'Tohumlama Zamanı', detail:`Düve ${ageMonths} aylık — tohumlama zamanı`});
     }
   }
+
+  // ── AÇIK HAYVAN: Tohumlama sonrası takip ──
+  if(status === 'open' || status === 'heifer') {
+
+    if(lastInsem) {
+      const dSinceInsem = daysBetween(lastInsem.event_date, tdStr);
+
+      // 35. gün gebelik kontrolü
+      const hasCheckAfterInsem = pregChecks.some(p => p.event_date > lastInsem.event_date);
+      if(dSinceInsem >= 33 && dSinceInsem <= 42 && !hasCheckAfterInsem) {
+        alerts.push({priority:1, type:'purple', icon:'🔬', title:'Gebelik Kontrolü', detail:`Tohumlamadan ${dSinceInsem} gün geçti — 35. gün kontrolü`});
+      }
+      if(dSinceInsem > 42 && !hasCheckAfterInsem) {
+        alerts.push({priority:1, type:'red', icon:'⚠️', title:'Gebelik Kontrolü Yapılmadı', detail:`Tohumlamadan ${dSinceInsem} gün geçti`});
+      }
+
+      // 18-24. gün kızgınlık takibi
+      const heatAfterInsem = heats.find(h => h.event_date > lastInsem.event_date);
+      if(heatAfterInsem) {
+        const dHeat = daysBetween(lastInsem.event_date, heatAfterInsem.event_date);
+        if(dHeat >= HEAT_MIN && dHeat <= HEAT_MAX) {
+          alerts.push({priority:0, type:'red', icon:'🔥', title:'Tohum Tutmadı Olabilir', detail:`Tohumlamadan ${dHeat} gün sonra kızgınlık — gebelik muayenesi şart`});
+        }
+      } else {
+        // Kızgınlık takip penceresi
+        const windowStart = addDays(lastInsem.event_date, HEAT_MIN);
+        const windowEnd = addDays(lastInsem.event_date, HEAT_MAX);
+        if(tdStr >= windowStart && tdStr <= windowEnd) {
+          alerts.push({priority:1, type:'amber', icon:'👀', title:'Kızgınlık Takip Penceresi', detail:`${HEAT_MIN}-${HEAT_MAX}. gün (${windowStart} - ${windowEnd}) — kızgınlık izle`});
+        }
+      }
+    }
+
+    // Kızgınlık sonrası bir sonraki pencere
+    if(lastHeat && (!lastInsem || lastHeat.event_date > lastInsem.event_date)) {
+      const nextStart = addDays(lastHeat.event_date, HEAT_MIN);
+      const nextEnd = addDays(lastHeat.event_date, HEAT_MAX);
+      if(tdStr >= nextStart && tdStr <= nextEnd) {
+        alerts.push({priority:1, type:'red', icon:'🔥', title:'Kızgınlık Bekleniyor', detail:`Son kızgınlıktan ${daysBetween(lastHeat.event_date, tdStr)} gün geçti (${nextStart}–${nextEnd})`});
+      } else if(tdStr < nextStart) {
+        const dLeft = daysBetween(tdStr, nextStart);
+        if(dLeft <= 5) {
+          alerts.push({priority:2, type:'amber', icon:'⏰', title:'Kızgınlık Yaklaşıyor', detail:`${dLeft} gün sonra kızgınlık penceresi başlıyor`});
+        }
+      }
+    }
+  }
+
+  // ── DOĞUM SONRASI (açık hayvan) ──
+  if(lastBirth && (status === 'open')) {
+    const dSinceBirth = daysBetween(lastBirth.event_date, tdStr);
+
+    // Postpartum dönem (21. gün)
+    if(dSinceBirth >= 18 && dSinceBirth <= 30) {
+      alerts.push({priority:2, type:'blue', icon:'🩺', title:'Postpartum Kontrol', detail:`Doğumdan ${dSinceBirth} gün — postpartum sorunlara dikkat et`});
+    }
+
+    // 80. gün — kızgınlık bekle
+    if(dSinceBirth >= OPEN_WARN_1 && dSinceBirth < OPEN_WARN_2 && !lastInsem) {
+      alerts.push({priority:1, type:'amber', icon:'👀', title:'Kızgınlık Bekle', detail:`Doğumdan ${dSinceBirth} gün — kızgınlık gözlemle`});
+    }
+
+    // 100. gün — tohumlama gecikiyor
+    if(dSinceBirth >= OPEN_WARN_2 && !lastInsem) {
+      alerts.push({priority:0, type:'red', icon:'💉', title:'Tohumlama Gecikiyor', detail:`Doğumdan ${dSinceBirth} gün geçti — tohumlama yapılmadı`});
+    }
+  }
+
+  // ── GEBE HAYVAN ──
+  if(status === 'pregnant') {
+    // Beklenen doğum tarihini hesapla
+    let expectedBirth = animal.expected_birth_date || null;
+    if(!expectedBirth && lastPregCheck && lastInsem) {
+      const pregDay = animal.pregnancy_check_day || daysBetween(lastInsem.event_date, lastPregCheck.event_date);
+      const remaining = GESTATION_DAYS - pregDay;
+      expectedBirth = addDays(lastPregCheck.event_date, remaining);
+    } else if(!expectedBirth && lastInsem) {
+      expectedBirth = addDays(lastInsem.event_date, GESTATION_DAYS);
+    }
+
+    if(expectedBirth) {
+      const dToCalve = daysBetween(tdStr, expectedBirth);
+      const dPreg = daysBetween(lastInsem?.event_date || expectedBirth, tdStr);
+
+      // Kuruya alma (doğuma 60 gün)
+      if(dToCalve <= DRY_PERIOD && dToCalve > 14 && !lastDryOff) {
+        alerts.push({priority:0, type:'amber', icon:'🛑', title:'Kuruya Al', detail:`Doğuma ${dToCalve} gün kaldı — kuruya alma zamanı`});
+      }
+
+      // Doğum uyarıları
+      if(dToCalve <= 15 && dToCalve > 0) {
+        alerts.push({priority:0, type:'purple', icon:'🐣', title:'Doğum Yaklaşıyor', detail:`Doğuma ${dToCalve} gün kaldı`});
+      }
+      if(dToCalve >= -5 && dToCalve <= 0) {
+        alerts.push({priority:0, type:'red', icon:'⚠️', title:'DOĞUM ZAMANI', detail:`Beklenen doğum: ${fmtDate(expectedBirth)}`});
+      }
+      if(dToCalve < -5) {
+        alerts.push({priority:0, type:'red', icon:'🚨', title:'Doğum Tarihi Geçti', detail:`${Math.abs(dToCalve)} gün gecikmeli`});
+      }
+      // 265. gün hazırlan
+      if(dPreg >= 260 && dPreg < 270) {
+        alerts.push({priority:1, type:'amber', icon:'📋', title:'Doğuma Hazırlan', detail:`Gebelik ${dPreg}. gün — doğum hazırlığı başlat`});
+      }
+    }
+  }
+
+  // ── KURU HAYVAN ──
+  if(status === 'dry' && lastDryOff) {
+    const dSinceDry = daysBetween(lastDryOff.event_date, tdStr);
+    // Kuru dönem 60 gün, doğum yaklaşıyor
+    if(dSinceDry >= 45 && dSinceDry < 55) {
+      alerts.push({priority:1, type:'amber', icon:'🐣', title:'Doğum Yaklaşıyor', detail:`Kuruya alındıktan ${dSinceDry} gün geçti`});
+    }
+    if(dSinceDry >= 55) {
+      alerts.push({priority:0, type:'red', icon:'🚨', title:'Doğum Bekleniyor', detail:`Kuruya alındıktan ${dSinceDry} gün geçti`});
+    }
+  }
+
+  // Önceliğe göre sırala (0 en kritik)
+  alerts.sort((a,b) => a.priority - b.priority);
   return alerts;
 }
 
-function buildFarmModule(){
-  if(farmNav==="farm-detail") return buildFarmDetail();
-  if(farmNav==="animal-detail") return buildAnimalDetail();
+// ─── FARM PAGES ──────────────────────────────────────────────
+function buildFarmModule() {
+  if(farmNav === 'farm-detail') return buildFarmDetail();
+  if(farmNav === 'animal-detail') return buildAnimalDetail();
   return buildFarmList();
 }
 
-function buildFarmList(){
-  const ac=animals.filter(a=>getAnimalAlerts(a).length>0).length;
+function buildFarmList() {
+  const activeAnimals = animals.filter(a => !['sold','dead'].includes(a.status));
+  const alertAnimals = activeAnimals.filter(a => getAnimalAlerts(a).length > 0);
+  const pregnantCount = activeAnimals.filter(a => a.status === 'pregnant').length;
+
   return `
   <div class="stats-grid">
     <div class="stat-card sc-green"><div class="lbl">İşletme</div><div class="val">${farms.length}</div></div>
-    <div class="stat-card sc-blue"><div class="lbl">Toplam Hayvan</div><div class="val">${animals.length}</div></div>
-    <div class="stat-card sc-red"><div class="lbl">Uyarılı</div><div class="val">${ac}</div></div>
-    <div class="stat-card sc-amber"><div class="lbl">Gebe</div><div class="val">${animals.filter(a=>a.status==="pregnant").length}</div></div>
+    <div class="stat-card sc-blue"><div class="lbl">Aktif Hayvan</div><div class="val">${activeAnimals.length}</div></div>
+    <div class="stat-card sc-red"><div class="lbl">Uyarılı</div><div class="val">${alertAnimals.length}</div></div>
+    <div class="stat-card sc-amber"><div class="lbl">Gebe</div><div class="val">${pregnantCount}</div></div>
   </div>
+
   <div style="display:flex;gap:8px;margin-bottom:14px">
     <button class="btn-p" id="add-farm-btn" style="font-size:13px">🏭 Yeni İşletme</button>
     <button class="btn-sm btn-sm-b" id="farm-search-btn" style="padding:10px 14px">🔍</button>
   </div>
+
   <div class="search-bar" id="farm-search-bar" style="display:none">
     <span class="search-icon">🔍</span>
     <input class="fi" id="animal-search-input" placeholder="Küpe no veya işletme ara..." value="${animalSearch}">
   </div>
-  ${animalSearch?buildAnimalSearchResults():farms.length?farms.map(f=>{
-    const fa=animals.filter(a=>a.farm_id===f.id);
-    const aw=fa.reduce((s,a)=>s+getAnimalAlerts(a).length,0);
-    const pr=fa.filter(a=>a.status==="pregnant").length;
-  return `<div class="farm-card" data-farmid="${f.id}">
-      <div class="fc-header"><div class="fc-av">🏭</div>
-        <div class="fc-info"><div class="fc-name">${f.owner_name||'İsimsiz İşletme'}</div>
-        <div class="fc-meta">${f.farm_no?"No: "+f.farm_no+" · ":""}${f.phone||""}</div></div>
+
+  ${animalSearch ? buildAnimalSearchResults() : farms.length ? farms.map(f => {
+    const fa = animals.filter(a => a.farm_id === f.id);
+    const active = fa.filter(a => !['sold','dead'].includes(a.status));
+    const aw = active.filter(a => getAnimalAlerts(a).length > 0).length;
+    const pr = active.filter(a => a.status === 'pregnant').length;
+    const ky = active.filter(a => a.status === 'dry').length;
+    return `<div class="farm-card" data-farmid="${f.id}">
+      <div class="fc-header">
+        <div class="fc-av">🏭</div>
+        <div class="fc-info">
+          <div class="fc-name">${f.owner_name || 'İsimsiz'}</div>
+          <div class="fc-meta">${f.farm_no ? 'No: ' + f.farm_no + ' · ' : ''}${f.phone || ''}</div>
+        </div>
       </div>
       <div class="fc-stats">
-        <div class="fc-stat">${fa.length} hayvan</div>
-        ${pr?`<div class="fc-stat green">🤰 ${pr} gebe</div>`:""}
-        ${aw?`<div class="fc-stat red">⚠️ ${aw} uyarı</div>`:""}
+        <div class="fc-stat">${active.length} aktif hayvan</div>
+        ${pr ? `<div class="fc-stat green">🤰 ${pr} gebe</div>` : ''}
+        ${ky ? `<div class="fc-stat amber">🛑 ${ky} kuru</div>` : ''}
+        ${aw ? `<div class="fc-stat red">⚠️ ${aw} uyarı</div>` : ''}
       </div>
     </div>`;
-  }).join(""):`<div class="empty"><div class="eicon">🏭</div><p>Henüz işletme yok</p></div>`}`;
+  }).join('') : `<div class="empty"><div class="eicon">🏭</div><p>Henüz işletme yok<br>+ Yeni İşletme ekleyin</p></div>`}`;
 }
 
-function buildAnimalSearchResults(){
-  const q=animalSearch.toLowerCase();
-  const res=animals.filter(a=>a.ear_tag.toLowerCase().includes(q)||(farms.find(f=>f.id===a.farm_id)?.owner_name||"").toLowerCase().includes(q));
+function buildAnimalSearchResults() {
+  const q = animalSearch.toLowerCase();
+  const res = animals.filter(a =>
+    a.ear_tag.toLowerCase().includes(q) ||
+    (farms.find(f => f.id === a.farm_id)?.owner_name || '').toLowerCase().includes(q)
+  );
   if(!res.length) return `<div class="empty"><div class="eicon">🔍</div><p>Sonuç bulunamadı</p></div>`;
-  return res.map(a=>buildAnimalCard(a)).join("");
+  return `<div class="sec-title">🔍 Arama Sonuçları (${res.length})</div>` + res.map(a => buildAnimalCard(a)).join('');
 }
 
-function buildFarmDetail(){
-  const farm=farms.find(f=>f.id===selectedFarmId);
-  if(!farm) return "<p style=\"padding:20px\">İşletme bulunamadı</p>";
-  let fa=[...animals.filter(a=>a.farm_id===selectedFarmId)];
-  if(animalFilterBreed!=="all") fa=fa.filter(a=>a.breed===animalFilterBreed);
-  if(animalFilterStatus!=="all") fa=fa.filter(a=>a.status===animalFilterStatus);
+function buildFarmDetail() {
+  const farm = farms.find(f => f.id === selectedFarmId);
+  if(!farm) return '<p style="padding:20px">İşletme bulunamadı</p>';
+
+  let fa = animals.filter(a => a.farm_id === selectedFarmId);
+  if(animalFilterBreed !== 'all') fa = fa.filter(a => a.breed === animalFilterBreed);
+  if(animalFilterStatus !== 'all') fa = fa.filter(a => a.status === animalFilterStatus);
+
+  const active = animals.filter(a => a.farm_id === selectedFarmId && !['sold','dead'].includes(a.status));
+
   return `
   <div class="detail-hero" style="background:linear-gradient(135deg,#16a34a,#15803d)">
-    <div class="dav">🏭</div><div class="dname">${farm.owner_name}</div>
-    <div class="dphone">${farm.farm_no?"No: "+farm.farm_no:""}${farm.address?" · "+farm.address:""}</div>
+    <div class="dav">🏭</div>
+    <div class="dname">${farm.owner_name || 'İsimsiz'}</div>
+    <div class="dphone">${farm.farm_no ? 'No: ' + farm.farm_no : ''}${farm.address ? ' · ' + farm.address : ''}</div>
   </div>
+
   <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
     <button class="btn-p" id="add-animal-btn" style="font-size:12px;padding:9px;flex:2">🐄 Hayvan Ekle</button>
     <button class="btn-sm btn-sm-b" id="excel-import-btn" style="padding:9px 12px;font-size:11px">📊 Excel</button>
     <button class="btn-sm btn-sm-r" id="delete-farm-btn" style="padding:9px 10px;font-size:11px">🗑</button>
   </div>
+
   <div class="chip-row">
-    ${[["all","Tümü"],["holstein","Holstein"],["simental","Simental"],["montofon","Montofon"],["other","Diğer"]].map(([k,l])=>`<div class="chip ${animalFilterBreed===k?"active":""}" data-breed="${k}">${l}</div>`).join("")}
+    ${[['all','Tümü'],['open','Açık'],['pregnant','Gebe'],['dry','Kuru'],['heifer','Düve'],['sold','Satıldı'],['dead','Öldü']].map(([k,l]) =>
+      `<div class="chip ${animalFilterStatus===k?'active':''}" data-astatus="${k}">${l}</div>`).join('')}
   </div>
   <div class="chip-row">
-    ${[["all","Tümü"],["open","Açık"],["pregnant","Gebe"],["dry","Kuru"]].map(([k,l])=>`<div class="chip ${animalFilterStatus===k?"active":""}" data-astatus="${k}">${l}</div>`).join("")}
+    ${[['all','Tüm Irklar'],['holstein','Holstein'],['simental','Simental'],['montofon','Montofon'],['other','Diğer']].map(([k,l]) =>
+      `<div class="chip ${animalFilterBreed===k?'active':''}" data-breed="${k}">${l}</div>`).join('')}
   </div>
-  <div style="font-size:12px;color:var(--gray4);margin-bottom:10px">${fa.length} hayvan</div>
-  ${fa.length?fa.map(a=>buildAnimalCard(a)).join(""):`<div class="empty"><div class="eicon">🐄</div><p>Hayvan yok</p></div>`}`;
+
+  <div style="font-size:12px;color:var(--gray4);margin-bottom:10px">${fa.length} hayvan gösteriliyor · Toplam aktif: ${active.length}</div>
+  ${fa.length ? fa.map(a => buildAnimalCard(a)).join('') : `<div class="empty"><div class="eicon">🐄</div><p>Bu kategoride hayvan yok</p></div>`}`;
 }
 
-function buildAnimalCard(a){
-  const farm=farms.find(f=>f.id===a.farm_id);
-  const alerts=getAnimalAlerts(a);
-  const top=alerts[0];
-  const sl={open:"Açık",pregnant:"🤰 Gebe",dry:"🛑 Kuru"}[a.status]||a.status;
-  const evs=animalEvents.filter(e=>e.animal_id===a.id);
-  const li=evs.find(e=>e.event_type==="insemination");
-  return `<div class="animal-card ${top?"alert-"+top.type:""}" data-animalid="${a.id}">
-    <div class="ac-icon">${BREED_ICONS[a.breed]||"🐄"}</div>
+function buildAnimalCard(a) {
+  const farm = farms.find(f => f.id === a.farm_id);
+  const alerts = getAnimalAlerts(a);
+  const topAlert = alerts[0];
+  const statusInfo = ANIMAL_STATUS[a.status] || {label:a.status, icon:'?'};
+  const evs = animalEvents.filter(e => e.animal_id === a.id);
+  const lastInsem = evs.find(e => e.event_type === 'insemination');
+
+  return `<div class="animal-card ${topAlert ? 'al-' + topAlert.type : ''}" data-animalid="${a.id}">
+    <div class="ac-icon">${BREED_ICONS[a.breed] || '🐄'}</div>
     <div class="ac-info">
       <div class="ac-tag">${a.ear_tag}</div>
-      <div class="ac-meta">${BREEDS[a.breed]||"?"} · Lak:${a.lactation_no||0} · ${sl}${li?" · T:"+fmtDate(li.event_date):""}${farm&&farmNav==="farms"?" · "+farm.owner_name:""}</div>
-      ${alerts.length?`<div class="ac-alerts">${alerts.slice(0,2).map(al=>`<span class="ac-alert ${al.type}">${al.icon} ${al.text}</span>`).join("")}</div>`:""}
+      <div class="ac-meta">
+        ${BREEDS[a.breed] || '?'} · Lak:${a.lactation_no || 0} · ${statusInfo.label}
+        ${lastInsem ? ' · T:' + fmtDate(lastInsem.event_date) : ''}
+        ${farm && farmNav === 'farms' ? ' · ' + farm.owner_name : ''}
+      </div>
+      <div style="font-size:10px;color:var(--gray4)">${ageStr(a.birth_date)}</div>
+      ${alerts.length ? `<div class="ac-alerts">${alerts.slice(0,2).map(al =>
+        `<span class="ac-al ${al.type}">${al.icon} ${al.title}</span>`).join('')}</div>` : ''}
     </div>
-    <div style="font-size:10px;color:var(--gray4);text-align:right;flex-shrink:0">${ageStr(a.birth_date)}</div>
   </div>`;
 }
 
-function buildAnimalDetail(){
-  const a=animals.find(x=>x.id===selectedAnimalId);
-  if(!a) return "<p style=\"padding:20px\">Hayvan bulunamadı</p>";
-  const farm=farms.find(f=>f.id===a.farm_id);
-  const evs=animalEvents.filter(e=>e.animal_id===a.id);
-  const alerts=getAnimalAlerts(a);
-  const li=evs.find(e=>e.event_type==="insemination");
-  const lh=evs.find(e=>e.event_type==="heat");
-  const lb=evs.find(e=>e.event_type==="birth");
-  const lp=evs.find(e=>e.event_type==="pregnancy_check");
-  const ld=evs.find(e=>e.event_type==="dry_off");
-  const sl={open:"Açık",pregnant:"🤰 Gebe",dry:"🛑 Kuru"}[a.status]||a.status;
-  let exp=a.expected_birth_date;
-  if(!exp&&lp&&li){const pd=a.pregnancy_check_day||daysBetween(li.event_date,lp.event_date);const rem=280-pd;const ed=new Date(lp.event_date);ed.setDate(ed.getDate()+rem);exp=ed.toISOString().slice(0,10);}
-  else if(!exp&&li){const ed=new Date(li.event_date);ed.setDate(ed.getDate()+280);exp=ed.toISOString().slice(0,10);}
-  const dtc=exp?daysBetween(today(),exp):null;
-  const dsb=lb?daysBetween(lb.event_date,today()):null;
-  const dsi=li?daysBetween(li.event_date,today()):null;
+function buildAnimalDetail() {
+  const a = animals.find(x => x.id === selectedAnimalId);
+  if(!a) return '<p style="padding:20px">Hayvan bulunamadı</p>';
+
+  const farm = farms.find(f => f.id === a.farm_id);
+  const evs = animalEvents.filter(e => e.animal_id === a.id).sort((x,y) => y.event_date.localeCompare(x.event_date));
+  const alerts = getAnimalAlerts(a);
+  const statusInfo = ANIMAL_STATUS[a.status] || {label:a.status};
+
+  const lastInsem = evs.find(e => e.event_type === 'insemination');
+  const lastHeat = evs.find(e => e.event_type === 'heat');
+  const lastBirth = evs.find(e => e.event_type === 'birth');
+  const lastPregCheck = evs.find(e => e.event_type === 'pregnancy_check');
+  const lastDryOff = evs.find(e => e.event_type === 'dry_off');
+
+  // Beklenen doğum hesapla
+  let expectedBirth = a.expected_birth_date;
+  if(!expectedBirth && lastPregCheck && lastInsem) {
+    const pd = a.pregnancy_check_day || daysBetween(lastInsem.event_date, lastPregCheck.event_date);
+    expectedBirth = addDays(lastPregCheck.event_date, GESTATION_DAYS - pd);
+  } else if(!expectedBirth && lastInsem) {
+    expectedBirth = addDays(lastInsem.event_date, GESTATION_DAYS);
+  }
+
+  // Bir sonraki kızgınlık penceresi
+  const heatRef = lastHeat || lastInsem;
+  let nextHeatStart = null, nextHeatEnd = null;
+  if(heatRef && (a.status === 'open' || a.status === 'heifer')) {
+    nextHeatStart = addDays(heatRef.event_date, HEAT_MIN);
+    nextHeatEnd = addDays(heatRef.event_date, HEAT_MAX);
+  }
+
+  const dSinceInsem = lastInsem ? daysBetween(lastInsem.event_date, today()) : null;
+  const dSinceBirth = lastBirth ? daysBetween(lastBirth.event_date, today()) : null;
+  const dToCalve = expectedBirth ? daysBetween(today(), expectedBirth) : null;
+
   return `
-  <div class="animal-detail-hero">
-    <div style="font-size:36px;margin-bottom:8px">${BREED_ICONS[a.breed]||"🐄"}</div>
+  <div class="adh">
+    <div style="font-size:36px;margin-bottom:8px">${BREED_ICONS[a.breed] || '🐄'}</div>
     <div class="adh-tag">${a.ear_tag}</div>
-    <div class="adh-meta">${BREEDS[a.breed]||"?"} · Laktasyon ${a.lactation_no||0} · ${sl}</div>
-    <div class="adh-meta">${farm?farm.owner_name+" · ":""}${ageStr(a.birth_date)}</div>
+    <div class="adh-sub">${BREEDS[a.breed] || '?'} · Laktasyon ${a.lactation_no || 0} · ${statusInfo.label}</div>
+    <div class="adh-sub">${farm ? farm.owner_name + ' · ' : ''}${ageStr(a.birth_date)}</div>
   </div>
-  ${alerts.length?`<div style="margin-bottom:14px">${alerts.map(al=>`<div class="alert-box ${al.type}"><div class="ab-icon">${al.icon}</div><div><div class="ab-text">${al.text}</div><div class="ab-days">${al.detail}</div></div></div>`).join("")}</div>`:`<div style="background:var(--green-light);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;font-weight:700;color:var(--green)">✅ Aktif uyarı yok</div>`}
+
+  ${alerts.length ? `
+  <div style="margin-bottom:14px">
+    ${alerts.map(al => `
+    <div class="al-box ${al.type}">
+      <div class="al-icon">${al.icon}</div>
+      <div class="al-body">
+        <div class="al-title">${al.title}</div>
+        <div class="al-detail">${al.detail}</div>
+      </div>
+    </div>`).join('')}
+  </div>` : `<div style="background:var(--green-light);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;font-weight:700;color:var(--green)">✅ Aktif uyarı yok</div>`}
+
   <div style="display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap">
     <button class="btn-p" id="add-event-btn" style="font-size:12px;padding:9px;flex:2">+ Olay Ekle</button>
-    <button class="btn-sm btn-sm-b" id="edit-animal-btn" style="padding:9px 12px;font-size:11px">✏️</button>
+    <button class="btn-sm btn-sm-b" id="edit-animal-btn" style="padding:9px 12px;font-size:11px">✏️ Düzenle</button>
     <button class="btn-sm btn-sm-r" id="delete-animal-btn" style="padding:9px 10px;font-size:11px">🗑</button>
   </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
-    <div class="bal-b"><div class="bal-lbl">Doğum Tarihi</div><div class="bal-val" style="font-size:12px">${a.birth_date?fmtDate(a.birth_date):"-"}</div></div>
-    <div class="bal-b"><div class="bal-lbl">Laktasyon</div><div class="bal-val" style="font-size:12px">${a.lactation_no||0}. laktasyon</div></div>
-    <div class="bal-b"><div class="bal-lbl">Son Tohumlama</div><div class="bal-val" style="font-size:12px">${li?fmtDate(li.event_date)+" ("+dsi+" gün)":"-"}</div></div>
-    <div class="bal-b"><div class="bal-lbl">Son Kızgınlık</div><div class="bal-val" style="font-size:12px">${lh?fmtDate(lh.event_date):"-"}</div></div>
-    <div class="bal-b"><div class="bal-lbl">Son Doğum</div><div class="bal-val" style="font-size:12px">${lb?fmtDate(lb.event_date)+" ("+dsb+" gün)":"-"}</div></div>
-    <div class="bal-b"><div class="bal-lbl">Beklenen Doğum</div><div class="bal-val" style="font-size:12px;color:${dtc!==null&&dtc<=14?"var(--red)":"var(--text)"}">${exp?fmtDate(exp)+(dtc!==null?" ("+dtc+" gün)":""):"-"}</div></div>
-    <div class="bal-b"><div class="bal-lbl">Gebelik Kontrolü</div><div class="bal-val" style="font-size:12px">${lp?fmtDate(lp.event_date)+(a.pregnancy_check_day?" · "+a.pregnancy_check_day+". gün":""):"-"}</div></div>
-    <div class="bal-b"><div class="bal-lbl">Kuruya Alma</div><div class="bal-val" style="font-size:12px">${ld?fmtDate(ld.event_date):"-"}</div></div>
+
+  ${nextHeatStart ? `
+  <div class="heat-track">
+    <div class="heat-track-title">🔥 Kızgınlık Takip Penceresi</div>
+    <div class="heat-window">
+      <div><div class="hw-date">${fmtDate(nextHeatStart)} — ${fmtDate(nextHeatEnd)}</div>
+      <div class="hw-range">${HEAT_MIN}-${HEAT_MAX}. gün arası bekleniyor</div></div>
+      <button class="btn-sm btn-sm-r" id="mark-heat-btn" style="font-size:11px;padding:6px 10px">🔥 Kızgınlık Gördüm</button>
+    </div>
+  </div>` : ''}
+
+  <div class="info-grid">
+    <div class="info-box"><div class="info-lbl">Doğum Tarihi</div><div class="info-val">${a.birth_date ? fmtDate(a.birth_date) : '-'}</div></div>
+    <div class="info-box"><div class="info-lbl">Laktasyon</div><div class="info-val">${a.lactation_no || 0}. laktasyon</div></div>
+    <div class="info-box"><div class="info-lbl">Son Tohumlama</div><div class="info-val">${lastInsem ? fmtDate(lastInsem.event_date) + (dSinceInsem !== null ? ' (' + dSinceInsem + ' gün)' : '') : '-'}</div></div>
+    <div class="info-box"><div class="info-lbl">Son Kızgınlık</div><div class="info-val">${lastHeat ? fmtDate(lastHeat.event_date) : '-'}</div></div>
+    <div class="info-box"><div class="info-lbl">Son Doğum</div><div class="info-val">${lastBirth ? fmtDate(lastBirth.event_date) + (dSinceBirth !== null ? ' (' + dSinceBirth + ' gün)' : '') : '-'}</div></div>
+    <div class="info-box"><div class="info-lbl">Beklenen Doğum</div>
+      <div class="info-val" style="color:${dToCalve !== null && dToCalve <= 14 ? 'var(--red)' : 'var(--text)'}">
+        ${expectedBirth ? fmtDate(expectedBirth) + (dToCalve !== null ? ' (' + dToCalve + ' gün)' : '') : '-'}
+      </div>
+    </div>
+    <div class="info-box"><div class="info-lbl">Gebelik Kontrolü</div><div class="info-val">${lastPregCheck ? fmtDate(lastPregCheck.event_date) + (a.pregnancy_check_day ? ' · ' + a.pregnancy_check_day + '. gün' : '') : '-'}</div></div>
+    <div class="info-box"><div class="info-lbl">Kuruya Alma</div><div class="info-val">${lastDryOff ? fmtDate(lastDryOff.event_date) : '-'}</div></div>
   </div>
+
   <div class="sec-title">📋 Olay Geçmişi</div>
-  ${evs.length?evs.map(e=>{
-    const et=EVENT_TYPES[e.event_type]||{label:e.event_type,icon:"📝",color:"gray"};
-    const dc={red:"var(--red)",amber:"var(--amber)",green:"var(--green)",blue:"var(--blue)",purple:"var(--purple)",gray:"var(--gray3)"}[et.color]||"var(--gray3)";
-    return `<div class="timeline-item"><div class="tl-dot" style="background:${dc}"></div><div class="tl-info"><div class="tl-type">${et.icon} ${et.label}${e.event_day?" — "+e.event_day+". gün":""}</div><div class="tl-date">${fmtDate(e.event_date)}${e.notes?" · "+e.notes:""}</div></div></div>`;
-  }).join(""):`<div class="empty"><p>Olay kaydı yok</p></div>`}`;
+  ${evs.length ? evs.map(e => {
+    const et = EVENT_TYPES[e.event_type] || {label:e.event_type, icon:'📝', color:'gray'};
+    const dotColors = {red:'var(--red)', amber:'var(--amber)', green:'var(--green)', blue:'var(--blue)', purple:'var(--purple)', gray:'var(--gray3)'};
+    return `<div class="tl-item">
+      <div class="tl-dot" style="background:${dotColors[et.color] || 'var(--gray3)'}"></div>
+      <div class="tl-info">
+        <div class="tl-type">${et.icon} ${et.label}${e.event_day ? ' — ' + e.event_day + '. gün' : ''}</div>
+        <div class="tl-date">${fmtDate(e.event_date)}${e.notes ? ' · ' + e.notes : ''}</div>
+      </div>
+    </div>`;
+  }).join('') : `<div class="empty"><p>Henüz olay kaydı yok</p></div>`}`;
 }
 
-function buildFarmModal(){
-  if(modal==="add-farm") return mWrap("🏭 Yeni İşletme",`
-    <div class="fg"><label class="fl">Sahip Adı *</label><input class="fi" id="fm-owner" placeholder="Ahmet Yılmaz"></div>
+// ─── FARM MODALS ─────────────────────────────────────────────
+function buildFarmModal() {
+  if(modal === 'add-farm') return mWrap('🏭 Yeni İşletme', `
+    <div class="fg"><label class="fl">Sahip Adı *</label><input class="fi" id="fm-owner" placeholder="Ahmet Yılmaz" autofocus></div>
     <div class="fg"><label class="fl">İşletme No</label><input class="fi" id="fm-no" placeholder="TR-34-1234"></div>
     <div class="fg"><label class="fl">Telefon</label><input class="fi" id="fm-phone" type="tel" inputmode="numeric" placeholder="05XX XXX XX XX"></div>
-    <div class="fg"><label class="fl">Adres / Köy</label><input class="fi" id="fm-address" placeholder="Burdur..."></div>
-    <div class="btn-row"><button class="modal-cancel-btn btn-o" type="button" onclick="closeModal()">İptal</button><button class="btn-p" id="save-farm-btn">Kaydet</button></div>`);
-
-  if(modal==="add-animal"||modal==="edit-animal"){
-    const a=modal==="edit-animal"?animals.find(x=>x.id===selectedAnimalId)||{}:{};
-    return mWrap(modal==="add-animal"?"🐄 Hayvan Ekle":"✏️ Düzenle",`
-    <div class="fg"><label class="fl">Küpe No * (TR-XX-XXXXXXX)</label>
-      <div style="display:flex;gap:8px">
-        <input class="fi" id="an-tag" placeholder="TR-34-1234567" value="${a.ear_tag||""}" style="flex:1" oninput="this.value=formatEarTag(this.value)">
-        <button type="button" onclick="startVoiceInput()" class="btn-sm btn-sm-b" style="padding:10px;font-size:16px">🎤</button>
-      </div></div>
-    <div class="fg"><label class="fl">Irk *</label><select class="fi" id="an-breed">
-      ${Object.entries(BREEDS).map(([k,v])=>`<option value="${k}" ${a.breed===k?"selected":""}>${BREED_ICONS[k]} ${v}</option>`).join("")}
-    </select></div>
-    <div class="fg"><label class="fl">Doğum Tarihi</label><input class="fi" id="an-birth" type="date" value="${a.birth_date||""}"></div>
-    <div class="fg"><label class="fl">Laktasyon No</label><input class="fi" id="an-lac" type="number" inputmode="numeric" min="0" value="${a.lactation_no||0}"></div>
-    <div class="fg"><label class="fl">Durum</label><select class="fi" id="an-status">
-      <option value="open" ${a.status==="open"?"selected":""}>Açık</option>
-      <option value="pregnant" ${a.status==="pregnant"?"selected":""}>🤰 Gebe</option>
-      <option value="dry" ${a.status==="dry"?"selected":""}>🛑 Kuru</option>
-    </select></div>
-    <div class="fg"><label class="fl">Son Tohumlama Tarihi</label><input class="fi" id="an-insem" type="date" value="${a.last_insemination_date||""}"></div>
-    <div class="fg"><label class="fl">Son Kızgınlık Tarihi</label><input class="fi" id="an-heat" type="date" value="${a.last_heat_date||""}"></div>
-    <div class="fg"><label class="fl">Son Doğum Tarihi</label><input class="fi" id="an-lastbirth" type="date" value="${a.last_birth_date||""}"></div>
-    <div class="fg"><label class="fl">Gebelik Teyit Tarihi</label><input class="fi" id="an-pregchk" type="date" value="${a.pregnancy_check_date||""}">
-      <div style="font-size:11px;color:var(--gray4);margin-top:4px">Teyit tarihinde tohumlamadan kaç gün geçmişti?</div>
-      <input class="fi" id="an-pregday" type="number" inputmode="numeric" min="1" max="60" placeholder="Örn: 35" value="${a.pregnancy_check_day||""}" style="margin-top:6px">
-    </div>
-    <div class="fg"><label class="fl">Not</label><textarea class="fi" id="an-notes" placeholder="Ek bilgiler...">${a.notes||""}</textarea></div>
+    <div class="fg"><label class="fl">Adres / Köy</label><input class="fi" id="fm-address" placeholder="Burdur / Yeşilova..."></div>
     <div class="btn-row">
       <button class="modal-cancel-btn btn-o" type="button" onclick="closeModal()">İptal</button>
-      <button class="btn-p" id="${modal==="add-animal"?"save-animal-btn":"update-animal-btn"}">${modal==="add-animal"?"Kaydet":"Güncelle"}</button>
+      <button class="btn-p" id="save-farm-btn">Kaydet</button>
+    </div>`);
+
+  if(modal === 'add-animal' || modal === 'edit-animal') {
+    const a = modal === 'edit-animal' ? animals.find(x => x.id === selectedAnimalId) || {} : {};
+    const isEdit = modal === 'edit-animal';
+
+    // Duruma göre hangi alanlar gösterilecek
+    const status = a.status || 'open';
+
+    return mWrap(isEdit ? '✏️ Hayvanı Düzenle' : '🐄 Yeni Hayvan Ekle', `
+    <div class="fg"><label class="fl">Küpe No * (TR-XX-XXXXXXX)</label>
+      <div style="display:flex;gap:8px">
+        <input class="fi" id="an-tag" placeholder="TR-34-1234567" value="${a.ear_tag || ''}" style="flex:1" oninput="this.value=formatEarTag(this.value)">
+        <button type="button" onclick="startVoiceInput()" class="btn-sm btn-sm-b" style="padding:10px;font-size:16px">🎤</button>
+      </div>
+    </div>
+    <div class="fg"><label class="fl">Irk *</label>
+      <select class="fi" id="an-breed">
+        ${Object.entries(BREEDS).map(([k,v]) => `<option value="${k}" ${a.breed===k?'selected':''}>${BREED_ICONS[k]} ${v}</option>`).join('')}
+      </select>
+    </div>
+    <div class="fg"><label class="fl">Doğum Tarihi</label>
+      <input class="fi" id="an-birth" type="date" value="${a.birth_date || ''}">
+    </div>
+    <div class="fg"><label class="fl">Durum *</label>
+      <select class="fi" id="an-status" onchange="toggleAnimalFields(this.value)">
+        ${Object.entries(ANIMAL_STATUS).map(([k,v]) => `<option value="${k}" ${a.status===k?'selected':''}>${v.label}</option>`).join('')}
+      </select>
+    </div>
+    <div class="fg"><label class="fl">Laktasyon No</label>
+      <input class="fi" id="an-lac" type="number" inputmode="numeric" min="0" value="${a.lactation_no || 0}" placeholder="0 = Düve/İlk laktasyon">
+    </div>
+
+    <!-- Sadece AÇIK hayvanda göster -->
+    <div id="open-fields" style="${['open','heifer'].includes(status)?'':'display:none'}">
+      <div class="fg"><label class="fl">Son Tohumlama Tarihi</label>
+        <input class="fi" id="an-insem" type="date" value="${a.last_insemination_date || ''}">
+        <div style="font-size:11px;color:var(--gray4);margin-top:4px">Girilirse 35. gün gebelik kontrolü uyarısı otomatik gelir</div>
+      </div>
+      <div class="fg"><label class="fl">Son Kızgınlık Tarihi</label>
+        <input class="fi" id="an-heat" type="date" value="${a.last_heat_date || ''}">
+      </div>
+      <div class="fg"><label class="fl">Son Doğum Tarihi</label>
+        <input class="fi" id="an-lastbirth" type="date" value="${a.last_birth_date || ''}">
+        <div style="font-size:11px;color:var(--gray4);margin-top:4px">Girilirse 80. ve 100. gün uyarıları otomatik gelir</div>
+      </div>
+    </div>
+
+    <!-- Sadece GEBE hayvanda göster -->
+    <div id="preg-fields" style="${status==='pregnant'?'':'display:none'}">
+      <div class="fg"><label class="fl">Son Tohumlama Tarihi *</label>
+        <input class="fi" id="an-insem" type="date" value="${a.last_insemination_date || ''}">
+      </div>
+      <div class="fg"><label class="fl">Gebelik Teyit Tarihi</label>
+        <input class="fi" id="an-pregchk" type="date" value="${a.pregnancy_check_date || ''}">
+      </div>
+      <div class="fg"><label class="fl">Teyit Tohumlamadan Kaç Gün Sonra?</label>
+        <input class="fi" id="an-pregday" type="number" inputmode="numeric" min="1" max="60" placeholder="Örn: 35" value="${a.pregnancy_check_day || ''}">
+        <div style="font-size:11px;color:var(--gray4);margin-top:4px">Beklenen doğum = 280 - bu gün + teyit tarihi</div>
+      </div>
+    </div>
+
+    <div class="fg"><label class="fl">Not</label>
+      <textarea class="fi" id="an-notes" placeholder="Ek bilgiler...">${a.notes || ''}</textarea>
+    </div>
+    <div class="btn-row">
+      <button class="modal-cancel-btn btn-o" type="button" onclick="closeModal()">İptal</button>
+      <button class="btn-p" id="${isEdit ? 'update-animal-btn' : 'save-animal-btn'}">${isEdit ? 'Güncelle' : 'Kaydet'}</button>
     </div>`);
   }
 
-  if(modal==="add-event"){
-    const a=animals.find(x=>x.id===selectedAnimalId);
-    return mWrap("📋 Olay Ekle — "+(a?a.ear_tag:""),`
-    <div class="fg"><label class="fl">Olay Türü *</label><select class="fi" id="ev-type" onchange="toggleEventDay(this.value)">
-      ${Object.entries(EVENT_TYPES).map(([k,v])=>`<option value="${k}">${v.icon} ${v.label}</option>`).join("")}
-    </select></div>
-    <div class="fg"><label class="fl">Tarih *</label><input class="fi" id="ev-date" type="date" value="${today()}"></div>
-    <div class="fg" id="ev-day-group" style="display:none">
-      <label class="fl">Tohumlamadan Kaç Gün Sonra? (Gebelik kontrolü için)</label>
-      <input class="fi" id="ev-day" type="number" inputmode="numeric" min="1" max="60" placeholder="Örn: 35">
+  if(modal === 'add-event') {
+    const a = animals.find(x => x.id === selectedAnimalId);
+    const status = a ? a.status : 'open';
+
+    // Duruma göre mantıklı event tipleri filtrele
+    const validEvents = Object.entries(EVENT_TYPES).filter(([k]) => {
+      if(status === 'pregnant') return ['pregnancy_check','dry_off','vaccination','treatment','other'].includes(k);
+      if(status === 'dry') return ['birth','vaccination','treatment','other'].includes(k);
+      if(status === 'sold' || status === 'dead') return ['other'].includes(k);
+      return true; // açık, düve, heifer için hepsi
+    });
+
+    return mWrap(`📋 Olay Ekle — ${a ? a.ear_tag : ''}`, `
+    <div class="fg"><label class="fl">Olay Türü *</label>
+      <select class="fi" id="ev-type" onchange="toggleEventFields(this.value)">
+        ${validEvents.map(([k,v]) => `<option value="${k}">${v.icon} ${v.label}</option>`).join('')}
+      </select>
     </div>
-    <div class="fg"><label class="fl">Not</label><textarea class="fi" id="ev-notes" placeholder="Boğa adı, doz no, bulgular..."></textarea></div>
+    <div class="fg"><label class="fl">Tarih *</label>
+      <input class="fi" id="ev-date" type="date" value="${today()}">
+    </div>
+
+    <!-- Gebelik kontrolü için -->
+    <div class="fg" id="ev-pregday-group" style="display:none">
+      <label class="fl">Tohumlamadan Kaç Gün Sonra?</label>
+      <input class="fi" id="ev-day" type="number" inputmode="numeric" min="1" max="60" placeholder="Örn: 35">
+      <div style="font-size:11px;color:var(--gray4);margin-top:4px">Beklenen doğum otomatik hesaplanır</div>
+    </div>
+
+    <!-- Tohumlama için -->
+    <div class="fg" id="ev-insem-note" style="display:none">
+      <div style="background:var(--blue-light);border-radius:9px;padding:10px;font-size:12px;color:var(--blue);font-weight:600">
+        💡 Tohumlama kaydedilince 18-24. gün kızgınlık takip penceresi ve 35. gün gebelik kontrolü uyarısı otomatik açılır
+      </div>
+    </div>
+
+    <!-- Doğum için -->
+    <div class="fg" id="ev-birth-note" style="display:none">
+      <div style="background:var(--green-light);border-radius:9px;padding:10px;font-size:12px;color:var(--green);font-weight:600">
+        🐣 Doğum kaydedilince laktasyon otomatik artırılır ve hayvan "Açık" durumuna alınır. 80. ve 100. gün uyarıları başlar.
+      </div>
+    </div>
+
+    <div class="fg"><label class="fl">Not</label>
+      <textarea class="fi" id="ev-notes" placeholder="Boğa adı, doz no, bulgular, gözlemler..."></textarea>
+    </div>
     <div class="btn-row">
       <button class="modal-cancel-btn btn-o" type="button" onclick="closeModal()">İptal</button>
       <button class="btn-p" id="save-event-btn">Kaydet</button>
     </div>`);
   }
 
-  if(modal==="excel-import") return mWrap("📊 CSV ile Toplu Yükleme",`
+  if(modal === 'excel-import') return mWrap('📊 CSV ile Toplu Yükleme', `
     <div style="background:var(--blue-light);border-radius:10px;padding:12px;margin-bottom:16px;font-size:12px;color:var(--blue);font-weight:600">
-      📋 CSV: <b>Küpe No, Irk, Doğum Tarihi, Laktasyon, Durum</b><br>Irk: holstein/simental/montofon/other · Durum: open/pregnant/dry
+      📋 CSV sütunları: <b>Küpe No, Irk, Doğum Tarihi, Laktasyon, Durum</b><br>
+      Irk: holstein/simental/montofon/other<br>
+      Durum: open/pregnant/dry/heifer/sold/dead
     </div>
-    <div class="fg"><label class="fl">CSV Dosyası</label><input type="file" class="fi" id="excel-file" accept=".csv" style="padding:8px"></div>
+    <div class="fg"><label class="fl">CSV Dosyası</label>
+      <input type="file" class="fi" id="excel-file" accept=".csv" style="padding:8px">
+    </div>
     <div id="excel-preview" style="max-height:180px;overflow-y:auto;margin-bottom:10px"></div>
     <div class="btn-row">
       <button class="modal-cancel-btn btn-o" type="button" onclick="closeModal()">İptal</button>
       <button class="btn-p" id="import-excel-btn">İçe Aktar</button>
     </div>`);
-  return "";
+
+  if(modal === 'heat-insem-followup') {
+    // Kızgınlık takibi: tohumlama sonrası kızgınlık görüldüğünde
+    return mWrap('🔥 Kızgınlık Görüldü — Ne Yapılsın?', `
+    <div style="background:var(--red-light);border-radius:10px;padding:12px;margin-bottom:16px;font-size:13px;color:var(--red);font-weight:700">
+      ⚠️ Tohumlama sonrası kızgınlık görüldü — tohum tutmadı olabilir
+    </div>
+    <div class="fg"><label class="fl">Kızgınlık Tarihi</label>
+      <input class="fi" id="heat-date" type="date" value="${today()}">
+    </div>
+    <div class="fg"><label class="fl">Ne yapılsın?</label>
+      <select class="fi" id="heat-action">
+        <option value="reinsem">Tekrar tohumlama yapıldı</option>
+        <option value="check">Gebelik muayenesi yapılacak (hayvan açık sayılır)</option>
+        <option value="observe">Gözlemlenecek (takibe devam)</option>
+      </select>
+    </div>
+    <div class="fg"><label class="fl">Not</label>
+      <textarea class="fi" id="heat-notes" placeholder="Gözlemler..."></textarea>
+    </div>
+    <div class="btn-row">
+      <button class="modal-cancel-btn btn-o" type="button" onclick="closeModal()">İptal</button>
+      <button class="btn-p" id="save-heat-followup-btn">Kaydet</button>
+    </div>`);
+  }
+
+  return '';
 }
 
-window.startVoiceInput=function(){
-  if(!("webkitSpeechRecognition" in window||"SpeechRecognition" in window)){alert("Chrome kullanın");return;}
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  const r=new SR();r.lang="tr-TR";r.continuous=false;r.interimResults=false;
-  r.onstart=()=>toast("🎤 Dinleniyor...");
-  r.onresult=(e)=>{const t=e.results[0][0].transcript.toUpperCase().replace(/\s/g,"");const inp=document.getElementById("an-tag");if(inp)inp.value=fmtEarTag(t);toast("✅: "+t);};
-  r.onerror=()=>toast("❌ Tanınamadı");r.start();
+// ─── WINDOW FONKSİYONLARI ────────────────────────────────────
+window.startVoiceInput = function() {
+  if(!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+    alert('Sesli giriş için Chrome kullanın'); return;
+  }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const r = new SR(); r.lang = 'tr-TR'; r.continuous = false; r.interimResults = false;
+  r.onstart = () => toast('🎤 Dinleniyor...');
+  r.onresult = (e) => {
+    const t = e.results[0][0].transcript.toUpperCase().replace(/\s/g,'');
+    const inp = document.getElementById('an-tag');
+    if(inp) inp.value = fmtEarTag(t);
+    toast('✅ Tanındı: ' + t);
+  };
+  r.onerror = () => toast('❌ Ses tanınamadı');
+  r.start();
 };
-window.toggleEventDay=function(val){const g=document.getElementById("ev-day-group");if(g)g.style.display=val==="pregnancy_check"?"block":"none";};
 
-function bindFarmEvents(){
-  document.querySelectorAll("[data-farmid]").forEach(el=>el.addEventListener("click",()=>{selectedFarmId=el.dataset.farmid;farmNav="farm-detail";animalFilterBreed="all";animalFilterStatus="all";renderFarm();}));
-  document.querySelectorAll("[data-animalid]").forEach(el=>el.addEventListener("click",()=>{selectedAnimalId=el.dataset.animalid;farmNav="animal-detail";renderFarm();}));
-  document.querySelectorAll("[data-breed]").forEach(c=>c.addEventListener("click",()=>{animalFilterBreed=c.dataset.breed;renderFarm();}));
-  document.querySelectorAll("[data-astatus]").forEach(c=>c.addEventListener("click",()=>{animalFilterStatus=c.dataset.astatus;renderFarm();}));
-  document.getElementById("add-farm-btn")?.addEventListener("click",()=>{modal="add-farm";renderFarm();});
-  document.getElementById("add-animal-btn")?.addEventListener("click",()=>{modal="add-animal";renderFarm();});
-  document.getElementById("edit-animal-btn")?.addEventListener("click",()=>{modal="edit-animal";renderFarm();});
-  document.getElementById("add-event-btn")?.addEventListener("click",()=>{modal="add-event";renderFarm();});
-  document.getElementById("excel-import-btn")?.addEventListener("click",()=>{modal="excel-import";renderFarm();});
-  document.getElementById("farm-search-btn")?.addEventListener("click",()=>{const b=document.getElementById("farm-search-bar");if(b)b.style.display=b.style.display==="none"?"block":"none";});
-  document.getElementById("animal-search-input")?.addEventListener("input",e=>{animalSearch=e.target.value;renderFarm();});
-  document.getElementById("delete-farm-btn")?.addEventListener("click",async(e)=>{e.stopPropagation();if(!confirm("İşletme ve tüm hayvanları silinsin mi?"))return;await deleteFarm(selectedFarmId);farmNav="farms";selectedFarmId=null;toast("🗑 Silindi");renderFarm();});
-  document.getElementById("delete-animal-btn")?.addEventListener("click",async(e)=>{e.stopPropagation();if(!confirm("Hayvan silinsin mi?"))return;await deleteAnimal(selectedAnimalId);farmNav="farm-detail";selectedAnimalId=null;toast("🗑 Silindi");renderFarm();});
-  document.querySelectorAll(".modal-cancel-btn").forEach(b=>b.addEventListener("click",()=>{modal=null;renderFarm();}));
+window.toggleAnimalFields = function(status) {
+  const openFields = document.getElementById('open-fields');
+  const pregFields = document.getElementById('preg-fields');
+  if(openFields) openFields.style.display = ['open','heifer'].includes(status) ? '' : 'none';
+  if(pregFields) pregFields.style.display = status === 'pregnant' ? '' : 'none';
+};
 
-  document.getElementById("save-farm-btn")?.addEventListener("click",async()=>{
-    const o=document.getElementById("fm-owner").value.trim();if(!o){alert("Sahip adı zorunludur!");return;}
-    await addFarm({owner_name:o,farm_no:document.getElementById("fm-no").value.trim(),phone:document.getElementById("fm-phone").value.trim(),address:document.getElementById("fm-address").value.trim()});
-    modal=null;toast("✅ İşletme eklendi");renderFarm();
+window.toggleEventFields = function(type) {
+  const pregGroup = document.getElementById('ev-pregday-group');
+  const insemNote = document.getElementById('ev-insem-note');
+  const birthNote = document.getElementById('ev-birth-note');
+  if(pregGroup) pregGroup.style.display = type === 'pregnancy_check' ? '' : 'none';
+  if(insemNote) insemNote.style.display = type === 'insemination' ? '' : 'none';
+  if(birthNote) birthNote.style.display = type === 'birth' ? '' : 'none';
+};
+
+// ─── FARM EVENTS ─────────────────────────────────────────────
+function bindFarmEvents() {
+  // Navigasyon
+  document.querySelectorAll('[data-farmid]').forEach(el => el.addEventListener('click', () => {
+    selectedFarmId = el.dataset.farmid;
+    farmNav = 'farm-detail';
+    animalFilterBreed = 'all';
+    animalFilterStatus = 'all';
+    render(); renderFarm();
+  }));
+
+  document.querySelectorAll('[data-animalid]').forEach(el => el.addEventListener('click', () => {
+    selectedAnimalId = el.dataset.animalid;
+    farmNav = 'animal-detail';
+    render(); renderFarm();
+  }));
+
+  document.querySelectorAll('[data-breed]').forEach(c => c.addEventListener('click', () => {
+    animalFilterBreed = c.dataset.breed; renderFarm();
+  }));
+
+  document.querySelectorAll('[data-astatus]').forEach(c => c.addEventListener('click', () => {
+    animalFilterStatus = c.dataset.astatus; renderFarm();
+  }));
+
+  // Butonlar
+  document.getElementById('add-farm-btn')?.addEventListener('click', () => { modal = 'add-farm'; renderFarm(); });
+  document.getElementById('add-animal-btn')?.addEventListener('click', () => { modal = 'add-animal'; renderFarm(); });
+  document.getElementById('edit-animal-btn')?.addEventListener('click', () => { modal = 'edit-animal'; renderFarm(); });
+  document.getElementById('add-event-btn')?.addEventListener('click', () => { modal = 'add-event'; renderFarm(); });
+  document.getElementById('excel-import-btn')?.addEventListener('click', () => { modal = 'excel-import'; renderFarm(); });
+
+  document.getElementById('farm-search-btn')?.addEventListener('click', () => {
+    const b = document.getElementById('farm-search-bar');
+    if(b) b.style.display = b.style.display === 'none' ? 'block' : 'none';
   });
 
-  const saveAnimal=async(isEdit)=>{
-    const tag=document.getElementById("an-tag").value.trim();if(!tag){alert("Küpe no zorunludur!");return;}
-    const insemDate=document.getElementById("an-insem").value||null;
-    const heatDate=document.getElementById("an-heat").value||null;
-    const lastBirthDate=document.getElementById("an-lastbirth").value||null;
-    const pregChkDate=document.getElementById("an-pregchk").value||null;
-    const pregDay=parseInt(document.getElementById("an-pregday").value)||null;
-    let exp=null;
-    if(pregChkDate&&pregDay){const rem=280-pregDay;const ed=new Date(pregChkDate);ed.setDate(ed.getDate()+rem);exp=ed.toISOString().slice(0,10);}
-    else if(insemDate){const ed=new Date(insemDate);ed.setDate(ed.getDate()+280);exp=ed.toISOString().slice(0,10);}
-    const data={ear_tag:fmtEarTag(tag),breed:document.getElementById("an-breed").value,birth_date:document.getElementById("an-birth").value||null,
-      lactation_no:parseInt(document.getElementById("an-lac").value)||0,status:document.getElementById("an-status").value,
-      last_insemination_date:insemDate,last_heat_date:heatDate,last_birth_date:lastBirthDate,
-      pregnancy_check_date:pregChkDate,pregnancy_check_day:pregDay,expected_birth_date:exp,
-      notes:document.getElementById("an-notes").value.trim()};
-    if(isEdit){await updateAnimal(selectedAnimalId,data);}
-    else{
-      await addAnimal({...data,farm_id:selectedFarmId});
-      const newA=animals[animals.length-1];
-      if(newA){
-        if(insemDate) await addAnimalEvent({animal_id:newA.id,event_type:"insemination",event_date:insemDate,event_day:null,notes:""});
-        if(heatDate) await addAnimalEvent({animal_id:newA.id,event_type:"heat",event_date:heatDate,event_day:null,notes:""});
-        if(pregChkDate) await addAnimalEvent({animal_id:newA.id,event_type:"pregnancy_check",event_date:pregChkDate,event_day:pregDay,notes:""});
+  document.getElementById('animal-search-input')?.addEventListener('input', e => {
+    animalSearch = e.target.value; renderFarm();
+  });
+
+  // Kızgınlık hızlı ekle
+  document.getElementById('mark-heat-btn')?.addEventListener('click', () => {
+    modal = 'heat-insem-followup'; renderFarm();
+  });
+
+  // Sil butonları
+  document.getElementById('delete-farm-btn')?.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    if(!confirm('Bu işletme ve tüm hayvanları silinsin mi? Bu işlem geri alınamaz.')) return;
+    await deleteFarm(selectedFarmId);
+    farmNav = 'farms'; selectedFarmId = null;
+    toast('🗑 İşletme silindi'); render(); renderFarm();
+  });
+
+  document.getElementById('delete-animal-btn')?.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    if(!confirm('Bu hayvan silinsin mi?')) return;
+    await deleteAnimal(selectedAnimalId);
+    farmNav = 'farm-detail'; selectedAnimalId = null;
+    toast('🗑 Hayvan silindi'); render(); renderFarm();
+  });
+
+  // Modal iptal
+  document.querySelectorAll('.modal-cancel-btn').forEach(b => b.addEventListener('click', () => {
+    modal = null; renderFarm();
+  }));
+
+  // ── İşletme Kaydet ──
+  document.getElementById('save-farm-btn')?.addEventListener('click', async () => {
+    const o = document.getElementById('fm-owner')?.value.trim();
+    if(!o) { alert('Sahip adı zorunludur!'); return; }
+    await addFarm({
+      owner_name: o,
+      farm_no: document.getElementById('fm-no')?.value.trim() || null,
+      phone: document.getElementById('fm-phone')?.value.trim() || null,
+      address: document.getElementById('fm-address')?.value.trim() || null,
+    });
+    modal = null; toast('✅ İşletme eklendi'); renderFarm();
+  });
+
+  // ── Hayvan Kaydet / Güncelle ──
+  const saveAnimalFn = async (isEdit) => {
+    const tag = document.getElementById('an-tag')?.value.trim();
+    if(!tag) { alert('Küpe no zorunludur!'); return; }
+
+    const status = document.getElementById('an-status')?.value || 'open';
+    const insemDate = document.getElementById('an-insem')?.value || null;
+    const heatDate = document.getElementById('an-heat')?.value || null;
+    const lastBirthDate = document.getElementById('an-lastbirth')?.value || null;
+    const pregChkDate = document.getElementById('an-pregchk')?.value || null;
+    const pregDay = parseInt(document.getElementById('an-pregday')?.value) || null;
+
+    // Beklenen doğum hesapla (sadece gebe ise)
+    let expectedBirth = null;
+    if(status === 'pregnant') {
+      if(pregChkDate && pregDay) {
+        expectedBirth = addDays(pregChkDate, GESTATION_DAYS - pregDay);
+      } else if(insemDate) {
+        expectedBirth = addDays(insemDate, GESTATION_DAYS);
       }
     }
-    modal=null;toast("✅ "+(isEdit?"Güncellendi":"Hayvan eklendi"));renderFarm();
-  };
-  document.getElementById("save-animal-btn")?.addEventListener("click",()=>saveAnimal(false));
-  document.getElementById("update-animal-btn")?.addEventListener("click",()=>saveAnimal(true));
 
-  document.getElementById("save-event-btn")?.addEventListener("click",async()=>{
-    const type=document.getElementById("ev-type").value;
-    const date=document.getElementById("ev-date").value;if(!date){alert("Tarih zorunludur!");return;}
-    const day=parseInt(document.getElementById("ev-day")?.value)||null;
-    const notes=document.getElementById("ev-notes").value.trim();
-    if(type==="birth"){const a=animals.find(x=>x.id===selectedAnimalId);await updateAnimal(selectedAnimalId,{status:"open",lactation_no:(a?.lactation_no||0)+1,last_birth_date:date});}
-    if(type==="pregnancy_check"){
-      let exp=null;
-      if(day){const li=animalEvents.find(e=>e.animal_id===selectedAnimalId&&e.event_type==="insemination");if(li){const rem=280-day;const ed=new Date(date);ed.setDate(ed.getDate()+rem);exp=ed.toISOString().slice(0,10);}}
-      await updateAnimal(selectedAnimalId,{status:"pregnant",pregnancy_check_date:date,pregnancy_check_day:day,expected_birth_date:exp});
+    const data = {
+      ear_tag: fmtEarTag(tag),
+      breed: document.getElementById('an-breed')?.value || 'other',
+      birth_date: document.getElementById('an-birth')?.value || null,
+      lactation_no: parseInt(document.getElementById('an-lac')?.value) || 0,
+      status,
+      notes: document.getElementById('an-notes')?.value.trim() || null,
+      // Üreme alanları sadece ilgili durumda
+      last_insemination_date: ['open','pregnant','heifer'].includes(status) ? insemDate : null,
+      last_heat_date: ['open','heifer'].includes(status) ? heatDate : null,
+      last_birth_date: status === 'open' ? lastBirthDate : null,
+      pregnancy_check_date: status === 'pregnant' ? pregChkDate : null,
+      pregnancy_check_day: status === 'pregnant' ? pregDay : null,
+      expected_birth_date: expectedBirth,
+    };
+
+    if(isEdit) {
+      await updateAnimal(selectedAnimalId, data);
+    } else {
+      const saved = await addAnimal({...data, farm_id: selectedFarmId});
+      if(saved) {
+        // Mevcut verilere göre olayları kaydet
+        if(insemDate) await addAnimalEvent({animal_id:saved.id, event_type:'insemination', event_date:insemDate, event_day:null, notes:''});
+        if(heatDate) await addAnimalEvent({animal_id:saved.id, event_type:'heat', event_date:heatDate, event_day:null, notes:''});
+        if(lastBirthDate) await addAnimalEvent({animal_id:saved.id, event_type:'birth', event_date:lastBirthDate, event_day:null, notes:''});
+        if(pregChkDate) await addAnimalEvent({animal_id:saved.id, event_type:'pregnancy_check', event_date:pregChkDate, event_day:pregDay, notes:''});
+      }
     }
-    if(type==="insemination") await updateAnimal(selectedAnimalId,{last_insemination_date:date,status:"open"});
-    if(type==="heat") await updateAnimal(selectedAnimalId,{last_heat_date:date});
-    if(type==="dry_off") await updateAnimal(selectedAnimalId,{status:"dry",dry_off_date:date});
-    await addAnimalEvent({animal_id:selectedAnimalId,event_type:type,event_date:date,event_day:day,notes});
-    modal=null;toast("✅ Olay kaydedildi");renderFarm();
+
+    modal = null;
+    toast('✅ ' + (isEdit ? 'Güncellendi' : 'Hayvan eklendi'));
+    renderFarm();
+  };
+
+  document.getElementById('save-animal-btn')?.addEventListener('click', () => saveAnimalFn(false));
+  document.getElementById('update-animal-btn')?.addEventListener('click', () => saveAnimalFn(true));
+
+  // ── Olay Kaydet ──
+  document.getElementById('save-event-btn')?.addEventListener('click', async () => {
+    const type = document.getElementById('ev-type')?.value;
+    const date = document.getElementById('ev-date')?.value;
+    if(!date) { alert('Tarih zorunludur!'); return; }
+    const day = parseInt(document.getElementById('ev-day')?.value) || null;
+    const notes = document.getElementById('ev-notes')?.value.trim() || '';
+
+    const a = animals.find(x => x.id === selectedAnimalId);
+    if(!a) return;
+
+    // Duruma göre hayvanı güncelle
+    const updates = {};
+
+    if(type === 'insemination') {
+      // Tohumlama: hayvan açık durumda kalır, tohumlama tarihi güncellenir
+      updates.last_insemination_date = date;
+      // Eğer gebe işaretliyse açığa al
+      if(a.status === 'pregnant') updates.status = 'open';
+    }
+
+    if(type === 'heat') {
+      updates.last_heat_date = date;
+      // Eğer tohumlama sonrası kızgınlık ise hayvan open'a düş
+      if(a.status === 'pregnant') {
+        updates.status = 'open';
+        updates.expected_birth_date = null;
+        updates.pregnancy_check_date = null;
+        updates.pregnancy_check_day = null;
+      }
+    }
+
+    if(type === 'pregnancy_check') {
+      // Gebe teyidi
+      const lastInsemEv = animalEvents.find(e => e.animal_id === a.id && e.event_type === 'insemination');
+      let expectedBirth = null;
+      if(day && lastInsemEv) {
+        expectedBirth = addDays(date, GESTATION_DAYS - day);
+      } else if(lastInsemEv) {
+        expectedBirth = addDays(lastInsemEv.event_date, GESTATION_DAYS);
+      }
+      updates.status = 'pregnant';
+      updates.pregnancy_check_date = date;
+      updates.pregnancy_check_day = day;
+      updates.expected_birth_date = expectedBirth;
+    }
+
+    if(type === 'birth') {
+      // Doğum: laktasyon artır, açık al, gebelik bilgilerini sıfırla
+      updates.status = 'open';
+      updates.lactation_no = (a.lactation_no || 0) + 1;
+      updates.last_birth_date = date;
+      updates.expected_birth_date = null;
+      updates.pregnancy_check_date = null;
+      updates.pregnancy_check_day = null;
+    }
+
+    if(type === 'dry_off') {
+      updates.status = 'dry';
+    }
+
+    if(Object.keys(updates).length) {
+      await updateAnimal(selectedAnimalId, updates);
+    }
+
+    await addAnimalEvent({
+      animal_id: selectedAnimalId,
+      event_type: type,
+      event_date: date,
+      event_day: day,
+      notes,
+    });
+
+    modal = null;
+    toast('✅ Olay kaydedildi');
+    renderFarm();
   });
 
-  document.getElementById("excel-file")?.addEventListener("change",async(e)=>{
-    const file=e.target.files[0];if(!file)return;
-    const text=await file.text();const lines=text.split("\n").filter(l=>l.trim());
-    const prev=document.getElementById("excel-preview");
-    if(prev)prev.innerHTML=`<div style="font-size:11px;color:var(--gray4)">${lines.length} satır</div>`+lines.slice(0,5).map(l=>`<div style="font-size:10px;padding:3px 0;border-bottom:1px solid var(--gray2)">${l}</div>`).join("");
+  // ── Kızgınlık takip ──
+  document.getElementById('save-heat-followup-btn')?.addEventListener('click', async () => {
+    const date = document.getElementById('heat-date')?.value;
+    const action = document.getElementById('heat-action')?.value;
+    const notes = document.getElementById('heat-notes')?.value.trim() || '';
+
+    if(!date) { alert('Tarih zorunludur!'); return; }
+
+    const a = animals.find(x => x.id === selectedAnimalId);
+    if(!a) return;
+
+    // Kızgınlık olayı kaydet
+    await addAnimalEvent({animal_id:selectedAnimalId, event_type:'heat', event_date:date, event_day:null, notes});
+
+    if(action === 'reinsem') {
+      // Tekrar tohumlama — tohumlama olayı da ekle
+      await addAnimalEvent({animal_id:selectedAnimalId, event_type:'insemination', event_date:date, event_day:null, notes:'Tekrar tohumlama'});
+      await updateAnimal(selectedAnimalId, {last_insemination_date:date, last_heat_date:date});
+    } else if(action === 'check') {
+      // Gebelik muayenesi yapılacak — hayvanı açık al
+      await updateAnimal(selectedAnimalId, {
+        status:'open', last_heat_date:date,
+        expected_birth_date:null, pregnancy_check_date:null, pregnancy_check_day:null
+      });
+    } else {
+      // Gözlem — sadece kızgınlık tarihini güncelle
+      await updateAnimal(selectedAnimalId, {last_heat_date:date});
+    }
+
+    modal = null;
+    toast('✅ Kızgınlık kaydedildi');
+    renderFarm();
   });
-  document.getElementById("import-excel-btn")?.addEventListener("click",async()=>{
-    const file=document.getElementById("excel-file")?.files[0];if(!file){alert("Dosya seçin!");return;}
-    const text=await file.text();const lines=text.split("\n").filter(l=>l.trim()).slice(1);let count=0;
-    for(const line of lines){const c=line.split(",").map(x=>x.trim().replace(/"/g,""));if(!c[0])continue;
-      await addAnimal({farm_id:selectedFarmId,ear_tag:fmtEarTag(c[0]),breed:c[1]?.toLowerCase()||"other",birth_date:c[2]||null,lactation_no:parseInt(c[3])||0,status:c[4]?.toLowerCase()||"open"});count++;}
-    modal=null;toast("✅ "+count+" hayvan aktarıldı");renderFarm();
+
+  // ── Excel import ──
+  document.getElementById('excel-file')?.addEventListener('change', async (e) => {
+    const file = e.target.files[0]; if(!file) return;
+    const text = await file.text();
+    const lines = text.split('\n').filter(l => l.trim());
+    const prev = document.getElementById('excel-preview');
+    if(prev) prev.innerHTML = `<div style="font-size:11px;color:var(--gray4);margin-bottom:6px">${lines.length} satır bulundu</div>` +
+      lines.slice(0,5).map(l => `<div style="font-size:10px;padding:3px 0;border-bottom:1px solid var(--gray2)">${l}</div>`).join('');
+  });
+
+  document.getElementById('import-excel-btn')?.addEventListener('click', async () => {
+    const file = document.getElementById('excel-file')?.files[0];
+    if(!file) { alert('Dosya seçin!'); return; }
+    const text = await file.text();
+    const lines = text.split('\n').filter(l => l.trim()).slice(1);
+    let count = 0;
+    for(const line of lines) {
+      const c = line.split(',').map(x => x.trim().replace(/"/g,''));
+      if(!c[0]) continue;
+      await addAnimal({
+        farm_id: selectedFarmId,
+        ear_tag: fmtEarTag(c[0]),
+        breed: c[1]?.toLowerCase() || 'other',
+        birth_date: c[2] || null,
+        lactation_no: parseInt(c[3]) || 0,
+        status: c[4]?.toLowerCase() || 'open',
+      });
+      count++;
+    }
+    modal = null;
+    toast(`✅ ${count} hayvan aktarıldı`);
+    renderFarm();
   });
 }
 
-function renderFarm(){
-  const app=document.getElementById("farm-module");
-  if(!app)return;
-  const fm=modal&&["add-farm","add-animal","edit-animal","add-event","excel-import"].includes(modal)?buildFarmModal():"";
-  app.innerHTML=buildFarmModule()+fm;
+// ─── FARM RENDER ─────────────────────────────────────────────
+function renderFarm() {
+  const app = document.getElementById('farm-module');
+  if(!app) return;
+  const farmModals = ['add-farm','add-animal','edit-animal','add-event','excel-import','heat-insem-followup'];
+  const fm = modal && farmModals.includes(modal) ? buildFarmModal() : '';
+  app.innerHTML = buildFarmModule() + fm;
   bindFarmEvents();
 }
 </script>
