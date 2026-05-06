@@ -274,6 +274,7 @@ let farms=[], animals=[], animalEvents=[];
 let farmNav='farms', selectedFarmId=null, selectedAnimalId=null;
 let animalSearch='', animalFilterBreed='all', animalFilterStatus='all';
 let farmFilter='all', farmSearch='';
+let selectedAnimals=new Set(), bulkMode=false;
 // Hatırlatmalar — Supabase + localStorage yedek
 let reminders=[];
 async function loadReminders(){
@@ -662,7 +663,11 @@ function buildHome(){
         <span style="font-size:22px">🏭</span>
         <div>
           <div style="color:#fff;font-family:'Nunito',sans-serif;font-weight:800;font-size:14px">İşletmeler</div>
-          <div style="color:rgba(255,255,255,.75);font-size:11px">${farms.length} işletme · ${animals.length} hayvan</div>
+          <div style="color:rgba(255,255,255,.75);font-size:11px">
+            ${farms.length} işletme · ${animals.filter(a=>!['sold','dead'].includes(a.status)).length} aktif hayvan
+            ${animals.filter(a=>a.status==='pregnant').length ? ' · 🤰 '+animals.filter(a=>a.status==='pregnant').length+' gebe' : ''}
+            ${animals.filter(a=>getAnimalAlerts(a).length>0).length ? ' · ⚠️ '+animals.filter(a=>getAnimalAlerts(a).length>0).length+' uyarı' : ''}
+          </div>
         </div>
       </div>
       <span style="color:rgba(255,255,255,.7);font-size:22px">›</span>
@@ -1500,6 +1505,14 @@ if(currentUser) loadAll(); else render();
 .di-status.recovered{background:var(--green-light);color:var(--green)}
 .di-status.chronic{background:var(--amber-light);color:var(--amber)}
 .di-status.died{background:var(--gray);color:var(--gray4)}
+.bulk-bar{background:var(--amber-light);border:1px solid #fcd34d;border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px}
+.bulk-check{width:18px;height:18px;cursor:pointer;accent-color:var(--blue);flex-shrink:0}
+.bb-count{flex:1;font-size:13px;font-weight:700;color:var(--text)}
+.animal-card .ac-cb{width:20px;height:20px;cursor:pointer;accent-color:var(--blue);flex-shrink:0;margin-right:2px}
+.animal-card.selected{background:var(--blue-light);border-color:var(--blue)}
+.bulk-bar{position:sticky;top:0;z-index:10;background:#fff;border-bottom:2px solid var(--red);padding:10px 14px;display:flex;align-items:center;gap:10px;margin:-14px -14px 14px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.bulk-bar .bb-count{flex:1;font-size:13px;font-weight:700;color:var(--red)}
+.bulk-check{width:18px;height:18px;accent-color:var(--blue);cursor:pointer;flex-shrink:0}
 .disease-search{position:relative;margin-bottom:8px}
 .disease-search input{padding-left:32px}
 .disease-dropdown{background:#fff;border:1.5px solid var(--blue);border-radius:var(--radius-sm);max-height:200px;overflow-y:auto;margin-top:4px}
@@ -1972,6 +1985,7 @@ function buildFarmDetail() {
   if(animalFilterStatus !== 'all') fa = fa.filter(a => a.status === animalFilterStatus);
 
   const active = animals.filter(a => a.farm_id === selectedFarmId && !['sold','dead'].includes(a.status));
+  const selCount = [...selectedAnimals].filter(id => fa.some(a=>a.id===id)).length;
 
   return `
   <div class="detail-hero" style="background:linear-gradient(135deg,#16a34a,#15803d)">
@@ -1980,11 +1994,20 @@ function buildFarmDetail() {
     <div class="dphone">${farm.farm_no ? 'No: ' + farm.farm_no : ''}${farm.address ? ' · ' + farm.address : ''}</div>
   </div>
 
-  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+  <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
     <button class="btn-p" id="add-animal-btn" style="font-size:12px;padding:9px;flex:2">🐄 Hayvan Ekle</button>
-    <button class="btn-sm btn-sm-b" id="excel-import-btn" style="padding:9px 12px;font-size:11px">📊 Excel</button>
+    <button class="btn-sm btn-sm-b" id="excel-import-btn" style="padding:9px 12px;font-size:11px">📊</button>
+    <button class="btn-sm" id="bulk-select-btn" style="padding:9px 12px;font-size:11px;background:${bulkMode?'var(--amber-light)':'var(--gray)'};color:${bulkMode?'var(--amber)':'var(--text2)'};border:none;border-radius:var(--radius-sm);cursor:pointer">☑️ Seç</button>
     <button class="btn-sm btn-sm-r" id="delete-farm-btn" style="padding:9px 10px;font-size:11px">🗑</button>
   </div>
+
+  ${bulkMode ? `
+  <div class="bulk-bar">
+    <input type="checkbox" class="bulk-check" id="select-all-cb" ${selCount===fa.length&&fa.length>0?'checked':''}>
+    <div class="bb-count">${selCount > 0 ? selCount+' hayvan seçildi' : 'Hayvan seçin'}</div>
+    ${selCount>0?`<button class="btn-sm btn-sm-r" id="delete-selected-btn" style="font-size:11px;padding:6px 12px">🗑 ${selCount} Sil</button>`:''}
+    <button class="btn-sm" id="cancel-bulk-btn" style="font-size:11px;padding:6px 10px;background:var(--gray);border:none;border-radius:var(--radius-sm);cursor:pointer">İptal</button>
+  </div>` : ''}
 
   <div class="chip-row">
     ${[['all','Tümü'],['open','Açık'],['pregnant','Gebe'],['dry','Kuru'],['heifer','Düve'],['sold','Satıldı'],['dead','Öldü']].map(([k,l]) =>
@@ -1995,7 +2018,7 @@ function buildFarmDetail() {
       `<div class="chip ${animalFilterBreed===k?'active':''}" data-breed="${k}">${l}</div>`).join('')}
   </div>
 
-  <div style="font-size:12px;color:var(--gray4);margin-bottom:10px">${fa.length} hayvan gösteriliyor · Toplam aktif: ${active.length}</div>
+  <div style="font-size:12px;color:var(--gray4);margin-bottom:10px">${fa.length} hayvan · Toplam aktif: ${active.length}</div>
   ${fa.length ? fa.map(a => buildAnimalCard(a)).join('') : `<div class="empty"><div class="eicon">🐄</div><p>Bu kategoride hayvan yok</p></div>`}`;
 }
 
@@ -2006,17 +2029,21 @@ function buildAnimalCard(a) {
   const statusInfo = ANIMAL_STATUS[a.status] || {label:a.status, icon:'?'};
   const evs = animalEvents.filter(e => e.animal_id === a.id);
   const lastInsem = evs.find(e => e.event_type === 'insemination');
+  const lastBirth = evs.find(e => e.event_type === 'birth');
+  const isSelected = selectedAnimals.has(a.id);
 
-  return `<div class="animal-card ${topAlert ? 'al-' + topAlert.type : ''}" data-animalid="${a.id}">
+  return `<div class="animal-card ${topAlert ? 'al-' + topAlert.type : ''} ${isSelected?'selected-card':''}" data-animalid="${a.id}" style="${isSelected?'background:var(--blue-light);':''}">
+    ${bulkMode ? `<input type="checkbox" class="bulk-check animal-cb" data-aid="${a.id}" ${isSelected?'checked':''} onclick="event.stopPropagation()">` : ''}
     <div class="ac-icon">${BREED_ICONS[a.breed] || '🐄'}</div>
     <div class="ac-info">
       <div class="ac-tag">${a.ear_tag}</div>
       <div class="ac-meta">
         ${BREEDS[a.breed] || '?'} · Lak:${a.lactation_no || 0} · ${statusInfo.label}
         ${lastInsem ? ' · T:' + fmtDate(lastInsem.event_date) : ''}
+        ${lastBirth ? ' · B:' + fmtDate(lastBirth.event_date) : ''}
         ${farm && farmNav === 'farms' ? ' · ' + farm.owner_name : ''}
       </div>
-      <div style="font-size:10px;color:var(--gray4)">${ageStr(a.birth_date)}</div>
+      <div style="font-size:10px;color:var(--gray4)">${a.birth_date ? ageStr(a.birth_date) : ''}</div>
       ${alerts.length ? `<div class="ac-alerts">${alerts.slice(0,2).map(al =>
         `<span class="ac-al ${al.type}">${al.icon} ${al.title}</span>`).join('')}</div>` : ''}
     </div>
@@ -2097,14 +2124,14 @@ function buildAnimalDetail() {
   </div>` : ''}
 
   <div class="info-grid">
-    <div class="info-box"><div class="info-lbl">Doğum Tarihi</div><div class="info-val">${a.birth_date ? fmtDate(a.birth_date) : '-'}</div></div>
+    <div class="info-box"><div class="info-lbl">Doğum Yılı (Yaş)</div><div class="info-val">${a.birth_date ? fmtDate(a.birth_date)+' · '+ageStr(a.birth_date) : '-'}</div></div>
     <div class="info-box"><div class="info-lbl">Laktasyon</div><div class="info-val">${a.lactation_no || 0}. laktasyon</div></div>
     <div class="info-box"><div class="info-lbl">Son Tohumlama</div><div class="info-val">${lastInsem ? fmtDate(lastInsem.event_date) + (dSinceInsem !== null ? ' (' + dSinceInsem + ' gün)' : '') : '-'}</div></div>
     <div class="info-box"><div class="info-lbl">Son Kızgınlık</div><div class="info-val">${lastHeat ? fmtDate(lastHeat.event_date) : '-'}</div></div>
-    <div class="info-box"><div class="info-lbl">Son Doğum</div><div class="info-val">${lastBirth ? fmtDate(lastBirth.event_date) + (dSinceBirth !== null ? ' (' + dSinceBirth + ' gün)' : '') : '-'}</div></div>
-    <div class="info-box"><div class="info-lbl">Beklenen Doğum</div>
-      <div class="info-val" style="color:${dToCalve !== null && dToCalve <= 14 ? 'var(--red)' : 'var(--text)'}">
-        ${expectedBirth ? fmtDate(expectedBirth) + (dToCalve !== null ? ' (' + dToCalve + ' gün)' : '') : '-'}
+    <div class="info-box"><div class="info-lbl">Son Buzağılama</div><div class="info-val">${lastBirth ? fmtDate(lastBirth.event_date) + (dSinceBirth !== null ? ' (' + dSinceBirth + ' gün önce)' : '') : '-'}</div></div>
+    <div class="info-box"><div class="info-lbl">Beklenen Buzağılama</div>
+      <div class="info-val" style="color:${dToCalve !== null && dToCalve <= 14 ? 'var(--red)' : dToCalve !== null && dToCalve <= 60 ? 'var(--amber)' : 'var(--text)'}">
+        ${expectedBirth ? fmtDate(expectedBirth) + (dToCalve !== null ? (dToCalve >= 0 ? ' (' + dToCalve + ' gün sonra)' : ' (' + Math.abs(dToCalve) + ' gün geçti!)') : '') : '-'}
       </div>
     </div>
     <div class="info-box"><div class="info-lbl">Gebelik Kontrolü</div><div class="info-val">${lastPregCheck ? fmtDate(lastPregCheck.event_date) + (a.pregnancy_check_day ? ' · ' + a.pregnancy_check_day + '. gün' : '') : '-'}</div></div>
@@ -2618,7 +2645,13 @@ function bindFarmEvents() {
     render(); renderFarm();
   }));
 
-  document.querySelectorAll('[data-animalid]').forEach(el => el.addEventListener('click', () => {
+  document.querySelectorAll('[data-animalid]').forEach(el => el.addEventListener('click', (e) => {
+    if(bulkMode) {
+      const aid = el.dataset.animalid;
+      if(selectedAnimals.has(aid)) selectedAnimals.delete(aid);
+      else selectedAnimals.add(aid);
+      renderFarm(); return;
+    }
     selectedAnimalId = el.dataset.animalid;
     farmNav = 'animal-detail';
     render(); renderFarm();
@@ -2676,6 +2709,39 @@ function bindFarmEvents() {
       notes,
     });
     modal = null; toast('✅ Hastalık kaydedildi'); renderFarm();
+  });
+
+  // Toplu seçim
+  document.getElementById('bulk-select-btn')?.addEventListener('click', () => {
+    bulkMode = !bulkMode; selectedAnimals.clear(); renderFarm();
+  });
+  document.getElementById('bulk-select-btn')?.addEventListener('click', () => {
+    bulkMode = !bulkMode; selectedAnimals.clear(); renderFarm();
+  });
+  document.getElementById('cancel-bulk-btn')?.addEventListener('click', () => {
+    bulkMode = false; selectedAnimals.clear(); renderFarm();
+  });
+  document.getElementById('select-all-cb')?.addEventListener('change', (e) => {
+    let fa = animals.filter(a => a.farm_id === selectedFarmId);
+    if(animalFilterBreed !== 'all') fa = fa.filter(a => a.breed === animalFilterBreed);
+    if(animalFilterStatus !== 'all') fa = fa.filter(a => a.status === animalFilterStatus);
+    if(e.target.checked) fa.forEach(a => selectedAnimals.add(a.id));
+    else selectedAnimals.clear();
+    renderFarm();
+  });
+  document.querySelectorAll('.animal-cb').forEach(cb => cb.addEventListener('change', (e) => {
+    const aid = e.target.dataset.aid;
+    if(e.target.checked) selectedAnimals.add(aid);
+    else selectedAnimals.delete(aid);
+    renderFarm();
+  }));
+  document.getElementById('delete-selected-btn')?.addEventListener('click', async () => {
+    const ids = [...selectedAnimals];
+    if(!ids.length) return;
+    if(!confirm(`${ids.length} hayvan silinsin mi? Bu işlem geri alınamaz.`)) return;
+    for(const id of ids) await deleteAnimal(id);
+    selectedAnimals.clear(); bulkMode = false;
+    toast(`🗑 ${ids.length} hayvan silindi`); renderFarm();
   });
 
   // Kızgınlık hızlı ekle
