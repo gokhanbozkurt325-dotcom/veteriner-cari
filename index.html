@@ -1739,152 +1739,256 @@ function getAnimalAlerts(animal) {
   const alerts = [];
   const evs = animalEvents.filter(e => e.animal_id === animal.id);
   const tdStr = today();
-
-  // Olayları bul
-  const inseminations = evs.filter(e => e.event_type === 'insemination')
-    .sort((a,b) => b.event_date.localeCompare(a.event_date)); // en yeni önce
-  const heats = evs.filter(e => e.event_type === 'heat')
-    .sort((a,b) => b.event_date.localeCompare(a.event_date));
-  const births = evs.filter(e => e.event_type === 'birth')
-    .sort((a,b) => b.event_date.localeCompare(a.event_date));
-  const pregChecks = evs.filter(e => e.event_type === 'pregnancy_check')
-    .sort((a,b) => b.event_date.localeCompare(a.event_date));
-  const dryOffs = evs.filter(e => e.event_type === 'dry_off')
-    .sort((a,b) => b.event_date.localeCompare(a.event_date));
-
-  const lastInsem = inseminations[0] || null;
-  const lastHeat = heats[0] || null;
-  const lastBirth = births[0] || null;
-  const lastPregCheck = pregChecks[0] || null;
-  const lastDryOff = dryOffs[0] || null;
-
   const status = animal.status;
 
-  // ── DÜVE UYARILARI ──
+  // ── Olayları sırala ──
+  const inseminations = evs.filter(e=>e.event_type==='insemination').sort((a,b)=>b.event_date.localeCompare(a.event_date));
+  const heats         = evs.filter(e=>e.event_type==='heat').sort((a,b)=>b.event_date.localeCompare(a.event_date));
+  const births        = evs.filter(e=>e.event_type==='birth').sort((a,b)=>b.event_date.localeCompare(a.event_date));
+  const pregChecks    = evs.filter(e=>e.event_type==='pregnancy_check').sort((a,b)=>b.event_date.localeCompare(a.event_date));
+  const dryOffs       = evs.filter(e=>e.event_type==='dry_off').sort((a,b)=>b.event_date.localeCompare(a.event_date));
+
+  const lastInsem     = inseminations[0] || null;
+  const lastHeat      = heats[0] || null;
+  const lastBirth     = births[0] || null;
+  const lastPregCheck = pregChecks[0] || null;
+  const lastDryOff    = dryOffs[0] || null;
+
+  // ── Beklenen doğum hesapla (her durumda gerekli) ──
+  let expectedBirth = animal.expected_birth_date || null;
+  if(!expectedBirth && lastPregCheck && lastInsem) {
+    const pd = animal.pregnancy_check_day || daysBetween(lastInsem.event_date, lastPregCheck.event_date);
+    expectedBirth = addDays(lastPregCheck.event_date, GESTATION_DAYS - pd);
+  } else if(!expectedBirth && lastInsem) {
+    expectedBirth = addDays(lastInsem.event_date, GESTATION_DAYS);
+  }
+
+  // ══════════════════════════════════════════════════
+  // DÜVE ALGORİTMASI
+  // ══════════════════════════════════════════════════
   if(status === 'heifer' && animal.birth_date) {
-    const ageMonths = Math.floor(daysBetween(animal.birth_date, tdStr) / 30);
-    if(ageMonths >= 10 && ageMonths < 12) {
-      alerts.push({priority:2, type:'blue', icon:'📅', title:'Tohumlamaya Hazırlan', detail:`Düve ${ageMonths} aylık — 12. ayda tohumlama planlanabilir`});
+    const ageDays   = daysBetween(animal.birth_date, tdStr);
+    const ageMonths = Math.floor(ageDays / 30);
+
+    if(ageMonths >= 10 && ageMonths < 12 && !lastInsem) {
+      alerts.push({priority:2, type:'blue', icon:'📅',
+        title:'Tohumlamaya Hazırlan',
+        detail:`Düve ${ageMonths} aylık — 12. ayda tohumlama planlanabilir`});
     }
-    if(ageMonths >= 12) {
-      alerts.push({priority:1, type:'amber', icon:'💉', title:'Tohumlama Zamanı', detail:`Düve ${ageMonths} aylık — tohumlama zamanı`});
-    }
-  }
-
-  // ── AÇIK HAYVAN: Tohumlama sonrası takip ──
-  if(status === 'open' || status === 'heifer') {
-
-    if(lastInsem) {
-      const dSinceInsem = daysBetween(lastInsem.event_date, tdStr);
-
-      // 35. gün gebelik kontrolü
-      const hasCheckAfterInsem = pregChecks.some(p => p.event_date > lastInsem.event_date);
-      if(dSinceInsem >= 33 && dSinceInsem <= 42 && !hasCheckAfterInsem) {
-        alerts.push({priority:1, type:'purple', icon:'🔬', title:'Gebelik Kontrolü', detail:`Tohumlamadan ${dSinceInsem} gün geçti — 35. gün kontrolü`});
-      }
-      if(dSinceInsem > 42 && !hasCheckAfterInsem) {
-        alerts.push({priority:1, type:'red', icon:'⚠️', title:'Gebelik Kontrolü Yapılmadı', detail:`Tohumlamadan ${dSinceInsem} gün geçti`});
-      }
-
-      // 18-24. gün kızgınlık takibi
-      const heatAfterInsem = heats.find(h => h.event_date > lastInsem.event_date);
-      if(heatAfterInsem) {
-        const dHeat = daysBetween(lastInsem.event_date, heatAfterInsem.event_date);
-        if(dHeat >= HEAT_MIN && dHeat <= HEAT_MAX) {
-          alerts.push({priority:0, type:'red', icon:'🔥', title:'Tohum Tutmadı Olabilir', detail:`Tohumlamadan ${dHeat} gün sonra kızgınlık — gebelik muayenesi şart`});
-        }
-      } else {
-        // Kızgınlık takip penceresi
-        const windowStart = addDays(lastInsem.event_date, HEAT_MIN);
-        const windowEnd = addDays(lastInsem.event_date, HEAT_MAX);
-        if(tdStr >= windowStart && tdStr <= windowEnd) {
-          alerts.push({priority:1, type:'amber', icon:'👀', title:'Kızgınlık Takip Penceresi', detail:`${HEAT_MIN}-${HEAT_MAX}. gün (${windowStart} - ${windowEnd}) — kızgınlık izle`});
-        }
-      }
-    }
-
-    // Kızgınlık sonrası bir sonraki pencere
-    if(lastHeat && (!lastInsem || lastHeat.event_date > lastInsem.event_date)) {
-      const nextStart = addDays(lastHeat.event_date, HEAT_MIN);
-      const nextEnd = addDays(lastHeat.event_date, HEAT_MAX);
-      if(tdStr >= nextStart && tdStr <= nextEnd) {
-        alerts.push({priority:1, type:'red', icon:'🔥', title:'Kızgınlık Bekleniyor', detail:`Son kızgınlıktan ${daysBetween(lastHeat.event_date, tdStr)} gün geçti (${nextStart}–${nextEnd})`});
-      } else if(tdStr < nextStart) {
-        const dLeft = daysBetween(tdStr, nextStart);
-        if(dLeft <= 5) {
-          alerts.push({priority:2, type:'amber', icon:'⏰', title:'Kızgınlık Yaklaşıyor', detail:`${dLeft} gün sonra kızgınlık penceresi başlıyor`});
-        }
-      }
+    if(ageMonths >= 12 && !lastInsem) {
+      alerts.push({priority:1, type:'amber', icon:'💉',
+        title:'Tohumlama Zamanı',
+        detail:`Düve ${ageMonths} aylık — tohumlama yapılmalı`});
     }
   }
 
-  // ── DOĞUM SONRASI (açık hayvan) ──
-  if(lastBirth && (status === 'open')) {
+  // ══════════════════════════════════════════════════
+  // TOHUMLAMA SONRASI TAKİP (Açık + Düve)
+  // ══════════════════════════════════════════════════
+  if((status === 'open' || status === 'heifer') && lastInsem) {
+    const dSinceInsem = daysBetween(lastInsem.event_date, tdStr);
+    const insemNo     = inseminations.length; // kaçıncı tohumlama
+
+    // 3+ başarısız tohumlama
+    if(insemNo >= 3 && !pregChecks.some(p => p.event_date > lastInsem.event_date)) {
+      alerts.push({priority:0, type:'red', icon:'🔴',
+        title:`Reprodüktif Sorun Olabilir`,
+        detail:`${insemNo}. tohumlama — gebelik teyidi yok, veteriner değerlendirmesi gerekli`});
+    }
+
+    // 35. gün gebelik kontrolü
+    const hasCheckAfterInsem = pregChecks.some(p => p.event_date > lastInsem.event_date);
+    if(!hasCheckAfterInsem) {
+      if(dSinceInsem >= 33 && dSinceInsem <= 42) {
+        alerts.push({priority:1, type:'purple', icon:'🔬',
+          title:`Gebelik Kontrolü (${insemNo}. Tohumlama)`,
+          detail:`Tohumlamadan ${dSinceInsem} gün geçti — 35. gün kontrol zamanı`});
+      }
+      if(dSinceInsem > 42) {
+        alerts.push({priority:1, type:'red', icon:'⚠️',
+          title:'Gebelik Kontrolü Yapılmadı',
+          detail:`Tohumlamadan ${dSinceInsem} gün geçti — kontrol gecikmiş`});
+      }
+    }
+
+    // Tohumlama sonrası 18-24. günde kızgınlık = tohum tutmadı
+    const heatAfterInsem = heats.find(h => h.event_date > lastInsem.event_date);
+    if(heatAfterInsem) {
+      const dHeat = daysBetween(lastInsem.event_date, heatAfterInsem.event_date);
+      if(dHeat >= HEAT_MIN && dHeat <= HEAT_MAX) {
+        alerts.push({priority:0, type:'red', icon:'🔥',
+          title:'Tohum Tutmadı Olabilir',
+          detail:`${insemNo}. tohumlamadan ${dHeat} gün sonra kızgınlık — gebelik muayenesi şart`});
+      }
+    } else {
+      // Kızgınlık takip penceresi henüz açık
+      const wStart = addDays(lastInsem.event_date, HEAT_MIN);
+      const wEnd   = addDays(lastInsem.event_date, HEAT_MAX);
+      if(tdStr >= wStart && tdStr <= wEnd) {
+        alerts.push({priority:1, type:'amber', icon:'👀',
+          title:'Kızgınlık Takip Penceresi',
+          detail:`${insemNo}. tohumlama sonrası ${HEAT_MIN}-${HEAT_MAX}. gün — kızgınlık izle (${fmtDate(wStart)}–${fmtDate(wEnd)})`});
+      }
+    }
+  }
+
+  // ══════════════════════════════════════════════════
+  // KIZGINLIK TAKİBİ (tohumlama olmayan açık/düve)
+  // ══════════════════════════════════════════════════
+  if((status === 'open' || status === 'heifer') && lastHeat &&
+     (!lastInsem || lastHeat.event_date > lastInsem.event_date)) {
+    const nextStart = addDays(lastHeat.event_date, HEAT_MIN);
+    const nextEnd   = addDays(lastHeat.event_date, HEAT_MAX);
+    const dLeft     = daysBetween(tdStr, nextStart);
+
+    if(tdStr >= nextStart && tdStr <= nextEnd) {
+      alerts.push({priority:1, type:'red', icon:'🔥',
+        title:'Kızgınlık Bekleniyor',
+        detail:`Son kızgınlıktan ${daysBetween(lastHeat.event_date, tdStr)} gün — pencere: ${fmtDate(nextStart)}–${fmtDate(nextEnd)}`});
+    } else if(dLeft > 0 && dLeft <= 5) {
+      alerts.push({priority:2, type:'amber', icon:'⏰',
+        title:'Kızgınlık Yaklaşıyor',
+        detail:`${dLeft} gün sonra kızgınlık penceresi başlıyor (${fmtDate(nextStart)})`});
+    }
+  }
+
+  // ══════════════════════════════════════════════════
+  // DOĞUM SONRASI AÇIK İNEK
+  // ══════════════════════════════════════════════════
+  if(status === 'open' && lastBirth) {
     const dSinceBirth = daysBetween(lastBirth.event_date, tdStr);
 
-    // Postpartum dönem (21. gün)
-    if(dSinceBirth >= 18 && dSinceBirth <= 30) {
-      alerts.push({priority:2, type:'blue', icon:'🩺', title:'Postpartum Kontrol', detail:`Doğumdan ${dSinceBirth} gün — postpartum sorunlara dikkat et`});
+    // 0-30 gün: Postpartum — hastalıklara açık dönem
+    if(dSinceBirth >= 0 && dSinceBirth <= 30) {
+      alerts.push({priority:2, type:'blue', icon:'🩺',
+        title:'Postpartum Dönem — Dikkatli Olun',
+        detail:`Doğumdan ${dSinceBirth} gün — hastalıklara açık dönem, sıkı takip yapın`});
     }
 
-    // 80. gün — kızgınlık bekle
+    // 80. gün: kızgınlık bekle (tohumlama yoksa)
     if(dSinceBirth >= OPEN_WARN_1 && dSinceBirth < OPEN_WARN_2 && !lastInsem) {
-      alerts.push({priority:1, type:'amber', icon:'👀', title:'Kızgınlık Bekle', detail:`Doğumdan ${dSinceBirth} gün — kızgınlık gözlemle`});
+      alerts.push({priority:1, type:'amber', icon:'👀',
+        title:'Kızgınlık Bekle',
+        detail:`Doğumdan ${dSinceBirth} gün — kızgınlık gözlemlenebilir, tohumlama hazırlığı`});
     }
 
-    // 100. gün — tohumlama gecikiyor
+    // 100. gün: tohumlama gecikiyor + sorunlu inek
     if(dSinceBirth >= OPEN_WARN_2 && !lastInsem) {
-      alerts.push({priority:0, type:'red', icon:'💉', title:'Tohumlama Gecikiyor', detail:`Doğumdan ${dSinceBirth} gün geçti — tohumlama yapılmadı`});
+      alerts.push({priority:0, type:'red', icon:'💉',
+        title:'⚠️ Tohumlama Gecikiyor — Sorunlu İnek',
+        detail:`Doğumdan ${dSinceBirth} gün geçti — tohumlama yapılmadı, müdahale gerekli`});
     }
   }
 
-  // ── GEBE HAYVAN ──
+  // ══════════════════════════════════════════════════
+  // GEBE İNEK ALGORİTMASI
+  // ══════════════════════════════════════════════════
   if(status === 'pregnant') {
-    // Beklenen doğum tarihini hesapla
-    let expectedBirth = animal.expected_birth_date || null;
-    if(!expectedBirth && lastPregCheck && lastInsem) {
-      const pregDay = animal.pregnancy_check_day || daysBetween(lastInsem.event_date, lastPregCheck.event_date);
-      const remaining = GESTATION_DAYS - pregDay;
-      expectedBirth = addDays(lastPregCheck.event_date, remaining);
-    } else if(!expectedBirth && lastInsem) {
-      expectedBirth = addDays(lastInsem.event_date, GESTATION_DAYS);
+
+    // Gebelik muayenesi uyarısı (tohumlama var ama teyit yok)
+    if(lastInsem && !lastPregCheck) {
+      const dSinceInsem = daysBetween(lastInsem.event_date, tdStr);
+      if(dSinceInsem >= 33 && dSinceInsem <= 42) {
+        alerts.push({priority:1, type:'purple', icon:'🔬',
+          title:'Gebelik Muayenesi Yapılsın',
+          detail:`Tohumlamadan ${dSinceInsem} gün — teyit tarihi girilmemiş`});
+      }
+    }
+
+    // Teyit sonrası kızgınlık = tohum tutmadı
+    if(lastPregCheck && lastHeat && lastHeat.event_date > lastPregCheck.event_date) {
+      alerts.push({priority:0, type:'red', icon:'🔥',
+        title:'Tohum Tutmadı — Muayene Şart',
+        detail:`Gebelik teyidinden sonra kızgınlık görüldü — tekrar muayene gerekli`});
     }
 
     if(expectedBirth) {
       const dToCalve = daysBetween(tdStr, expectedBirth);
-      const dPreg = daysBetween(lastInsem?.event_date || expectedBirth, tdStr);
 
-      // Kuruya alma (doğuma 60 gün)
-      if(dToCalve <= DRY_PERIOD && dToCalve > 14 && !lastDryOff) {
-        alerts.push({priority:0, type:'amber', icon:'🛑', title:'Kuruya Al', detail:`Doğuma ${dToCalve} gün kaldı — kuruya alma zamanı`});
+      // Kuruya alma: doğuma 50 gün kaldı, hala kuruya alınmadı
+      if(dToCalve <= 50 && dToCalve > 0 && !lastDryOff) {
+        alerts.push({priority:0, type:'red', icon:'🛑',
+          title:'Kuruya Alınmadı — Risk Altında!',
+          detail:`Doğuma ${dToCalve} gün kaldı — hayvan hâlâ sağılıyor, acil kuruya alın`});
+      }
+      // 60 gün erken uyarı
+      if(dToCalve > 50 && dToCalve <= 60 && !lastDryOff) {
+        alerts.push({priority:1, type:'amber', icon:'🛑',
+          title:'Kuruya Alma Zamanı',
+          detail:`Doğuma ${dToCalve} gün kaldı — kuruya alma planlanmalı`});
       }
 
-      // Doğum uyarıları
-      if(dToCalve <= 15 && dToCalve > 0) {
-        alerts.push({priority:0, type:'purple', icon:'🐣', title:'Doğum Yaklaşıyor', detail:`Doğuma ${dToCalve} gün kaldı`});
+      // Doğum yaklaşıyor: son 15 gün
+      if(dToCalve > 5 && dToCalve <= 15) {
+        alerts.push({priority:0, type:'purple', icon:'🐣',
+          title:'Doğum Yakın',
+          detail:`Doğuma ${dToCalve} gün kaldı (${fmtDate(expectedBirth)})`});
       }
-      if(dToCalve >= -5 && dToCalve <= 0) {
-        alerts.push({priority:0, type:'red', icon:'⚠️', title:'DOĞUM ZAMANI', detail:`Beklenen doğum: ${fmtDate(expectedBirth)}`});
+      // Doğum zamanı: 0-5 gün
+      if(dToCalve >= 0 && dToCalve <= 5) {
+        alerts.push({priority:0, type:'red', icon:'🚨',
+          title:'DOĞUM ZAMANI!',
+          detail:`Beklenen doğum: ${fmtDate(expectedBirth)} — yakın takip`});
       }
-      if(dToCalve < -5) {
-        alerts.push({priority:0, type:'red', icon:'🚨', title:'Doğum Tarihi Geçti', detail:`${Math.abs(dToCalve)} gün gecikmeli`});
+      // Doğum geçti
+      if(dToCalve < 0) {
+        alerts.push({priority:0, type:'red', icon:'🚨',
+          title:'Doğum Tarihi Geçti',
+          detail:`${Math.abs(dToCalve)} gün gecikmeli — acil kontrol`});
       }
-      // 265. gün hazırlan
+
+      // 265. gün hazırlan (kuruya alındıysa bile)
+      const dPreg = daysBetween(lastInsem?.event_date || tdStr, tdStr);
       if(dPreg >= 260 && dPreg < 270) {
-        alerts.push({priority:1, type:'amber', icon:'📋', title:'Doğuma Hazırlan', detail:`Gebelik ${dPreg}. gün — doğum hazırlığı başlat`});
+        alerts.push({priority:2, type:'amber', icon:'📋',
+          title:'Doğuma Hazırlan',
+          detail:`Gebelik ${dPreg}. gün — doğum hazırlığı başlat`});
+      }
+      if(dPreg >= 270 && dPreg < 280 && dToCalve > 5) {
+        alerts.push({priority:1, type:'purple', icon:'📋',
+          title:'Doğum Yaklaşıyor',
+          detail:`Gebelik ${dPreg}. gün — doğum hazırlığı tamamlansın`});
       }
     }
   }
 
-  // ── KURU HAYVAN ──
-  if(status === 'dry' && lastDryOff) {
-    const dSinceDry = daysBetween(lastDryOff.event_date, tdStr);
-    // Kuru dönem 60 gün, doğum yaklaşıyor
-    if(dSinceDry >= 45 && dSinceDry < 55) {
-      alerts.push({priority:1, type:'amber', icon:'🐣', title:'Doğum Yaklaşıyor', detail:`Kuruya alındıktan ${dSinceDry} gün geçti`});
-    }
-    if(dSinceDry >= 55) {
-      alerts.push({priority:0, type:'red', icon:'🚨', title:'Doğum Bekleniyor', detail:`Kuruya alındıktan ${dSinceDry} gün geçti`});
+  // ══════════════════════════════════════════════════
+  // KURU İNEK ALGORİTMASI
+  // ══════════════════════════════════════════════════
+  if(status === 'dry') {
+
+    // Beklenen doğuma göre uyarı (kuruya alınma tarihinden değil!)
+    if(expectedBirth) {
+      const dToCalve = daysBetween(tdStr, expectedBirth);
+
+      // Doğuma 50 gün kala hala kuruya alınmamış (gebe iken uyarı verildiyse burada tekrar)
+      // Bu aşamada kuru olduğu için bu kontrol geçerli değil
+
+      // Son 10 gün: doğum yaklaşıyor
+      if(dToCalve >= 0 && dToCalve <= 10) {
+        alerts.push({priority:0, type:'purple', icon:'🐣',
+          title:'Doğum Yaklaşıyor',
+          detail:`Beklenen buzağılama: ${fmtDate(expectedBirth)} — ${dToCalve} gün kaldı`});
+      }
+      // Doğum geçti
+      if(dToCalve < 0) {
+        alerts.push({priority:0, type:'red', icon:'🚨',
+          title:'Doğum Tarihi Geçti',
+          detail:`${Math.abs(dToCalve)} gün gecikmeli — acil kontrol`});
+      }
+    } else if(lastDryOff) {
+      // Beklenen doğum tarihi yoksa kuruya alma tarihinden 60 gün tahmini
+      const dSinceDry = daysBetween(lastDryOff.event_date, tdStr);
+      if(dSinceDry >= 50 && dSinceDry < 60) {
+        alerts.push({priority:1, type:'amber', icon:'🐣',
+          title:'Doğum Yaklaşıyor (Tahmini)',
+          detail:`Kuruya alınalı ${dSinceDry} gün — tohumlama tarihi girilmemiş`});
+      }
+      if(dSinceDry >= 60) {
+        alerts.push({priority:0, type:'red', icon:'🚨',
+          title:'Doğum Bekleniyor',
+          detail:`Kuruya alınalı ${dSinceDry} gün — doğum tarihi belirsiz, kontrol edin`});
+      }
     }
   }
 
@@ -2409,6 +2513,9 @@ function buildFarmModal() {
       <div style="background:var(--blue-light);border-radius:9px;padding:10px;font-size:12px;color:var(--blue);font-weight:600">
         💡 Tohumlama kaydedilince 18-24. gün kızgınlık takip penceresi ve 35. gün gebelik kontrolü uyarısı otomatik açılır
       </div>
+      <div class="fg" style="margin-top:8px"><label class="fl">Boğa Adı <span style="color:var(--gray4)">(opsiyonel)</span></label>
+        <input class="fi" id="ev-bull-name" placeholder="Boğa adı...">
+      </div>
     </div>
 
     <!-- Doğum için -->
@@ -2891,10 +2998,24 @@ function bindFarmEvents() {
     const updates = {};
 
     if(type === 'insemination') {
+      // Kaçıncı tohumlama?
+      const prevInsems = animalEvents.filter(e => e.animal_id === a.id && e.event_type === 'insemination').length;
+      const insemNo = prevInsems + 1;
+      const bullName = document.getElementById('ev-bull-name')?.value.trim() || '';
+      const insemNote = `${insemNo}. tohumlama${bullName ? ' — Boğa: ' + bullName : ''}${notes ? ' — ' + notes : ''}`;
       // Tohumlama: hayvan açık durumda kalır, tohumlama tarihi güncellenir
       updates.last_insemination_date = date;
       // Eğer gebe işaretliyse açığa al
       if(a.status === 'pregnant') updates.status = 'open';
+      // Notes'u güncelle
+      Object.assign({}, {notes: insemNote});
+      await addAnimalEvent({
+        animal_id: selectedAnimalId, event_type: type,
+        event_date: date, event_day: null, notes: insemNote,
+      });
+      if(Object.keys(updates).length) await updateAnimal(selectedAnimalId, updates);
+      modal = null; toast('✅ ' + insemNo + '. tohumlama kaydedildi'); renderFarm();
+      return;
     }
 
     if(type === 'heat') {
@@ -2924,9 +3045,11 @@ function bindFarmEvents() {
     }
 
     if(type === 'birth') {
-      // Doğum: laktasyon artır, açık al, gebelik bilgilerini sıfırla
+      // Doğum: açık al, laktasyon +1 (düve ise 0→1, inek ise mevcut+1)
+      const currentLac = a.lactation_no || 0;
+      const newLac = a.status === 'heifer' ? 1 : currentLac + 1;
       updates.status = 'open';
-      updates.lactation_no = (a.lactation_no || 0) + 1;
+      updates.lactation_no = newLac;
       updates.last_birth_date = date;
       updates.expected_birth_date = null;
       updates.pregnancy_check_date = null;
