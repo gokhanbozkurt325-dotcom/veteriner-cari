@@ -1564,7 +1564,7 @@ const EVENT_TYPES = {
   insemination:    {label:'Tohumlama',        icon:'💉', color:'blue'},
   heat:            {label:'Kızgınlık',         icon:'🔥', color:'red'},
   pregnancy_check: {label:'Gebelik Kontrolü', icon:'🔬', color:'purple'},
-  birth:           {label:'Doğum',            icon:'🐣', color:'green'},
+  birth:           {label:'Buzağılama',            icon:'🐣', color:'green'},
   dry_off:         {label:'Kuruya Alma',       icon:'🛑', color:'amber'},
   vaccination:     {label:'Aşılama',           icon:'💊', color:'blue'},
   disease:         {label:'Hastalık',          icon:'🤒', color:'red'},
@@ -2228,18 +2228,18 @@ function buildAnimalDetail() {
   </div>` : ''}
 
   <div class="info-grid">
-    <div class="info-box"><div class="info-lbl">Doğum Yılı (Yaş)</div><div class="info-val">${a.birth_date ? fmtDate(a.birth_date)+' · '+ageStr(a.birth_date) : '-'}</div></div>
+    <div class="info-box"><div class="info-lbl">🐄 İneğin Yaşı</div><div class="info-val">${a.birth_date ? ageStr(a.birth_date) + ' (' + fmtDate(a.birth_date) + ')' : '-'}</div></div>
     <div class="info-box"><div class="info-lbl">Laktasyon</div><div class="info-val">${a.lactation_no || 0}. laktasyon</div></div>
-    <div class="info-box"><div class="info-lbl">Son Tohumlama</div><div class="info-val">${lastInsem ? fmtDate(lastInsem.event_date) + (dSinceInsem !== null ? ' (' + dSinceInsem + ' gün)' : '') : '-'}</div></div>
-    <div class="info-box"><div class="info-lbl">Son Kızgınlık</div><div class="info-val">${lastHeat ? fmtDate(lastHeat.event_date) : '-'}</div></div>
-    <div class="info-box"><div class="info-lbl">Son Buzağılama</div><div class="info-val">${lastBirth ? fmtDate(lastBirth.event_date) + (dSinceBirth !== null ? ' (' + dSinceBirth + ' gün önce)' : '') : '-'}</div></div>
-    <div class="info-box"><div class="info-lbl">Beklenen Buzağılama</div>
+    <div class="info-box"><div class="info-lbl">Son Tohumlama</div><div class="info-val">${lastInsem ? fmtDate(lastInsem.event_date) + ' · ' + (dSinceInsem !== null ? dSinceInsem + ' gün önce' : '') : '-'}</div></div>
+    <div class="info-box"><div class="info-lbl">Son Kızgınlık</div><div class="info-val">${lastHeat ? fmtDate(lastHeat.event_date) + ' · ' + daysBetween(lastHeat.event_date, today()) + ' gün önce' : '-'}</div></div>
+    <div class="info-box"><div class="info-lbl">🐣 Son Buzağılama</div><div class="info-val">${lastBirth ? fmtDate(lastBirth.event_date) + ' · ' + (dSinceBirth !== null ? dSinceBirth + ' gün önce' : '') : '-'}</div></div>
+    <div class="info-box"><div class="info-lbl">🐣 Beklenen Buzağılama</div>
       <div class="info-val" style="color:${dToCalve !== null && dToCalve <= 14 ? 'var(--red)' : dToCalve !== null && dToCalve <= 60 ? 'var(--amber)' : 'var(--text)'}">
-        ${expectedBirth ? fmtDate(expectedBirth) + (dToCalve !== null ? (dToCalve >= 0 ? ' (' + dToCalve + ' gün sonra)' : ' (' + Math.abs(dToCalve) + ' gün geçti!)') : '') : '-'}
+        ${expectedBirth ? fmtDate(expectedBirth) + (dToCalve !== null ? (dToCalve >= 0 ? ' · ' + dToCalve + ' gün sonra' : ' · ' + Math.abs(dToCalve) + ' gün geçti!') : '') : '-'}
       </div>
     </div>
-    <div class="info-box"><div class="info-lbl">Gebelik Kontrolü</div><div class="info-val">${lastPregCheck ? fmtDate(lastPregCheck.event_date) + (a.pregnancy_check_day ? ' · ' + a.pregnancy_check_day + '. gün' : '') : '-'}</div></div>
-    <div class="info-box"><div class="info-lbl">Kuruya Alma</div><div class="info-val">${lastDryOff ? fmtDate(lastDryOff.event_date) : '-'}</div></div>
+    <div class="info-box"><div class="info-lbl">🔬 Gebelik Kontrolü</div><div class="info-val">${lastPregCheck && lastInsem ? fmtDate(lastPregCheck.event_date) + ' · Tohumlamadan ' + daysBetween(lastInsem.event_date, lastPregCheck.event_date) + '. günde yapıldı' : lastPregCheck ? fmtDate(lastPregCheck.event_date) : '-'}</div></div>
+    <div class="info-box"><div class="info-lbl">🛑 Kuruya Alma</div><div class="info-val">${lastDryOff ? fmtDate(lastDryOff.event_date) + ' · ' + daysBetween(lastDryOff.event_date, today()) + ' gün önce' : '-'}</div></div>
   </div>
 
   <!-- Aktif Hastalıklar -->
@@ -2337,7 +2337,7 @@ function buildFarmModal() {
       <div class="fg"><label class="fl">Laktasyon No</label>
         <input class="fi" id="an-lac" type="number" inputmode="numeric" min="1" value="${a.lactation_no||1}">
       </div>
-      <div class="fg"><label class="fl">Son Doğum Tarihi <span style="color:var(--gray4)">(opsiyonel)</span></label>
+      <div class="fg"><label class="fl">Son Buzağılama Tarihi <span style="color:var(--gray4)">(opsiyonel)</span></label>
         <input class="fi" id="an-lastbirth" type="date" value="${a.last_birth_date||''}" oninput="calcDaysSinceBirth(this.value)">
         <div id="days-since-birth" style="font-size:11px;color:var(--blue);margin-top:4px;font-weight:700"></div>
         <div style="font-size:11px;color:var(--gray4);margin-top:2px">80. ve 100. gün tohumlama uyarıları otomatik gelir</div>
@@ -2521,7 +2521,7 @@ function buildFarmModal() {
     <!-- Doğum için -->
     <div class="fg" id="ev-birth-note" style="display:none">
       <div style="background:var(--green-light);border-radius:9px;padding:10px;font-size:12px;color:var(--green);font-weight:600">
-        🐣 Doğum kaydedilince laktasyon otomatik artırılır ve hayvan "Açık" durumuna alınır. 80. ve 100. gün uyarıları başlar.
+        🐣 Buzağılama kaydedilince laktasyon otomatik artırılır ve hayvan "Açık" durumuna alınır. 80. ve 100. gün uyarıları başlar.
       </div>
     </div>
 
@@ -2977,6 +2977,8 @@ function bindFarmEvents() {
 
     modal = null;
     toast('✅ ' + (isEdit ? 'Güncellendi' : 'Hayvan eklendi'));
+    await loadFarmData();
+    render();
     renderFarm();
   };
 
@@ -3074,6 +3076,9 @@ function bindFarmEvents() {
 
     modal = null;
     toast('✅ Olay kaydedildi');
+    // Anlık güncelleme — algoritma yeniden çalışsın
+    await loadFarmData();
+    render();
     renderFarm();
   });
 
