@@ -56,8 +56,9 @@ html,body{height:100%;background:var(--gray);font-family:'Nunito Sans',sans-seri
 .back-btn{background:none;border:none;color:#fff;font-size:26px;cursor:pointer;padding:0 8px 0 0;line-height:1}
 
 /* NAV */
-.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:1px solid var(--gray2);display:flex;justify-content:space-around;padding:6px 0 10px;z-index:200;box-shadow:0 -2px 12px rgba(0,0,0,.05)}
-.nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:10px;position:relative}
+.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:1px solid var(--gray2);display:flex;justify-content:space-around;padding:6px 0 10px;z-index:200;box-shadow:0 -2px 12px rgba(0,0,0,.05);overflow-x:auto}
+.nav::-webkit-scrollbar{display:none}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:10px;position:relative;min-width:52px;flex-shrink:0}
 .nav-item .ni{font-size:20px;transition:.15s}
 .nav-item .nl{font-size:9px;font-weight:700;color:var(--gray3)}
 .nav-item.active .nl{color:var(--blue)}
@@ -388,7 +389,13 @@ function toast(msg){ document.querySelectorAll('.toast').forEach(e=>e.remove());
 window.closeModal = function(){ modal=null; render(); };
 
 // ─── RENDER ───────────────────────────────────────────────────
-function render(){ document.getElementById('app').innerHTML=buildHTML(); bindEvents(); }
+function render(){ 
+  document.getElementById('app').innerHTML=buildHTML(); 
+  bindEvents(); 
+  if(nav==='farms'){
+    renderFarm();
+  }
+}
 
 function buildHTML(){
   if(!currentUser) return buildLogin();
@@ -1168,8 +1175,8 @@ function bindEvents(){
   document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click',async()=>{
     nav=b.dataset.nav; if(nav!=='detail') detailPid=null; modal=null; txTab='all';
     if(nav==='admin') await loadAllUsers();
-    render();
-    if(nav==='farms'){ await loadFarmData(); farmNav='farms'; renderFarm(); }
+    if(nav==='farms'){ farmNav='farms'; render(); await loadFarmData(); renderFarm(); }
+    else render();
   }));
   document.getElementById('back-btn')?.addEventListener('click',()=>{
     if(nav==='detail'){ nav='persons'; detailPid=null; render(); }
