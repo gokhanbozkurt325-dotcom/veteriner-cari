@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
-<title>Veteriner Cari Hesap</title>
+<title>Veteriner Cari Hesap v2.1</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Nunito+Sans:wght@400;600;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -2045,69 +2045,141 @@ function buildFarmModal() {
   if(modal === 'add-animal' || modal === 'edit-animal') {
     const a = modal === 'edit-animal' ? animals.find(x => x.id === selectedAnimalId) || {} : {};
     const isEdit = modal === 'edit-animal';
-
-    // Duruma göre hangi alanlar gösterilecek
     const status = a.status || 'open';
 
-    return mWrap(isEdit ? '✏️ Hayvanı Düzenle' : '🐄 Yeni Hayvan Ekle', `
+    // Duruma göre form alanları
+    const commonTop = `
     <div class="fg"><label class="fl">Küpe No * (TR-XX-XXXXXXX)</label>
       <div style="display:flex;gap:8px">
-        <input class="fi" id="an-tag" placeholder="TR-34-1234567" value="${a.ear_tag || ''}" style="flex:1" oninput="this.value=formatEarTag(this.value)">
+        <input class="fi" id="an-tag" placeholder="TR-34-1234567" value="${a.ear_tag||''}" style="flex:1" oninput="this.value=formatEarTag(this.value)">
         <button type="button" onclick="startVoiceInput()" class="btn-sm btn-sm-b" style="padding:10px;font-size:16px">🎤</button>
       </div>
     </div>
     <div class="fg"><label class="fl">Irk *</label>
       <select class="fi" id="an-breed">
-        ${Object.entries(BREEDS).map(([k,v]) => `<option value="${k}" ${a.breed===k?'selected':''}>${BREED_ICONS[k]} ${v}</option>`).join('')}
+        ${Object.entries(BREEDS).map(([k,v])=>`<option value="${k}" ${a.breed===k?'selected':''}>${BREED_ICONS[k]} ${v}</option>`).join('')}
       </select>
-    </div>
-    <div class="fg"><label class="fl">Doğum Tarihi</label>
-      <input class="fi" id="an-birth" type="date" value="${a.birth_date || ''}">
     </div>
     <div class="fg"><label class="fl">Durum *</label>
       <select class="fi" id="an-status" onchange="toggleAnimalFields(this.value)">
-        ${Object.entries(ANIMAL_STATUS).map(([k,v]) => `<option value="${k}" ${a.status===k?'selected':''}>${v.label}</option>`).join('')}
+        ${Object.entries(ANIMAL_STATUS).map(([k,v])=>`<option value="${k}" ${(a.status||'open')===k?'selected':''}>${v.label}</option>`).join('')}
       </select>
-    </div>
-    <div class="fg"><label class="fl">Laktasyon No</label>
-      <input class="fi" id="an-lac" type="number" inputmode="numeric" min="0" value="${a.lactation_no || 0}" placeholder="0 = Düve/İlk laktasyon">
-    </div>
+    </div>`;
 
-    <!-- Sadece AÇIK hayvanda göster -->
-    <div id="open-fields" style="${['open','heifer'].includes(status)?'':'display:none'}">
-      <div class="fg"><label class="fl">Son Tohumlama Tarihi</label>
-        <input class="fi" id="an-insem" type="date" value="${a.last_insemination_date || ''}">
-        <div style="font-size:11px;color:var(--gray4);margin-top:4px">Girilirse 35. gün gebelik kontrolü uyarısı otomatik gelir</div>
+    // AÇIK hayvan alanları
+    const openFields = `
+    <div id="open-fields" style="${['open'].includes(status)?'':'display:none'}">
+      <div style="background:var(--gray);border-radius:9px;padding:10px 12px;margin-bottom:12px;font-size:11px;color:var(--gray4)">
+        💡 Açık hayvan: Daha önce doğum yapmış, tohumlanmayı bekleyen
       </div>
-      <div class="fg"><label class="fl">Son Kızgınlık Tarihi</label>
-        <input class="fi" id="an-heat" type="date" value="${a.last_heat_date || ''}">
+      <div class="fg"><label class="fl">Doğum Tarihi (İneğin doğduğu tarih)</label>
+        <input class="fi" id="an-birth" type="date" value="${a.birth_date||''}">
       </div>
-      <div class="fg"><label class="fl">Son Doğum Tarihi</label>
-        <input class="fi" id="an-lastbirth" type="date" value="${a.last_birth_date || ''}">
-        <div style="font-size:11px;color:var(--gray4);margin-top:4px">Girilirse 80. ve 100. gün uyarıları otomatik gelir</div>
+      <div class="fg"><label class="fl">Laktasyon No</label>
+        <input class="fi" id="an-lac" type="number" inputmode="numeric" min="1" value="${a.lactation_no||1}">
       </div>
-    </div>
+      <div class="fg"><label class="fl">Son Doğum Tarihi <span style="color:var(--gray4)">(opsiyonel)</span></label>
+        <input class="fi" id="an-lastbirth" type="date" value="${a.last_birth_date||''}" oninput="calcDaysSinceBirth(this.value)">
+        <div id="days-since-birth" style="font-size:11px;color:var(--blue);margin-top:4px;font-weight:700"></div>
+        <div style="font-size:11px;color:var(--gray4);margin-top:2px">80. ve 100. gün tohumlama uyarıları otomatik gelir</div>
+      </div>
+      <div class="fg"><label class="fl">Son Tohumlama Tarihi <span style="color:var(--gray4)">(opsiyonel)</span></label>
+        <input class="fi" id="an-insem" type="date" value="${a.last_insemination_date||''}">
+        <div style="font-size:11px;color:var(--gray4);margin-top:2px">35. gün gebelik kontrolü uyarısı otomatik gelir</div>
+      </div>
+      <div class="fg"><label class="fl">Son Kızgınlık Tarihi <span style="color:var(--gray4)">(opsiyonel)</span></label>
+        <input class="fi" id="an-heat" type="date" value="${a.last_heat_date||''}">
+      </div>
+    </div>`;
 
-    <!-- Sadece GEBE hayvanda göster -->
+    // GEBE hayvan alanları
+    const pregFields = `
     <div id="preg-fields" style="${status==='pregnant'?'':'display:none'}">
+      <div style="background:var(--green-light);border-radius:9px;padding:10px 12px;margin-bottom:12px;font-size:11px;color:var(--green);font-weight:600">
+        🤰 Gebe hayvan: Gebelik teyit edilmiş. Beklenen doğum otomatik hesaplanır.
+      </div>
+      <div class="fg"><label class="fl">Doğum Tarihi (İneğin doğduğu tarih)</label>
+        <input class="fi" id="an-birth" type="date" value="${a.birth_date||''}">
+      </div>
+      <div class="fg"><label class="fl">Laktasyon No</label>
+        <input class="fi" id="an-lac" type="number" inputmode="numeric" min="0" value="${a.lactation_no||0}">
+      </div>
       <div class="fg"><label class="fl">Son Tohumlama Tarihi *</label>
-        <input class="fi" id="an-insem" type="date" value="${a.last_insemination_date || ''}">
+        <input class="fi" id="an-insem" type="date" value="${a.last_insemination_date||''}" oninput="calcExpectedBirth()">
       </div>
-      <div class="fg"><label class="fl">Gebelik Teyit Tarihi</label>
-        <input class="fi" id="an-pregchk" type="date" value="${a.pregnancy_check_date || ''}">
+      <div class="fg"><label class="fl">Gebelik Teyit Tarihi <span style="color:var(--gray4)">(opsiyonel)</span></label>
+        <input class="fi" id="an-pregchk" type="date" value="${a.pregnancy_check_date||''}" oninput="calcExpectedBirth()">
+        <div style="font-size:11px;color:var(--gray4);margin-top:2px">Tohumlama + teyit tarihi girilince teyit günü otomatik hesaplanır</div>
       </div>
-      <div class="fg"><label class="fl">Teyit Tohumlamadan Kaç Gün Sonra?</label>
-        <input class="fi" id="an-pregday" type="number" inputmode="numeric" min="1" max="60" placeholder="Örn: 35" value="${a.pregnancy_check_day || ''}">
-        <div style="font-size:11px;color:var(--gray4);margin-top:4px">Beklenen doğum = 280 - bu gün + teyit tarihi</div>
+      <div id="expected-birth-preview" style="display:none;background:var(--blue-light);border-radius:9px;padding:10px 12px;margin-bottom:12px">
+        <div style="font-size:11px;color:var(--gray4);font-weight:700">TAHMINI DOĞUM TARİHİ</div>
+        <div id="expected-birth-val" style="font-size:16px;font-weight:900;color:var(--blue);margin-top:4px"></div>
+        <div id="days-to-calve" style="font-size:11px;color:var(--gray4);margin-top:2px"></div>
       </div>
-    </div>
+    </div>`;
 
+    // KURU hayvan alanları
+    const dryFields = `
+    <div id="dry-fields" style="${status==='dry'?'':'display:none'}">
+      <div style="background:var(--amber-light);border-radius:9px;padding:10px 12px;margin-bottom:12px;font-size:11px;color:var(--amber);font-weight:600">
+        🛑 Kuru hayvan: Doğuma 60 gün kala sağım durdurulmuş. En az birini girin.
+      </div>
+      <div class="fg"><label class="fl">Doğum Tarihi (İneğin doğduğu tarih)</label>
+        <input class="fi" id="an-birth" type="date" value="${a.birth_date||''}">
+      </div>
+      <div class="fg"><label class="fl">Laktasyon No</label>
+        <input class="fi" id="an-lac" type="number" inputmode="numeric" min="1" value="${a.lactation_no||1}">
+      </div>
+      <div class="fg"><label class="fl">Son Tohumlama Tarihi <span style="color:var(--gray4)">(opsiyonel)</span></label>
+        <input class="fi" id="an-insem" type="date" value="${a.last_insemination_date||''}" oninput="calcDryBirth()">
+        <div style="font-size:11px;color:var(--gray4);margin-top:2px">Girilirse tahmini doğum = tohumlama + 280 gün</div>
+      </div>
+      <div class="fg"><label class="fl">Gebelik Teyit Tarihi <span style="color:var(--gray4)">(opsiyonel)</span></label>
+        <input class="fi" id="an-pregchk" type="date" value="${a.pregnancy_check_date||''}" oninput="calcDryBirth()">
+        <div style="font-size:11px;color:var(--gray4);margin-top:2px">Girilirse daha hassas hesaplama yapılır</div>
+      </div>
+      <div id="dry-birth-preview" style="display:none;background:var(--amber-light);border-radius:9px;padding:10px 12px;margin-bottom:12px;border:1px solid #fcd34d">
+        <div style="font-size:11px;color:var(--amber);font-weight:700">TAHMİNİ DOĞUM ARALIĞI</div>
+        <div id="dry-birth-val" style="font-size:15px;font-weight:900;color:var(--text);margin-top:4px"></div>
+        <div id="dry-calve-info" style="font-size:11px;color:var(--gray4);margin-top:2px"></div>
+      </div>
+    </div>`;
+
+    // DÜVE alanları
+    const heiferFields = `
+    <div id="heifer-fields" style="${status==='heifer'?'':'display:none'}">
+      <div style="background:var(--blue-light);border-radius:9px;padding:10px 12px;margin-bottom:12px;font-size:11px;color:var(--blue);font-weight:600">
+        🐄 Düve: Hiç doğurmamış genç dişi. Laktasyon 0, doğum tarihi sisteme girilmez.
+      </div>
+      <div class="fg"><label class="fl">Doğum Tarihi (Düvenin doğduğu tarih) *</label>
+        <input class="fi" id="an-birth" type="date" value="${a.birth_date||''}" oninput="calcHeiferAge(this.value)">
+        <div id="heifer-age" style="font-size:11px;color:var(--blue);margin-top:4px;font-weight:700"></div>
+        <div style="font-size:11px;color:var(--gray4);margin-top:2px">10. ayda "Hazırlan", 12. ayda "Tohumlama zamanı" uyarısı gelir</div>
+      </div>
+    </div>`;
+
+    // SATILDI / ÖLDÜ alanları
+    const inactiveFields = `
+    <div id="inactive-fields" style="${['sold','dead'].includes(status)?'':'display:none'}">
+      <div style="background:var(--gray);border-radius:9px;padding:10px 12px;margin-bottom:12px;font-size:11px;color:var(--gray4)">
+        Geçmiş kayıt olarak sistemde kalır, uyarı üretilmez.
+      </div>
+      <div class="fg"><label class="fl">Doğum Tarihi</label>
+        <input class="fi" id="an-birth" type="date" value="${a.birth_date||''}">
+      </div>
+      <div class="fg"><label class="fl">Laktasyon No</label>
+        <input class="fi" id="an-lac" type="number" inputmode="numeric" min="0" value="${a.lactation_no||0}">
+      </div>
+    </div>`;
+
+    return mWrap(isEdit ? '✏️ Hayvanı Düzenle' : '🐄 Yeni Hayvan Ekle',
+      commonTop + openFields + pregFields + dryFields + heiferFields + inactiveFields + `
     <div class="fg"><label class="fl">Not</label>
-      <textarea class="fi" id="an-notes" placeholder="Ek bilgiler...">${a.notes || ''}</textarea>
+      <textarea class="fi" id="an-notes" placeholder="Ek bilgiler, gözlemler...">${a.notes||''}</textarea>
     </div>
     <div class="btn-row">
       <button class="modal-cancel-btn btn-o" type="button" onclick="closeModal()">İptal</button>
-      <button class="btn-p" id="${isEdit ? 'update-animal-btn' : 'save-animal-btn'}">${isEdit ? 'Güncelle' : 'Kaydet'}</button>
+      <button class="btn-p" id="${isEdit?'update-animal-btn':'save-animal-btn'}">${isEdit?'Güncelle':'Kaydet'}</button>
     </div>`);
   }
 
@@ -2225,10 +2297,112 @@ window.startVoiceInput = function() {
 };
 
 window.toggleAnimalFields = function(status) {
-  const openFields = document.getElementById('open-fields');
-  const pregFields = document.getElementById('preg-fields');
-  if(openFields) openFields.style.display = ['open','heifer'].includes(status) ? '' : 'none';
-  if(pregFields) pregFields.style.display = status === 'pregnant' ? '' : 'none';
+  const allGroups = ['open-fields','preg-fields','dry-fields','heifer-fields','inactive-fields'];
+  allGroups.forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.style.display = 'none';
+  });
+  const map = {
+    open: 'open-fields',
+    pregnant: 'preg-fields',
+    dry: 'dry-fields',
+    heifer: 'heifer-fields',
+    sold: 'inactive-fields',
+    dead: 'inactive-fields',
+  };
+  const target = document.getElementById(map[status]);
+  if(target) target.style.display = '';
+};
+
+// Açık hayvanda doğumdan geçen gün
+window.calcDaysSinceBirth = function(val) {
+  const el = document.getElementById('days-since-birth');
+  if(!el || !val) return;
+  const d = daysBetween(val, today());
+  el.textContent = d >= 0 ? `Doğumdan ${d} gün geçmiş` : '';
+};
+
+// Gebe hayvanda beklenen doğum hesapla
+window.calcExpectedBirth = function() {
+  const insemDate = document.getElementById('an-insem')?.value;
+  const pregChkDate = document.getElementById('an-pregchk')?.value;
+  const preview = document.getElementById('expected-birth-preview');
+  const valEl = document.getElementById('expected-birth-val');
+  const daysEl = document.getElementById('days-to-calve');
+  if(!preview || !valEl || !daysEl) return;
+
+  let expectedBirth = null;
+  let info = '';
+
+  if(insemDate && pregChkDate) {
+    const pregDay = daysBetween(insemDate, pregChkDate);
+    const remaining = GESTATION_DAYS - pregDay;
+    expectedBirth = addDays(pregChkDate, remaining);
+    info = `Tohumlamadan ${pregDay}. günde teyit · Kalan ${remaining} gün`;
+  } else if(insemDate) {
+    expectedBirth = addDays(insemDate, GESTATION_DAYS);
+    info = `Tohumlama + ${GESTATION_DAYS} gün`;
+  }
+
+  if(expectedBirth) {
+    preview.style.display = '';
+    valEl.textContent = fmtDate(expectedBirth);
+    const dToCalve = daysBetween(today(), expectedBirth);
+    daysEl.textContent = info + (dToCalve >= 0 ? ` · Doğuma ${dToCalve} gün kaldı` : ` · ${Math.abs(dToCalve)} gün geçti`);
+    daysEl.style.color = dToCalve < 0 ? 'var(--red)' : dToCalve < 60 ? 'var(--amber)' : 'var(--gray4)';
+  } else {
+    preview.style.display = 'none';
+  }
+};
+
+// Kuru hayvanda tahmini doğum aralığı
+window.calcDryBirth = function() {
+  const insemDate = document.getElementById('an-insem')?.value;
+  const pregChkDate = document.getElementById('an-pregchk')?.value;
+  const preview = document.getElementById('dry-birth-preview');
+  const valEl = document.getElementById('dry-birth-val');
+  const infoEl = document.getElementById('dry-calve-info');
+  if(!preview || !valEl || !infoEl) return;
+
+  let expectedBirth = null;
+  let calcInfo = '';
+
+  if(insemDate && pregChkDate) {
+    const pregDay = daysBetween(insemDate, pregChkDate);
+    const remaining = GESTATION_DAYS - pregDay;
+    expectedBirth = addDays(pregChkDate, remaining);
+    calcInfo = `Tohumlamadan ${pregDay}. günde teyit · Hassas hesaplama`;
+  } else if(insemDate) {
+    expectedBirth = addDays(insemDate, GESTATION_DAYS);
+    calcInfo = `Tohumlama + ${GESTATION_DAYS} gün`;
+  }
+
+  if(expectedBirth) {
+    // ±7 günlük aralık göster
+    const earlyDate = addDays(expectedBirth, -7);
+    const lateDate = addDays(expectedBirth, 7);
+    preview.style.display = '';
+    valEl.textContent = `${fmtDate(earlyDate)} — ${fmtDate(lateDate)}`;
+    const dToCalve = daysBetween(today(), expectedBirth);
+    infoEl.textContent = calcInfo + (dToCalve >= 0 ? ` · Doğuma yaklaşık ${dToCalve} gün kaldı` : ` · ${Math.abs(dToCalve)} gün geçti!`);
+    infoEl.style.color = dToCalve < 14 ? 'var(--red)' : dToCalve < 60 ? 'var(--amber)' : 'var(--gray4)';
+  } else {
+    preview.style.display = 'none';
+  }
+};
+
+// Düvede yaş hesapla
+window.calcHeiferAge = function(val) {
+  const el = document.getElementById('heifer-age');
+  if(!el || !val) return;
+  const d = daysBetween(val, today());
+  const months = Math.floor(d / 30);
+  let msg = `${months} aylık`;
+  if(months >= 12) msg += ' — Tohumlama zamanı! 🔔';
+  else if(months >= 10) msg += ' — Tohumlama yaklaşıyor 📅';
+  else msg += ' — Henüz erken';
+  el.textContent = msg;
+  el.style.color = months >= 12 ? 'var(--amber)' : months >= 10 ? 'var(--blue)' : 'var(--gray4)';
 };
 
 window.toggleEventFields = function(type) {
@@ -2327,16 +2501,44 @@ function bindFarmEvents() {
     if(!tag) { alert('Küpe no zorunludur!'); return; }
 
     const status = document.getElementById('an-status')?.value || 'open';
-    const insemDate = document.getElementById('an-insem')?.value || null;
-    const heatDate = document.getElementById('an-heat')?.value || null;
-    const lastBirthDate = document.getElementById('an-lastbirth')?.value || null;
-    const pregChkDate = document.getElementById('an-pregchk')?.value || null;
-    const pregDay = parseInt(document.getElementById('an-pregday')?.value) || null;
 
-    // Beklenen doğum hesapla (sadece gebe ise)
-    let expectedBirth = null;
+    // Duruma göre alanları oku
+    const birthDate = document.getElementById('an-birth')?.value || null;
+    const notes = document.getElementById('an-notes')?.value.trim() || null;
+    const breed = document.getElementById('an-breed')?.value || 'holstein';
+
+    // Laktasyon — düvede 0, diğerlerinde girilen değer
+    const lacEl = document.getElementById('an-lac');
+    const lactation = status === 'heifer' ? 0 : (parseInt(lacEl?.value) || 0);
+
+    // Durum bazlı alanlar
+    let insemDate = null, heatDate = null, lastBirthDate = null;
+    let pregChkDate = null, pregDay = null, expectedBirth = null;
+
+    if(status === 'open') {
+      insemDate = document.getElementById('an-insem')?.value || null;
+      heatDate = document.getElementById('an-heat')?.value || null;
+      lastBirthDate = document.getElementById('an-lastbirth')?.value || null;
+    }
+
     if(status === 'pregnant') {
-      if(pregChkDate && pregDay) {
+      insemDate = document.getElementById('an-insem')?.value || null;
+      pregChkDate = document.getElementById('an-pregchk')?.value || null;
+      // Teyit günü otomatik hesapla
+      if(insemDate && pregChkDate) {
+        pregDay = daysBetween(insemDate, pregChkDate);
+        expectedBirth = addDays(pregChkDate, GESTATION_DAYS - pregDay);
+      } else if(insemDate) {
+        expectedBirth = addDays(insemDate, GESTATION_DAYS);
+      }
+    }
+
+    if(status === 'dry') {
+      insemDate = document.getElementById('an-insem')?.value || null;
+      pregChkDate = document.getElementById('an-pregchk')?.value || null;
+      // Kuru hayvan için beklenen doğum hesapla
+      if(insemDate && pregChkDate) {
+        pregDay = daysBetween(insemDate, pregChkDate);
         expectedBirth = addDays(pregChkDate, GESTATION_DAYS - pregDay);
       } else if(insemDate) {
         expectedBirth = addDays(insemDate, GESTATION_DAYS);
@@ -2345,17 +2547,16 @@ function bindFarmEvents() {
 
     const data = {
       ear_tag: fmtEarTag(tag),
-      breed: document.getElementById('an-breed')?.value || 'other',
-      birth_date: document.getElementById('an-birth')?.value || null,
-      lactation_no: parseInt(document.getElementById('an-lac')?.value) || 0,
+      breed,
+      birth_date: status === 'heifer' ? birthDate : birthDate, // düvede hayvanın kendi doğum tarihi
+      lactation_no: lactation,
       status,
-      notes: document.getElementById('an-notes')?.value.trim() || null,
-      // Üreme alanları sadece ilgili durumda
-      last_insemination_date: ['open','pregnant','heifer'].includes(status) ? insemDate : null,
-      last_heat_date: ['open','heifer'].includes(status) ? heatDate : null,
-      last_birth_date: status === 'open' ? lastBirthDate : null,
-      pregnancy_check_date: status === 'pregnant' ? pregChkDate : null,
-      pregnancy_check_day: status === 'pregnant' ? pregDay : null,
+      notes,
+      last_insemination_date: insemDate,
+      last_heat_date: heatDate,
+      last_birth_date: lastBirthDate,
+      pregnancy_check_date: pregChkDate,
+      pregnancy_check_day: pregDay,
       expected_birth_date: expectedBirth,
     };
 
@@ -2364,7 +2565,7 @@ function bindFarmEvents() {
     } else {
       const saved = await addAnimal({...data, farm_id: selectedFarmId});
       if(saved) {
-        // Mevcut verilere göre olayları kaydet
+        // Olayları kaydet
         if(insemDate) await addAnimalEvent({animal_id:saved.id, event_type:'insemination', event_date:insemDate, event_day:null, notes:''});
         if(heatDate) await addAnimalEvent({animal_id:saved.id, event_type:'heat', event_date:heatDate, event_day:null, notes:''});
         if(lastBirthDate) await addAnimalEvent({animal_id:saved.id, event_type:'birth', event_date:lastBirthDate, event_day:null, notes:''});
