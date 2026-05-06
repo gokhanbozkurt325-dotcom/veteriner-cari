@@ -273,6 +273,7 @@ let calSelectedDay=null;
 let farms=[], animals=[], animalEvents=[];
 let farmNav='farms', selectedFarmId=null, selectedAnimalId=null;
 let animalSearch='', animalFilterBreed='all', animalFilterStatus='all';
+let farmFilter='all', farmSearch='';
 // Hatırlatmalar — Supabase + localStorage yedek
 let reminders=[];
 async function loadReminders(){
@@ -1488,6 +1489,23 @@ if(currentUser) loadAll(); else render();
 .al-box.red{background:#fff5f5;border:1px solid #fca5a5}.al-box.amber{background:#fffbf0;border:1px solid #fcd34d}
 .al-box.blue{background:var(--blue-light);border:1px solid var(--blue-mid)}.al-box.green{background:var(--green-light);border:1px solid #86efac}
 .al-box.purple{background:var(--purple-light);border:1px solid #c4b5fd}
+.disease-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:var(--radius-sm);margin-bottom:6px;border-left:4px solid var(--red);background:#fff5f5}
+.disease-item.recovered{border-left-color:var(--green);background:#f5fff8}
+.disease-item.chronic{border-left-color:var(--amber);background:#fffbf0}
+.disease-item.died{border-left-color:var(--gray3);background:var(--gray)}
+.di-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.di-info{flex:1}.di-name{font-weight:700;font-size:13px}.di-meta{font-size:10px;color:var(--gray4);margin-top:2px}
+.di-status{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;flex-shrink:0}
+.di-status.active{background:var(--red-light);color:var(--red)}
+.di-status.recovered{background:var(--green-light);color:var(--green)}
+.di-status.chronic{background:var(--amber-light);color:var(--amber)}
+.di-status.died{background:var(--gray);color:var(--gray4)}
+.disease-search{position:relative;margin-bottom:8px}
+.disease-search input{padding-left:32px}
+.disease-dropdown{background:#fff;border:1.5px solid var(--blue);border-radius:var(--radius-sm);max-height:200px;overflow-y:auto;margin-top:4px}
+.disease-dropdown .dd-cat{font-size:10px;font-weight:800;color:var(--gray4);padding:6px 10px 2px;text-transform:uppercase;background:var(--gray)}
+.disease-dropdown .dd-item{padding:8px 12px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--gray2)}
+.disease-dropdown .dd-item:active,.disease-dropdown .dd-item:hover{background:var(--blue-light)}
 .al-icon{font-size:18px;flex-shrink:0;margin-top:1px}.al-body{flex:1}.al-title{font-size:12px;font-weight:800}.al-detail{font-size:11px;color:var(--gray4);margin-top:2px}
 .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
 .info-box{background:#fff;border-radius:10px;padding:10px;border:1px solid var(--gray2)}
@@ -1536,10 +1554,65 @@ const EVENT_TYPES = {
   birth:           {label:'Doğum',            icon:'🐣', color:'green'},
   dry_off:         {label:'Kuruya Alma',       icon:'🛑', color:'amber'},
   vaccination:     {label:'Aşılama',           icon:'💊', color:'blue'},
-  treatment:       {label:'Tedavi',            icon:'🩺', color:'red'},
+  disease:         {label:'Hastalık',          icon:'🤒', color:'red'},
+  treatment:       {label:'Tedavi',            icon:'🩺', color:'amber'},
   milk:            {label:'Süt Ölçümü',        icon:'🥛', color:'green'},
   other:           {label:'Diğer',             icon:'📝', color:'gray'},
 };
+
+// Hastalık durumları
+const DISEASE_STATUS = {
+  active:    {label:'Aktif',      icon:'🔴', color:'red'},
+  recovered: {label:'İyileşti',   icon:'🟢', color:'green'},
+  chronic:   {label:'Kronik',     icon:'🟠', color:'amber'},
+  died:      {label:'Öldü',       icon:'⚫', color:'gray'},
+};
+
+// Temel sığır hastalıkları listesi
+const DISEASE_LIST = [
+  // Meme hastalıkları
+  {cat:'🐄 Meme',      name:'Mastitis (Klinik)'},
+  {cat:'🐄 Meme',      name:'Mastitis (Subklinik)'},
+  // Üreme
+  {cat:'🔴 Üreme',     name:'Metritis'},
+  {cat:'🔴 Üreme',     name:'Endometritis'},
+  {cat:'🔴 Üreme',     name:'Kistik Over'},
+  {cat:'🔴 Üreme',     name:'Plasenta Tutukluğu'},
+  {cat:'🔴 Üreme',     name:'Prolapsus Uteri'},
+  {cat:'🔴 Üreme',     name:'Distosi (Zor Doğum)'},
+  // Metabolik
+  {cat:'⚡ Metabolik', name:'Hipokalsemi (Süt Humması)'},
+  {cat:'⚡ Metabolik', name:'Ketozis (Asetoni)'},
+  {cat:'⚡ Metabolik', name:'Hipomagnezeми'},
+  {cat:'⚡ Metabolik', name:'Şirden Deplasmanı (Sol)'},
+  {cat:'⚡ Metabolik', name:'Şirden Deplasmanı (Sağ)'},
+  {cat:'⚡ Metabolik', name:'Rumen Asidozu'},
+  {cat:'⚡ Metabolik', name:'Rumen Timpanisi (Şişme)'},
+  // Ayak
+  {cat:'🦶 Ayak',      name:'Topallık (Genel)'},
+  {cat:'🦶 Ayak',      name:'Dijital Dermatit'},
+  {cat:'🦶 Ayak',      name:'Beyaz Çizgi Hastalığı'},
+  {cat:'🦶 Ayak',      name:'Tırnak Çürüklüğü'},
+  {cat:'🦶 Ayak',      name:'Sole Ülser'},
+  // Solunum
+  {cat:'🫁 Solunum',   name:'Pnömoni'},
+  {cat:'🫁 Solunum',   name:'Akciğer Enfeksiyonu'},
+  // Sindirim
+  {cat:'🫃 Sindirim',  name:'İshal'},
+  {cat:'🫃 Sindirim',  name:'Karın Zarı İltihabı'},
+  {cat:'🫃 Sindirim',  name:'İnvaginasyon'},
+  // Enfeksiyöz
+  {cat:'🦠 Enfeksiyöz',name:'BVD (Viral İshal)'},
+  {cat:'🦠 Enfeksiyöz',name:'IBR (Enfeksiyöz Rinotrakeit)'},
+  {cat:'🦠 Enfeksiyöz',name:'Brucellosis'},
+  {cat:'🦠 Enfeksiyöz',name:'Tüberküloz'},
+  {cat:'🦠 Enfeksiyöz',name:'Şap Hastalığı'},
+  {cat:'🦠 Enfeksiyöz',name:'Leptospiroz'},
+  // Diğer
+  {cat:'📋 Diğer',     name:'Yaralanma / Travma'},
+  {cat:'📋 Diğer',     name:'Zehirlenme'},
+  {cat:'📋 Diğer',     name:'Gözlem / Muayene'},
+];
 
 // ─── HELPERS ─────────────────────────────────────────────────
 const daysBetween = (d1, d2) => {
@@ -1819,6 +1892,19 @@ function buildFarmList() {
   const alertAnimals = activeAnimals.filter(a => getAnimalAlerts(a).length > 0);
   const pregnantCount = activeAnimals.filter(a => a.status === 'pregnant').length;
 
+  // Filtrele
+  let filteredFarms = [...farms];
+  if(farmSearch) filteredFarms = filteredFarms.filter(f =>
+    (f.owner_name||'').toLowerCase().includes(farmSearch.toLowerCase()) ||
+    animals.some(a => a.farm_id===f.id && a.ear_tag.toLowerCase().includes(farmSearch.toLowerCase()))
+  );
+  if(farmFilter==='alert')    filteredFarms=filteredFarms.filter(f=>animals.filter(a=>a.farm_id===f.id).some(a=>getAnimalAlerts(a).length>0));
+  if(farmFilter==='pregnant') filteredFarms=filteredFarms.filter(f=>animals.some(a=>a.farm_id===f.id&&a.status==='pregnant'));
+  if(farmFilter==='dry')      filteredFarms=filteredFarms.filter(f=>animals.some(a=>a.farm_id===f.id&&a.status==='dry'));
+  if(farmFilter==='heifer')   filteredFarms=filteredFarms.filter(f=>animals.some(a=>a.farm_id===f.id&&a.status==='heifer'));
+
+  const showBar = farmSearch||farmFilter!=='all';
+
   return `
   <div class="stats-grid">
     <div class="stat-card sc-green"><div class="lbl">İşletme</div><div class="val">${farms.length}</div></div>
@@ -1827,17 +1913,23 @@ function buildFarmList() {
     <div class="stat-card sc-amber"><div class="lbl">Gebe</div><div class="val">${pregnantCount}</div></div>
   </div>
 
-  <div style="display:flex;gap:8px;margin-bottom:14px">
-    <button class="btn-p" id="add-farm-btn" style="font-size:13px">🏭 Yeni İşletme</button>
+  <div style="display:flex;gap:8px;margin-bottom:10px">
+    <button class="btn-p" id="add-farm-btn" style="font-size:13px;flex:2">🏭 Yeni İşletme</button>
     <button class="btn-sm btn-sm-b" id="farm-search-btn" style="padding:10px 14px">🔍</button>
   </div>
 
-  <div class="search-bar" id="farm-search-bar" style="display:none">
-    <span class="search-icon">🔍</span>
-    <input class="fi" id="animal-search-input" placeholder="Küpe no veya işletme ara..." value="${animalSearch}">
+  <div id="farm-search-bar" style="${showBar?'':'display:none'};margin-bottom:10px">
+    <div class="search-bar" style="margin-bottom:8px">
+      <span class="search-icon">🔍</span>
+      <input class="fi" id="farm-name-search" placeholder="İşletme adı veya küpe no ara..." value="${farmSearch}">
+    </div>
+    <div class="chip-row">
+      ${[['all','Tümü'],['alert','⚠️ Uyarılı'],['pregnant','🤰 Gebeli'],['dry','🛑 Kurulu'],['heifer','🐄 Düveli']].map(([k,l])=>
+        `<div class="chip ${farmFilter===k?'active':''}" data-farmfilter="${k}">${l}</div>`).join('')}
+    </div>
   </div>
 
-  ${animalSearch ? buildAnimalSearchResults() : farms.length ? farms.map(f => {
+  ${filteredFarms.length ? filteredFarms.map(f => {
     const fa = animals.filter(a => a.farm_id === f.id);
     const active = fa.filter(a => !['sold','dead'].includes(a.status));
     const aw = active.filter(a => getAnimalAlerts(a).length > 0).length;
@@ -1848,17 +1940,17 @@ function buildFarmList() {
         <div class="fc-av">🏭</div>
         <div class="fc-info">
           <div class="fc-name">${f.owner_name || 'İsimsiz'}</div>
-          <div class="fc-meta">${f.farm_no ? 'No: ' + f.farm_no + ' · ' : ''}${f.phone || ''}</div>
+          <div class="fc-meta">${f.farm_no?'No: '+f.farm_no+' · ':''}${f.phone||''}</div>
         </div>
       </div>
       <div class="fc-stats">
         <div class="fc-stat">${active.length} aktif hayvan</div>
-        ${pr ? `<div class="fc-stat green">🤰 ${pr} gebe</div>` : ''}
-        ${ky ? `<div class="fc-stat amber">🛑 ${ky} kuru</div>` : ''}
-        ${aw ? `<div class="fc-stat red">⚠️ ${aw} uyarı</div>` : ''}
+        ${pr?`<div class="fc-stat green">🤰 ${pr} gebe</div>`:''}
+        ${ky?`<div class="fc-stat amber">🛑 ${ky} kuru</div>`:''}
+        ${aw?`<div class="fc-stat red">⚠️ ${aw} uyarı</div>`:''}
       </div>
     </div>`;
-  }).join('') : `<div class="empty"><div class="eicon">🏭</div><p>Henüz işletme yok<br>+ Yeni İşletme ekleyin</p></div>`}`;
+  }).join('') : `<div class="empty"><div class="eicon">🏭</div><p>${showBar?'Sonuç bulunamadı':'Henüz işletme yok'}</p></div>`}`;
 }
 
 function buildAnimalSearchResults() {
@@ -1989,6 +2081,7 @@ function buildAnimalDetail() {
 
   <div style="display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap">
     <button class="btn-p" id="add-event-btn" style="font-size:12px;padding:9px;flex:2">+ Olay Ekle</button>
+    <button class="btn-sm" id="add-disease-btn" style="padding:9px 12px;font-size:11px;background:var(--red-light);color:var(--red);border:none;border-radius:var(--radius-sm);cursor:pointer">🤒 Hastalık</button>
     <button class="btn-sm btn-sm-b" id="edit-animal-btn" style="padding:9px 12px;font-size:11px">✏️ Düzenle</button>
     <button class="btn-sm btn-sm-r" id="delete-animal-btn" style="padding:9px 10px;font-size:11px">🗑</button>
   </div>
@@ -2018,8 +2111,41 @@ function buildAnimalDetail() {
     <div class="info-box"><div class="info-lbl">Kuruya Alma</div><div class="info-val">${lastDryOff ? fmtDate(lastDryOff.event_date) : '-'}</div></div>
   </div>
 
+  <!-- Aktif Hastalıklar -->
+  ${(()=>{
+    const diseases = evs.filter(e => e.event_type === 'disease');
+    const active = diseases.filter(e => !e.disease_status || e.disease_status === 'active' || e.disease_status === 'chronic');
+    const past = diseases.filter(e => e.disease_status === 'recovered' || e.disease_status === 'died');
+    if(!diseases.length) return '';
+    return `
+    <div class="sec-title" style="color:var(--red)">🤒 Hastalık Kayıtları</div>
+    ${active.map(e=>{
+      const ds = DISEASE_STATUS[e.disease_status||'active'];
+      return `<div class="disease-item ${e.disease_status||'active'}">
+        <div class="di-icon">🤒</div>
+        <div class="di-info">
+          <div class="di-name">${e.disease_name||e.notes||'Hastalık'}</div>
+          <div class="di-meta">${fmtDate(e.event_date)}${e.treatment?' · Tedavi: '+e.treatment:''}${e.notes&&e.disease_name?' · '+e.notes:''}</div>
+        </div>
+        <div class="di-status ${e.disease_status||'active'}">${ds?.label||'Aktif'}</div>
+      </div>`;
+    }).join('')}
+    ${past.length?`<div style="font-size:11px;color:var(--gray4);font-weight:700;margin:8px 0 6px">GEÇMİŞ HASTALIKLAR</div>`:''}
+    ${past.map(e=>{
+      const ds = DISEASE_STATUS[e.disease_status||'recovered'];
+      return `<div class="disease-item ${e.disease_status}">
+        <div class="di-icon">📋</div>
+        <div class="di-info">
+          <div class="di-name">${e.disease_name||e.notes||'Hastalık'}</div>
+          <div class="di-meta">${fmtDate(e.event_date)}${e.treatment?' · Tedavi: '+e.treatment:''}</div>
+        </div>
+        <div class="di-status ${e.disease_status}">${ds?.label||''}</div>
+      </div>`;
+    }).join('')}`;
+  })()}
+
   <div class="sec-title">📋 Olay Geçmişi</div>
-  ${evs.length ? evs.map(e => {
+  ${evs.filter(e=>e.event_type!=='disease').length ? evs.filter(e=>e.event_type!=='disease').map(e => {
     const et = EVENT_TYPES[e.event_type] || {label:e.event_type, icon:'📝', color:'gray'};
     const dotColors = {red:'var(--red)', amber:'var(--amber)', green:'var(--green)', blue:'var(--blue)', purple:'var(--purple)', gray:'var(--gray3)'};
     return `<div class="tl-item">
@@ -2182,6 +2308,43 @@ function buildFarmModal() {
     <div class="btn-row">
       <button class="modal-cancel-btn btn-o" type="button" onclick="closeModal()">İptal</button>
       <button class="btn-p" id="${isEdit?'update-animal-btn':'save-animal-btn'}">${isEdit?'Güncelle':'Kaydet'}</button>
+    </div>`);
+  }
+
+  if(modal === 'add-disease') {
+    const a = animals.find(x => x.id === selectedAnimalId);
+    // Kategoriye göre grupla
+    const cats = {};
+    DISEASE_LIST.forEach(d => { if(!cats[d.cat]) cats[d.cat]=[]; cats[d.cat].push(d.name); });
+    return mWrap(`🤒 Hastalık Ekle — ${a?a.ear_tag:''}`, `
+    <div class="fg"><label class="fl">Hastalık Adı *</label>
+      <div class="disease-search">
+        <input class="fi" id="disease-search-inp" placeholder="Yazın veya listeden seçin..." oninput="filterDiseaseList(this.value)" autocomplete="off">
+      </div>
+      <div class="disease-dropdown" id="disease-dropdown">
+        ${Object.entries(cats).map(([cat,names])=>`
+          <div class="dd-cat">${cat}</div>
+          ${names.map(n=>`<div class="dd-item" onclick="selectDisease('${n.replace(/'/g,"\\'")}')">🤒 ${n}</div>`).join('')}
+        `).join('')}
+      </div>
+    </div>
+    <div class="fg"><label class="fl">Tanı Tarihi *</label>
+      <input class="fi" id="ev-date" type="date" value="${today()}">
+    </div>
+    <div class="fg"><label class="fl">Durum</label>
+      <select class="fi" id="disease-status-sel">
+        ${Object.entries(DISEASE_STATUS).map(([k,v])=>`<option value="${k}">${v.icon} ${v.label}</option>`).join('')}
+      </select>
+    </div>
+    <div class="fg"><label class="fl">Tedavi / İlaç</label>
+      <input class="fi" id="disease-treatment" placeholder="Penisilin 5cc, Flunixin...">
+    </div>
+    <div class="fg"><label class="fl">Not / Bulgular</label>
+      <textarea class="fi" id="ev-notes" placeholder="Klinik bulgular, gözlemler..."></textarea>
+    </div>
+    <div class="btn-row">
+      <button class="modal-cancel-btn btn-o" type="button" onclick="closeModal()">İptal</button>
+      <button class="btn-p" id="save-disease-btn" style="background:linear-gradient(135deg,var(--red),#b91c1c)">🤒 Kaydet</button>
     </div>`);
   }
 
@@ -2407,6 +2570,34 @@ window.calcHeiferAge = function(val) {
   el.style.color = months >= 12 ? 'var(--amber)' : months >= 10 ? 'var(--blue)' : 'var(--gray4)';
 };
 
+window.filterDiseaseList = function(val) {
+  const q = val.toLowerCase();
+  const dd = document.getElementById('disease-dropdown');
+  if(!dd) return;
+  const items = dd.querySelectorAll('.dd-item');
+  const cats = dd.querySelectorAll('.dd-cat');
+  items.forEach(item => {
+    item.style.display = item.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+  // Boş kategori başlıklarını gizle
+  cats.forEach(cat => {
+    let next = cat.nextElementSibling;
+    let hasVisible = false;
+    while(next && !next.classList.contains('dd-cat')) {
+      if(next.style.display !== 'none') hasVisible = true;
+      next = next.nextElementSibling;
+    }
+    cat.style.display = hasVisible ? '' : 'none';
+  });
+};
+
+window.selectDisease = function(name) {
+  const inp = document.getElementById('disease-search-inp');
+  const dd = document.getElementById('disease-dropdown');
+  if(inp) inp.value = name;
+  if(dd) dd.style.display = 'none';
+};
+
 window.toggleEventFields = function(type) {
   const pregGroup = document.getElementById('ev-pregday-group');
   const insemNote = document.getElementById('ev-insem-note');
@@ -2452,9 +2643,39 @@ function bindFarmEvents() {
     const b = document.getElementById('farm-search-bar');
     if(b) b.style.display = b.style.display === 'none' ? 'block' : 'none';
   });
-
+  document.getElementById('farm-name-search')?.addEventListener('input', e => {
+    farmSearch = e.target.value; renderFarm();
+  });
+  document.querySelectorAll('[data-farmfilter]').forEach(c => c.addEventListener('click', () => {
+    farmFilter = c.dataset.farmfilter; renderFarm();
+  }));
   document.getElementById('animal-search-input')?.addEventListener('input', e => {
     animalSearch = e.target.value; renderFarm();
+  });
+
+  // Hastalık butonu
+  document.getElementById('add-disease-btn')?.addEventListener('click', () => { modal = 'add-disease'; renderFarm(); });
+
+  // Hastalık kaydet
+  document.getElementById('save-disease-btn')?.addEventListener('click', async () => {
+    const name = document.getElementById('disease-search-inp')?.value.trim();
+    const date = document.getElementById('ev-date')?.value;
+    const status = document.getElementById('disease-status-sel')?.value || 'active';
+    const treatment = document.getElementById('disease-treatment')?.value.trim() || '';
+    const notes = document.getElementById('ev-notes')?.value.trim() || '';
+    if(!name) { alert('Hastalık adı zorunludur!'); return; }
+    if(!date) { alert('Tarih zorunludur!'); return; }
+    await addAnimalEvent({
+      animal_id: selectedAnimalId,
+      event_type: 'disease',
+      event_date: date,
+      event_day: null,
+      disease_name: name,
+      disease_status: status,
+      treatment,
+      notes,
+    });
+    modal = null; toast('✅ Hastalık kaydedildi'); renderFarm();
   });
 
   // Kızgınlık hızlı ekle
