@@ -651,20 +651,20 @@ function buildHome(){
   ${buildCalendar()}
   ${buildReminderPanel()}
 
-  ${overdueCount>0?`<div class="overdue-banner" style="cursor:pointer" data-nav="overdue"><div class="ob-icon">⚠️</div><div class="ob-text">${overdueCount} kişide ödeme gecikmiş! Görüntülemek için tıklayın.</div></div>`:''}
-
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
     <div style="background:linear-gradient(135deg,#16a34a,#15803d);border-radius:var(--radius);padding:16px;cursor:pointer;box-shadow:var(--shadow)" id="goto-farms-btn">
-      <div style="font-size:28px;margin-bottom:6px">🏭</div>
-      <div style="color:#fff;font-family:'Nunito',sans-serif;font-weight:800;font-size:14px">İşletmeler</div>
-      <div style="color:rgba(255,255,255,.7);font-size:11px;margin-top:2px">${farms.length} işletme · ${animals.length} hayvan</div>
+      <div style="font-size:32px;margin-bottom:6px">🏭</div>
+      <div style="color:#fff;font-family:'Nunito',sans-serif;font-weight:800;font-size:15px">İşletmeler</div>
+      <div style="color:rgba(255,255,255,.7);font-size:11px;margin-top:3px">${farms.length} işletme · ${animals.length} hayvan</div>
     </div>
-    <div style="background:linear-gradient(135deg,var(--purple),#7C3AED);border-radius:var(--radius);padding:16px;cursor:pointer;box-shadow:var(--shadow)" id="goto-alerts-btn">
-      <div style="font-size:28px;margin-bottom:6px">⚠️</div>
-      <div style="color:#fff;font-family:'Nunito',sans-serif;font-weight:800;font-size:14px">Uyarılar</div>
-      <div style="color:rgba(255,255,255,.7);font-size:11px;margin-top:2px">${animals.filter(a=>getAnimalAlerts(a).length>0).length} hayvanda uyarı</div>
+    <div style="background:linear-gradient(135deg,var(--red),#b91c1c);border-radius:var(--radius);padding:16px;cursor:pointer;box-shadow:var(--shadow)" id="goto-overdue-btn">
+      <div style="font-size:32px;margin-bottom:6px">⚠️</div>
+      <div style="color:#fff;font-family:'Nunito',sans-serif;font-weight:800;font-size:15px">Gecikme</div>
+      <div style="color:rgba(255,255,255,.7);font-size:11px;margin-top:3px">${overdueCount} kişi gecikmiş</div>
     </div>
-  </div>  ${debtors.length?`<div class="sec-title">⚠️ Bekleyen Alacaklar</div>`+debtors.map(p=>{
+  </div>
+
+  ${overdueCount>0?`<div class="overdue-banner" style="cursor:pointer" data-nav="overdue"><div class="ob-icon">⚠️</div><div class="ob-text">${overdueCount} kişide ödeme gecikmiş!</div></div>`:''}  ${debtors.length?`<div class="sec-title">⚠️ Bekleyen Alacaklar</div>`+debtors.map(p=>{
     const lastP=getLastPayment(p.id);
     return `<div class="list-item" data-person="${p.id}">
       <div class="avatar ${isOverdue(p.id)?'overdue-av':''}">${initials(p.name)}</div>
@@ -1257,7 +1257,7 @@ function bindEvents(){
     el.addEventListener('click',()=>{ detailPid=el.dataset.person; nav='detail'; txTab='all'; render(); });
   });
   document.getElementById('goto-farms-btn')?.addEventListener('click',async()=>{ nav='farms'; farmNav='farms'; render(); await loadFarmData(); renderFarm(); });
-  document.getElementById('goto-alerts-btn')?.addEventListener('click',()=>{ nav='overdue'; render(); });
+  document.getElementById('goto-overdue-btn')?.addEventListener('click',()=>{ nav='overdue'; render(); });
   document.getElementById('add-person-btn')?.addEventListener('click',()=>{ modal='add-person'; render(); });
   document.getElementById('edit-person-btn')?.addEventListener('click',()=>{ modal='edit-person'; render(); });
   document.getElementById('add-tx-btn')?.addEventListener('click',()=>{ modal='add-tx'; render(); });
