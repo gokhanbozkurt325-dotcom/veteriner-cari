@@ -2723,6 +2723,12 @@ function bindFarmEvents() {
     const tag = document.getElementById('an-tag')?.value.trim();
     if(!tag) { alert('Küpe no zorunludur!'); return; }
 
+    // KRİTİK: Yeni hayvan eklerken mutlaka işletme seçili olmalı
+    if(!isEdit && !selectedFarmId) {
+      alert('⚠️ İşletme seçilmedi!\n\nLütfen önce bir işletmeye girin, sonra hayvan ekleyin.');
+      return;
+    }
+
     const status = document.getElementById('an-status')?.value || 'open';
 
     // Duruma göre alanları oku
@@ -2927,6 +2933,11 @@ function bindFarmEvents() {
   });
 
   document.getElementById('import-excel-btn')?.addEventListener('click', async () => {
+    // KRİTİK: Her zaman bir işletme seçili olmalı
+    if(!selectedFarmId) {
+      alert('⚠️ Lütfen önce bir işletme seçin!\n\nCSV yüklemesi mutlaka bir işletmenin içinden yapılmalıdır.');
+      return;
+    }
     const file = document.getElementById('excel-file')?.files[0];
     if(!file) { alert('Dosya seçin!'); return; }
     const text = await file.text();
