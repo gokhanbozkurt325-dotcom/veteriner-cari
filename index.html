@@ -1597,9 +1597,9 @@ function buildFarmList(){
     const fa=animals.filter(a=>a.farm_id===f.id);
     const aw=fa.reduce((s,a)=>s+getAnimalAlerts(a).length,0);
     const pr=fa.filter(a=>a.status==="pregnant").length;
-    return `<div class="farm-card" data-farmid="${f.id}">
+  return `<div class="farm-card" data-farmid="${f.id}">
       <div class="fc-header"><div class="fc-av">🏭</div>
-        <div class="fc-info"><div class="fc-name">${f.owner_name}</div>
+        <div class="fc-info"><div class="fc-name">${f.owner_name||'İsimsiz İşletme'}</div>
         <div class="fc-meta">${f.farm_no?"No: "+f.farm_no+" · ":""}${f.phone||""}</div></div>
       </div>
       <div class="fc-stats">
@@ -1804,8 +1804,8 @@ function bindFarmEvents(){
   document.getElementById("excel-import-btn")?.addEventListener("click",()=>{modal="excel-import";renderFarm();});
   document.getElementById("farm-search-btn")?.addEventListener("click",()=>{const b=document.getElementById("farm-search-bar");if(b)b.style.display=b.style.display==="none"?"block":"none";});
   document.getElementById("animal-search-input")?.addEventListener("input",e=>{animalSearch=e.target.value;renderFarm();});
-  document.getElementById("delete-farm-btn")?.addEventListener("click",async()=>{if(!confirm("İşletme ve tüm hayvanları silinsin mi?"))return;await deleteFarm(selectedFarmId);farmNav="farms";selectedFarmId=null;toast("🗑 Silindi");renderFarm();});
-  document.getElementById("delete-animal-btn")?.addEventListener("click",async()=>{if(!confirm("Hayvan silinsin mi?"))return;await deleteAnimal(selectedAnimalId);farmNav="farm-detail";selectedAnimalId=null;toast("🗑 Silindi");renderFarm();});
+  document.getElementById("delete-farm-btn")?.addEventListener("click",async(e)=>{e.stopPropagation();if(!confirm("İşletme ve tüm hayvanları silinsin mi?"))return;await deleteFarm(selectedFarmId);farmNav="farms";selectedFarmId=null;toast("🗑 Silindi");renderFarm();});
+  document.getElementById("delete-animal-btn")?.addEventListener("click",async(e)=>{e.stopPropagation();if(!confirm("Hayvan silinsin mi?"))return;await deleteAnimal(selectedAnimalId);farmNav="farm-detail";selectedAnimalId=null;toast("🗑 Silindi");renderFarm();});
   document.querySelectorAll(".modal-cancel-btn").forEach(b=>b.addEventListener("click",()=>{modal=null;renderFarm();}));
 
   document.getElementById("save-farm-btn")?.addEventListener("click",async()=>{
