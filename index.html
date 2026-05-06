@@ -269,6 +269,10 @@ let modal=null, editTxId=null, editReminderId=null;
 let bulkWaList=[], bulkWaIndex=0, bulkWaLimit=0;
 let calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
 let calSelectedDay=null;
+// Farm state - buildHome'dan erişilebilsin diye burada
+let farms=[], animals=[], animalEvents=[];
+let farmNav='farms', selectedFarmId=null, selectedAnimalId=null;
+let animalSearch='', animalFilterBreed='all', animalFilterStatus='all';
 // Hatırlatmalar — Supabase + localStorage yedek
 let reminders=[];
 async function loadReminders(){
@@ -1507,11 +1511,7 @@ if(currentUser) loadAll(); else render();
 </style>
 
 <script>
-// ─── SÜRÜ STATE ───────────────────────────────────────────────
-let farms=[], animals=[], animalEvents=[];
-let farmNav='farms'; // farms | farm-detail | animal-detail
-let selectedFarmId=null, selectedAnimalId=null;
-let animalSearch='', animalFilterBreed='all', animalFilterStatus='all';
+// ─── SÜRÜ MODÜLÜ ──────────────────────────────────────────────
 
 const BREEDS={
   holstein:'Holstein',
