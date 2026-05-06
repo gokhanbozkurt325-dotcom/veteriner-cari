@@ -1809,6 +1809,20 @@ function getAnimalAlerts(animal) {
           title:'Gebelik Kontrolü Yapılmadı',
           detail:`Tohumlamadan ${dSinceInsem} gün geçti — kontrol gecikmiş`});
       }
+      // 40+ gün, kızgınlık yok → gebe mi, gizli kızgınlık mı?
+      if(dSinceInsem >= 40) {
+        const heatAfterInsem40 = heats.find(h => h.event_date > lastInsem.event_date);
+        if(!heatAfterInsem40) {
+          alerts.push({priority:1, type:'amber', icon:'🤔',
+            title:'Gebe mi? Gizli Kızgınlık mı?',
+            detail:`${dSinceInsem} gündür kızgınlık görülmedi — gebelik muayenesi yapılarak netleştirilmeli`});
+        }
+      }
+    } else if(hasCheckAfterInsem && status !== 'pregnant') {
+      // Gebelik kontrolü yapıldı ama hayvan gebe işaretlenmedi
+      alerts.push({priority:1, type:'purple', icon:'❓',
+        title:'Gebelik Kontrol Sonucu Girilmedi',
+        detail:`Kontrol yapıldı — hayvanın durumunu (Gebe/Açık) güncelleyin`});
     }
 
     // Tohumlama sonrası 18-24. günde kızgınlık = tohum tutmadı
@@ -2238,7 +2252,14 @@ function buildAnimalDetail() {
         ${expectedBirth ? fmtDate(expectedBirth) + (dToCalve !== null ? (dToCalve >= 0 ? ' · ' + dToCalve + ' gün sonra' : ' · ' + Math.abs(dToCalve) + ' gün geçti!') : '') : '-'}
       </div>
     </div>
-    <div class="info-box"><div class="info-lbl">🔬 Gebelik Kontrolü</div><div class="info-val">${lastPregCheck && lastInsem ? fmtDate(lastPregCheck.event_date) + ' · Tohumlamadan ' + daysBetween(lastInsem.event_date, lastPregCheck.event_date) + '. günde yapıldı' : lastPregCheck ? fmtDate(lastPregCheck.event_date) : '-'}</div></div>
+    <div class="info-box"><div class="info-lbl">🔬 Gebelik Kontrolü</div><div class="info-val">${(()=>{
+      if(!lastPregCheck) return '-';
+      if(lastInsem) {
+        const pregDay = daysBetween(lastInsem.event_date, lastPregCheck.event_date);
+        return fmtDate(lastPregCheck.event_date) + ' · Tohumlamadan ' + pregDay + '. gün sonra yapıldı';
+      }
+      return fmtDate(lastPregCheck.event_date);
+    })()}</div></div>
     <div class="info-box"><div class="info-lbl">🛑 Kuruya Alma</div><div class="info-val">${lastDryOff ? fmtDate(lastDryOff.event_date) + ' · ' + daysBetween(lastDryOff.event_date, today()) + ' gün önce' : '-'}</div></div>
   </div>
 
