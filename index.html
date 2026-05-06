@@ -1543,11 +1543,13 @@ const EVENT_TYPES = {
 
 // ─── HELPERS ─────────────────────────────────────────────────
 const daysBetween = (d1, d2) => {
-  if(!d1||!d2) return 0;
-  return Math.round((new Date(d2) - new Date(d1)) / 86400000);
+  if(!d1 || !d2 || d1==='' || d2==='') return 0;
+  const t1 = new Date(d1).getTime(), t2 = new Date(d2).getTime();
+  if(isNaN(t1) || isNaN(t2)) return 0;
+  return Math.round((t2 - t1) / 86400000);
 };
 const addDays = (d, n) => {
-  if(!d) return null;
+  if(!d || d === '' || isNaN(new Date(d).getTime())) return null;
   const dt = new Date(d); dt.setDate(dt.getDate() + n);
   return dt.toISOString().slice(0,10);
 };
