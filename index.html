@@ -1302,12 +1302,14 @@ function bindEvents(){
     appEl.addEventListener('touchend',e=>{
       const dx=e.changedTouches[0].clientX-startX;
       const dy=e.changedTouches[0].clientY-startY;
-      if(Math.abs(dx)<60||Math.abs(dy)>Math.abs(dx)) return; // minimum swipe
+      if(Math.abs(dx)<60||Math.abs(dy)>Math.abs(dx)) return;
       const idx=navOrder.indexOf(nav);
       if(dx<0&&idx<navOrder.length-1){ nav=navOrder[idx+1]; render(); if(nav==='farms'){loadFarmData().then(renderFarm);} }
       if(dx>0&&idx>0){ nav=navOrder[idx-1]; render(); if(nav==='farms'){loadFarmData().then(renderFarm);} }
     },{passive:true});
   }
+
+  document.getElementById('back-btn')?.addEventListener('click',()=>{
     if(nav==='detail'){ nav='persons'; detailPid=null; render(); }
     else if(nav==='farms'){
       if(farmNav==='animal-detail'){ farmNav='farm-detail'; selectedAnimalId=null; modal=null; render(); renderFarm(); }
