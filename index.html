@@ -275,6 +275,7 @@ let farmNav='farms', selectedFarmId=null, selectedAnimalId=null;
 let animalSearch='', animalFilterBreed='all', animalFilterStatus='all', animalFilterAlert='all';
 let filterPanelOpen=false;
 let farmFilter='all', farmSearch='';
+let homeFarmOpen=false;
 let selectedAnimals=new Set(), bulkMode=false;
 // Hatırlatmalar — Supabase + localStorage yedek
 let reminders=[];
@@ -664,7 +665,7 @@ function buildHome(){
   ${buildReminderPanel()}
 
   <div style="margin-bottom:14px">
-    <div style="background:linear-gradient(135deg,#0ea5e9,#0284c7);border-radius:var(--radius);padding:12px 16px;cursor:pointer;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:space-between" id="goto-farms-btn">
+    <div style="background:linear-gradient(135deg,#0ea5e9,#0284c7);border-radius:${homeFarmOpen?'var(--radius) var(--radius) 0 0':'var(--radius)'};padding:12px 16px;cursor:pointer;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:space-between" id="goto-farms-btn">
       <div style="display:flex;align-items:center;gap:10px">
         <span style="font-size:22px">🏭</span>
         <div>
@@ -676,8 +677,29 @@ function buildHome(){
           </div>
         </div>
       </div>
-      <span style="color:rgba(255,255,255,.7);font-size:22px">›</span>
+      <span style="color:rgba(255,255,255,.7);font-size:18px;transition:.2s">${homeFarmOpen?'▾':'›'}</span>
     </div>
+    ${homeFarmOpen ? `
+    <div style="background:#fff;border:1.5px solid #0ea5e9;border-top:none;border-radius:0 0 var(--radius) var(--radius);padding:12px 14px">
+      ${farms.length ? farms.map(f => {
+        const fa = animals.filter(a=>a.farm_id===f.id&&!['sold','dead'].includes(a.status));
+        const aw = fa.filter(a=>getAnimalAlerts(a).length>0).length;
+        const pr = fa.filter(a=>a.status==='pregnant').length;
+        const ky = fa.filter(a=>a.status==='dry').length;
+        const op = fa.filter(a=>a.status==='open').length;
+        return `<div style="padding:8px 0;border-bottom:1px solid var(--gray2);cursor:pointer" id="home-farm-${f.id}">
+          <div style="font-weight:700;font-size:13px;margin-bottom:4px">🏭 ${f.owner_name||'İsimsiz'}</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <span style="font-size:11px;background:var(--gray);padding:2px 8px;border-radius:10px">${fa.length} hayvan</span>
+            ${op?`<span style="font-size:11px;background:var(--amber-light);color:var(--amber);padding:2px 8px;border-radius:10px">🟡 ${op} açık</span>`:''}
+            ${pr?`<span style="font-size:11px;background:var(--green-light);color:var(--green);padding:2px 8px;border-radius:10px">🤰 ${pr} gebe</span>`:''}
+            ${ky?`<span style="font-size:11px;background:var(--amber-light);color:var(--amber);padding:2px 8px;border-radius:10px">🛑 ${ky} kuru</span>`:''}
+            ${aw?`<span style="font-size:11px;background:var(--red-light);color:var(--red);padding:2px 8px;border-radius:10px">⚠️ ${aw} uyarı</span>`:''}
+          </div>
+        </div>`;
+      }).join('') : `<div style="font-size:12px;color:var(--gray4);text-align:center;padding:10px">Henüz işletme yok</div>`}
+      <button class="btn-p" id="goto-farms-full-btn" style="width:100%;margin-top:10px;font-size:12px">Tüm İşletmeleri Gör →</button>
+    </div>` : ''}
   </div>
 
   ${overdueCount>0?`<div class="overdue-banner" style="cursor:pointer" data-nav="overdue"><div class="ob-icon">⚠️</div><div class="ob-text">${overdueCount} kişide ödeme gecikmiş!</div></div>`:''}  ${debtors.length?`<div class="sec-title">⚠️ Bekleyen Alacaklar</div>`+debtors.map(p=>{
@@ -1272,7 +1294,21 @@ function bindEvents(){
   document.querySelectorAll('.reminder-item[data-person]').forEach(el=>{
     el.addEventListener('click',()=>{ detailPid=el.dataset.person; nav='detail'; txTab='all'; render(); });
   });
-  document.getElementById('goto-farms-btn')?.addEventListener('click',async()=>{ nav='farms'; farmNav='farms'; render(); await loadFarmData(); renderFarm(); });
+  document.getElementById('goto-farms-btn')?.addEventListener('click',async()=>{
+    homeFarmOpen=!homeFarmOpen;
+    if(homeFarmOpen&&farms.length===0){await loadFarmData();}
+    render();
+  });
+  document.getElementById('goto-farms-full-btn')?.addEventListener('click',async()=>{
+    nav='farms'; farmNav='farms'; homeFarmOpen=false; render(); await loadFarmData(); renderFarm();
+  });
+  // İşletme özet kartları tıklanınca o işletmeye git
+  farms.forEach(f=>{
+    document.getElementById('home-farm-'+f.id)?.addEventListener('click',async()=>{
+      nav='farms'; farmNav='farm-detail'; selectedFarmId=f.id; homeFarmOpen=false;
+      render(); await loadFarmData(); renderFarm();
+    });
+  });
   document.getElementById('add-person-btn')?.addEventListener('click',()=>{ modal='add-person'; render(); });
   document.getElementById('edit-person-btn')?.addEventListener('click',()=>{ modal='edit-person'; render(); });
   document.getElementById('add-tx-btn')?.addEventListener('click',()=>{ modal='add-tx'; render(); });
@@ -2896,12 +2932,14 @@ function bindFarmEvents() {
   document.querySelectorAll('[data-farmid]').forEach(el => el.addEventListener('click', () => {
     selectedFarmId = el.dataset.farmid;
     farmNav = 'farm-detail';
-    animalFilterBreed = 'all';
-    animalFilterStatus = 'all';
-    render(); renderFarm();
+    animalFilterBreed = 'all'; animalFilterStatus = 'all'; animalFilterAlert = 'all';
+    filterPanelOpen = false;
+    document.querySelector('.header .main') && (document.querySelector('.header .main').textContent = farms.find(f=>f.id===selectedFarmId)?.owner_name||'İşletme');
+    renderFarm();
   }));
 
   document.querySelectorAll('[data-animalid]').forEach(el => el.addEventListener('click', (e) => {
+    if(e.target.classList.contains('animal-cb')) return;
     if(bulkMode) {
       const aid = el.dataset.animalid;
       if(selectedAnimals.has(aid)) selectedAnimals.delete(aid);
@@ -2910,7 +2948,9 @@ function bindFarmEvents() {
     }
     selectedAnimalId = el.dataset.animalid;
     farmNav = 'animal-detail';
-    render(); renderFarm();
+    // Sadece header'ı güncelle (title değişimi için), farm-module'ü renderFarm yeniler
+    document.querySelector('.header .main') && (document.querySelector('.header .main').textContent = animals.find(a=>a.id===selectedAnimalId)?.ear_tag||'Hayvan');
+    renderFarm();
   }));
 
   document.getElementById('toggle-filter-btn')?.addEventListener('click', () => {
