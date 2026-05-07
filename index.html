@@ -1507,6 +1507,8 @@ if(currentUser) loadAll(); else render();
 .di-status.died{background:var(--gray);color:var(--gray4)}
 .bulk-bar{background:var(--amber-light);border:1px solid #fcd34d;border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px}
 .bulk-check{width:18px;height:18px;cursor:pointer;accent-color:var(--blue);flex-shrink:0}
+.quick-ev-btn{border:none;border-radius:20px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;transition:.15s}
+.quick-ev-btn:active{opacity:.7}
 .bb-count{flex:1;font-size:13px;font-weight:700;color:var(--text)}
 .animal-card .ac-cb{width:20px;height:20px;cursor:pointer;accent-color:var(--blue);flex-shrink:0;margin-right:2px}
 .animal-card.selected{background:var(--blue-light);border-color:var(--blue)}
@@ -1833,6 +1835,12 @@ function getAnimalAlerts(animal) {
         alerts.push({priority:0, type:'red', icon:'🔥',
           title:'Tohum Tutmadı Olabilir',
           detail:`${insemNo}. tohumlamadan ${dHeat} gün sonra kızgınlık — gebelik muayenesi şart`});
+      }
+      // 2. tohumlama 30-40+ gün sonrası kızgınlık = embriyonik/fetal ölüm
+      if(dHeat > 30 && insemNo >= 2) {
+        alerts.push({priority:0, type:'red', icon:'⚠️',
+          title:'Embriyonik/Fetal Ölüm Olabilir',
+          detail:`${insemNo}. tohumlamadan ${dHeat} gün sonra kızgınlık — embriyonik kayıp şüphesi, veteriner değerlendirmesi gerekli`});
       }
     } else {
       // Kızgınlık takip penceresi henüz açık
@@ -2224,19 +2232,32 @@ function buildAnimalDetail() {
     </div>`).join('')}
   </div>` : `<div style="background:var(--green-light);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;font-weight:700;color:var(--green)">✅ Aktif uyarı yok</div>`}
 
-  <div style="display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap">
-    <button class="btn-p" id="add-event-btn" style="font-size:12px;padding:9px;flex:2">+ Olay Ekle</button>
-    <button class="btn-sm" id="add-disease-btn" style="padding:9px 12px;font-size:11px;background:var(--red-light);color:var(--red);border:none;border-radius:var(--radius-sm);cursor:pointer">🤒 Hastalık</button>
-    <button class="btn-sm btn-sm-b" id="edit-animal-btn" style="padding:9px 12px;font-size:11px">✏️ Düzenle</button>
-    <button class="btn-sm btn-sm-r" id="delete-animal-btn" style="padding:9px 10px;font-size:11px">🗑</button>
+  <div style="margin-bottom:14px">
+    <div style="font-size:11px;font-weight:700;color:var(--gray4);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Hızlı Olay Ekle</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="quick-ev-btn" data-evtype="insemination" style="background:var(--blue-light);color:var(--blue)">💉 Tohumla</button>
+      <button class="quick-ev-btn" data-evtype="heat" style="background:#fee2e2;color:var(--red)">🔥 Kızgınlık</button>
+      <button class="quick-ev-btn" data-evtype="pregnancy_check" style="background:var(--purple-light);color:var(--purple)">🔬 Gebelik Teyit</button>
+      <button class="quick-ev-btn" data-evtype="birth" style="background:var(--green-light);color:var(--green)">🐣 Buzağılama</button>
+      <button class="quick-ev-btn" data-evtype="dry_off" style="background:var(--amber-light);color:var(--amber)">🛑 Kuruya Al</button>
+      <button class="quick-ev-btn" data-evtype="disease" style="background:#fee2e2;color:var(--red)">🤒 Hastalık</button>
+      <button class="quick-ev-btn" data-evtype="vaccination" style="background:var(--blue-light);color:var(--blue)">💊 Aşılama</button>
+      <button class="quick-ev-btn" data-evtype="other" style="background:var(--gray);color:var(--text2)">📝 Diğer</button>
+    </div>
+    <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+      <button class="btn-sm btn-sm-b" id="edit-animal-btn" style="padding:7px 12px;font-size:11px">✏️ Düzenle</button>
+      <button class="btn-sm btn-sm-r" id="delete-animal-btn" style="padding:7px 10px;font-size:11px">🗑 Sil</button>
+    </div>
   </div>
 
   ${nextHeatStart ? `
   <div class="heat-track">
     <div class="heat-track-title">🔥 Kızgınlık Takip Penceresi</div>
     <div class="heat-window">
-      <div><div class="hw-date">${fmtDate(nextHeatStart)} — ${fmtDate(nextHeatEnd)}</div>
-      <div class="hw-range">${HEAT_MIN}-${HEAT_MAX}. gün arası bekleniyor</div></div>
+      <div>
+        <div class="hw-date">${fmtDate(nextHeatStart)} — ${fmtDate(nextHeatEnd)}</div>
+        <div class="hw-range">${HEAT_MIN}-${HEAT_MAX}. gün arası · Gebelik oluşmazsa bir sonraki kızgınlık bu aralıkta beklenir</div>
+      </div>
       <button class="btn-sm btn-sm-r" id="mark-heat-btn" style="font-size:11px;padding:6px 10px">🔥 Kızgınlık Gördüm</button>
     </div>
   </div>` : ''}
@@ -2244,18 +2265,23 @@ function buildAnimalDetail() {
   <div class="info-grid">
     <div class="info-box"><div class="info-lbl">🐄 İneğin Yaşı</div><div class="info-val">${a.birth_date ? ageStr(a.birth_date) + ' (' + fmtDate(a.birth_date) + ')' : '-'}</div></div>
     <div class="info-box"><div class="info-lbl">Laktasyon</div><div class="info-val">${a.lactation_no || 0}. laktasyon</div></div>
-    <div class="info-box"><div class="info-lbl">Son Tohumlama</div><div class="info-val">${lastInsem ? fmtDate(lastInsem.event_date) + ' · ' + (dSinceInsem !== null ? dSinceInsem + ' gün önce' : '') : '-'}</div></div>
-    <div class="info-box"><div class="info-lbl">Son Kızgınlık</div><div class="info-val">${lastHeat ? fmtDate(lastHeat.event_date) + ' · ' + daysBetween(lastHeat.event_date, today()) + ' gün önce' : '-'}</div></div>
+    <div class="info-box"><div class="info-lbl">💉 Son Tohumlama</div><div class="info-val">${(()=>{
+      if(!lastInsem) return '-';
+      const insemNo = inseminations.length;
+      return insemNo + '. tohumlama · ' + fmtDate(lastInsem.event_date) + (dSinceInsem !== null ? ' · ' + dSinceInsem + ' gün önce' : '');
+    })()}</div></div>
+    <div class="info-box"><div class="info-lbl">🔥 Son Kızgınlık</div><div class="info-val">${lastHeat ? fmtDate(lastHeat.event_date) + ' · ' + daysBetween(lastHeat.event_date, today()) + ' gün önce' : '-'}</div></div>
     <div class="info-box"><div class="info-lbl">🐣 Son Buzağılama</div><div class="info-val">${lastBirth ? fmtDate(lastBirth.event_date) + ' · ' + (dSinceBirth !== null ? dSinceBirth + ' gün önce' : '') : '-'}</div></div>
     <div class="info-box"><div class="info-lbl">🐣 Beklenen Buzağılama</div>
       <div class="info-val" style="color:${dToCalve !== null && dToCalve <= 14 ? 'var(--red)' : dToCalve !== null && dToCalve <= 60 ? 'var(--amber)' : 'var(--text)'}">
-        ${expectedBirth ? fmtDate(expectedBirth) + (dToCalve !== null ? (dToCalve >= 0 ? ' · ' + dToCalve + ' gün sonra' : ' · ' + Math.abs(dToCalve) + ' gün geçti!') : '') : '-'}
+        ${expectedBirth ? fmtDate(expectedBirth) + (dToCalve !== null ? (dToCalve >= 0 ? ' · ' + dToCalve + ' gün sonra' : ' · ' + Math.abs(dToCalve) + ' gün geçti!') : '') : (a.status === 'pregnant' ? 'Gebelik teyidi girilince hesaplanır' : '-')}
       </div>
     </div>
     <div class="info-box"><div class="info-lbl">🔬 Gebelik Kontrolü</div><div class="info-val">${(()=>{
       if(!lastPregCheck) return '-';
       if(lastInsem) {
         const pregDay = daysBetween(lastInsem.event_date, lastPregCheck.event_date);
+        if(pregDay < 0) return fmtDate(lastPregCheck.event_date) + ' · ⚠️ Tohumlamadan önce!';
         return fmtDate(lastPregCheck.event_date) + ' · Tohumlamadan ' + pregDay + '. gün sonra yapıldı';
       }
       return fmtDate(lastPregCheck.event_date);
@@ -2502,52 +2528,59 @@ function buildFarmModal() {
 
   if(modal === 'add-event') {
     const a = animals.find(x => x.id === selectedAnimalId);
-    const status = a ? a.status : 'open';
+    const preselect = window._quickEvType || 'insemination';
+    window._quickEvType = null;
+    const allInsems = animalEvents.filter(e=>e.animal_id===selectedAnimalId&&e.event_type==='insemination').sort((x,y)=>y.event_date.localeCompare(x.event_date));
+    const lastInsemEv = allInsems[0];
+    const insemNo = allInsems.length;
 
-    // Duruma göre mantıklı event tipleri filtrele
-    const validEvents = Object.entries(EVENT_TYPES).filter(([k]) => {
-      if(status === 'pregnant') return ['pregnancy_check','dry_off','vaccination','treatment','other'].includes(k);
-      if(status === 'dry') return ['birth','vaccination','treatment','other'].includes(k);
-      if(status === 'sold' || status === 'dead') return ['other'].includes(k);
-      return true; // açık, düve, heifer için hepsi
-    });
+    const validEvents = [
+      ['insemination','💉 Tohumlama'],
+      ['heat','🔥 Kızgınlık'],
+      ['pregnancy_check','🔬 Gebelik Kontrolü'],
+      ['birth','🐣 Buzağılama'],
+      ['dry_off','🛑 Kuruya Alma'],
+      ['vaccination','💊 Aşılama'],
+      ['other','📝 Diğer'],
+    ];
 
     return mWrap(`📋 Olay Ekle — ${a ? a.ear_tag : ''}`, `
     <div class="fg"><label class="fl">Olay Türü *</label>
       <select class="fi" id="ev-type" onchange="toggleEventFields(this.value)">
-        ${validEvents.map(([k,v]) => `<option value="${k}">${v.icon} ${v.label}</option>`).join('')}
+        ${validEvents.map(([k,v])=>`<option value="${k}" ${preselect===k?'selected':''}>${v}</option>`).join('')}
       </select>
     </div>
     <div class="fg"><label class="fl">Tarih *</label>
       <input class="fi" id="ev-date" type="date" value="${today()}">
     </div>
 
-    <!-- Gebelik kontrolü için -->
-    <div class="fg" id="ev-pregday-group" style="display:none">
-      <label class="fl">Tohumlamadan Kaç Gün Sonra?</label>
-      <input class="fi" id="ev-day" type="number" inputmode="numeric" min="1" max="60" placeholder="Örn: 35">
-      <div style="font-size:11px;color:var(--gray4);margin-top:4px">Beklenen doğum otomatik hesaplanır</div>
-    </div>
-
     <!-- Tohumlama için -->
-    <div class="fg" id="ev-insem-note" style="display:none">
+    <div class="fg" id="ev-insem-note" style="${preselect==='insemination'?'':'display:none'}">
       <div style="background:var(--blue-light);border-radius:9px;padding:10px;font-size:12px;color:var(--blue);font-weight:600">
-        💡 Tohumlama kaydedilince 18-24. gün kızgınlık takip penceresi ve 35. gün gebelik kontrolü uyarısı otomatik açılır
+        💉 ${insemNo+1}. tohumlama kaydedilecek${lastInsemEv?' · Son tohumlama: '+fmtDate(lastInsemEv.event_date):''}
       </div>
       <div class="fg" style="margin-top:8px"><label class="fl">Boğa Adı <span style="color:var(--gray4)">(opsiyonel)</span></label>
         <input class="fi" id="ev-bull-name" placeholder="Boğa adı...">
       </div>
     </div>
 
-    <!-- Doğum için -->
-    <div class="fg" id="ev-birth-note" style="display:none">
+    <!-- Gebelik kontrolü için -->
+    <div class="fg" id="ev-pregday-group" style="${preselect==='pregnancy_check'?'':'display:none'}">
+      ${lastInsemEv?`<div style="background:var(--blue-light);border-radius:9px;padding:8px;font-size:11px;color:var(--blue);font-weight:600;margin-bottom:8px">Son tohumlama: ${fmtDate(lastInsemEv.event_date)} · Tarih girilince gün otomatik hesaplanır</div>`:''}
+      <label class="fl">Tohumlamadan Kaç Gün Sonra Yapıldı?</label>
+      <input class="fi" id="ev-day" type="number" inputmode="numeric" min="1" max="120" placeholder="Örn: 35">
+      <div style="font-size:11px;color:var(--gray4);margin-top:4px">Beklenen buzağılama tarihi otomatik hesaplanır (280 - bu gün)</div>
+    </div>
+
+    <!-- Buzağılama için -->
+    <div class="fg" id="ev-birth-note" style="${preselect==='birth'?'':'display:none'}">
       <div style="background:var(--green-light);border-radius:9px;padding:10px;font-size:12px;color:var(--green);font-weight:600">
-        🐣 Buzağılama kaydedilince laktasyon otomatik artırılır ve hayvan "Açık" durumuna alınır. 80. ve 100. gün uyarıları başlar.
+        🐣 Buzağılama kaydedilince laktasyon +1 olur ve hayvan Açık statüsüne geçer. 80. ve 100. gün uyarıları başlar.
       </div>
     </div>
 
     <div class="fg"><label class="fl">Not</label>
-      <textarea class="fi" id="ev-notes" placeholder="Boğa adı, doz no, bulgular, gözlemler..."></textarea>
+      <textarea class="fi" id="ev-notes" placeholder="Gözlemler, bulgular..."></textarea>
     </div>
     <div class="btn-row">
       <button class="modal-cancel-btn btn-o" type="button" onclick="closeModal()">İptal</button>
@@ -2797,6 +2830,22 @@ function bindFarmEvents() {
   document.getElementById('add-farm-btn')?.addEventListener('click', () => { modal = 'add-farm'; renderFarm(); });
   document.getElementById('add-animal-btn')?.addEventListener('click', () => { modal = 'add-animal'; renderFarm(); });
   document.getElementById('edit-animal-btn')?.addEventListener('click', () => { modal = 'edit-animal'; renderFarm(); });
+  // Hızlı olay butonları
+  document.querySelectorAll('.quick-ev-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const evtype = btn.dataset.evtype;
+      if(evtype === 'disease') { modal = 'add-disease'; renderFarm(); return; }
+      modal = 'add-event';
+      // Seçili olay tipini kaydet
+      window._quickEvType = evtype;
+      renderFarm();
+    });
+  });
+
+  // Hastalık butonu (eski)
+  document.getElementById('add-disease-btn')?.addEventListener('click', () => { modal = 'add-disease'; renderFarm(); });
+
+  // Olay ekle butonu (eski uyumluluk)
   document.getElementById('add-event-btn')?.addEventListener('click', () => { modal = 'add-event'; renderFarm(); });
   document.getElementById('excel-import-btn')?.addEventListener('click', () => { modal = 'excel-import'; renderFarm(); });
 
