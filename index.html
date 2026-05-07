@@ -272,7 +272,8 @@ let calSelectedDay=null;
 // Farm state - buildHome'dan erişilebilsin diye burada
 let farms=[], animals=[], animalEvents=[];
 let farmNav='farms', selectedFarmId=null, selectedAnimalId=null;
-let animalSearch='', animalFilterBreed='all', animalFilterStatus='all';
+let animalSearch='', animalFilterBreed='all', animalFilterStatus='all', animalFilterAlert='all';
+let filterPanelOpen=false;
 let farmFilter='all', farmSearch='';
 let selectedAnimals=new Set(), bulkMode=false;
 // Hatırlatmalar — Supabase + localStorage yedek
@@ -2112,8 +2113,36 @@ function buildFarmDetail() {
   if(!farm) return '<p style="padding:20px">İşletme bulunamadı</p>';
 
   let fa = animals.filter(a => a.farm_id === selectedFarmId);
-  if(animalFilterBreed !== 'all') fa = fa.filter(a => a.breed === animalFilterBreed);
   if(animalFilterStatus !== 'all') fa = fa.filter(a => a.status === animalFilterStatus);
+  if(animalFilterBreed !== 'all') fa = fa.filter(a => a.breed === animalFilterBreed);
+  if(animalFilterAlert !== 'all') {
+    fa = fa.filter(a => {
+      const alerts = getAnimalAlerts(a);
+      const titles = alerts.map(al => al.title);
+      switch(animalFilterAlert) {
+        case 'no-alert': return alerts.length === 0;
+        case 'any-alert': return alerts.length > 0;
+        case 'heifer-ready': return titles.some(t=>t.includes('Tohumlama Zamanı')||t.includes('Hazırlan'));
+        case 'preg-check': return titles.some(t=>t.includes('Gebelik Kontrolü')&&!t.includes('Yapılmadı')&&!t.includes('Sonucu'));
+        case 'preg-check-late': return titles.some(t=>t.includes('Yapılmadı'));
+        case 'hidden-heat': return titles.some(t=>t.includes('Gebe mi'));
+        case 'preg-result': return titles.some(t=>t.includes('Sonucu Girilmedi'));
+        case 'heat-window': return titles.some(t=>t.includes('Kızgınlık Takip')||t.includes('Kızgınlık Penceresi'));
+        case 'heat-expected': return titles.some(t=>t.includes('Kızgınlık Bekleniyor')||t.includes('Kızgınlık Yaklaşıyor'));
+        case 'no-take': return titles.some(t=>t.includes('Tohum Tutmadı'));
+        case 'repro-problem': return titles.some(t=>t.includes('Reprodüktif'));
+        case 'embryo-death': return titles.some(t=>t.includes('Embriyonik'));
+        case 'postpartum': return titles.some(t=>t.includes('Postpartum'));
+        case 'heat-wait': return titles.some(t=>t.includes('Kızgınlık Bekle'));
+        case 'problem-cow': return titles.some(t=>t.includes('Sorunlu İnek'));
+        case 'dry-now': return titles.some(t=>t.includes('Kuruya Al')&&!t.includes('Alınmadı'));
+        case 'dry-risk': return titles.some(t=>t.includes('Risk'));
+        case 'calving-soon': return titles.some(t=>t.includes('Buzağılama Yaklaşıyor')||t.includes('Doğum Yakın')||t.includes('DOĞUM ZAMANI'));
+        case 'calving-late': return titles.some(t=>t.includes('Tarihi Geçti'));
+        default: return true;
+      }
+    });
+  }
 
   const active = animals.filter(a => a.farm_id === selectedFarmId && !['sold','dead'].includes(a.status));
   const selCount = [...selectedAnimals].filter(id => fa.some(a=>a.id===id)).length;
@@ -2127,6 +2156,9 @@ function buildFarmDetail() {
 
   <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
     <button class="btn-p" id="add-animal-btn" style="font-size:12px;padding:9px;flex:2">🐄 Hayvan Ekle</button>
+    <button class="btn-sm btn-sm-b" id="toggle-filter-btn" style="padding:9px 12px;font-size:11px;position:relative">
+      🔽 Filtrele${(animalFilterStatus!=='all'||animalFilterBreed!=='all'||animalFilterAlert!=='all')?` <span style="background:var(--blue);color:#fff;border-radius:10px;padding:1px 6px;font-size:9px">${[animalFilterStatus!=='all',animalFilterBreed!=='all',animalFilterAlert!=='all'].filter(Boolean).length}</span>`:''}
+    </button>
     <button class="btn-sm btn-sm-b" id="excel-import-btn" style="padding:9px 12px;font-size:11px">📊</button>
     <button class="btn-sm" id="bulk-select-btn" style="padding:9px 12px;font-size:11px;background:${bulkMode?'var(--amber-light)':'var(--gray)'};color:${bulkMode?'var(--amber)':'var(--text2)'};border:none;border-radius:var(--radius-sm);cursor:pointer">☑️ Seç</button>
     <button class="btn-sm btn-sm-r" id="delete-farm-btn" style="padding:9px 10px;font-size:11px">🗑</button>
@@ -2140,16 +2172,53 @@ function buildFarmDetail() {
     <button class="btn-sm" id="cancel-bulk-btn" style="font-size:11px;padding:6px 10px;background:var(--gray);border:none;border-radius:var(--radius-sm);cursor:pointer">İptal</button>
   </div>` : ''}
 
-  <div class="chip-row">
-    ${[['all','Tümü'],['open','Açık'],['pregnant','Gebe'],['dry','Kuru'],['heifer','Düve'],['sold','Satıldı'],['dead','Öldü']].map(([k,l]) =>
-      `<div class="chip ${animalFilterStatus===k?'active':''}" data-astatus="${k}">${l}</div>`).join('')}
-  </div>
-  <div class="chip-row">
-    ${[['all','Tüm Irklar'],['holstein','Holstein'],['simental','Simental'],['montofon','Montofon'],['other','Diğer']].map(([k,l]) =>
-      `<div class="chip ${animalFilterBreed===k?'active':''}" data-breed="${k}">${l}</div>`).join('')}
+  <!-- Filtre Paneli -->
+  <div id="filter-panel" style="${filterPanelOpen?'':'display:none'};background:#fff;border:1.5px solid var(--blue-mid);border-radius:var(--radius);padding:14px;margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="font-size:12px;font-weight:800;color:var(--text)">🔽 Filtrele</div>
+      <button onclick="clearAllFilters()" style="font-size:11px;color:var(--blue);background:none;border:none;cursor:pointer;font-weight:700">Temizle</button>
+    </div>
+
+    <div style="font-size:10px;font-weight:800;color:var(--gray4);text-transform:uppercase;margin-bottom:6px">Durum</div>
+    <div class="chip-row" style="margin-bottom:12px">
+      ${[['all','Tümü'],['open','Açık'],['pregnant','🤰 Gebe'],['dry','🛑 Kuru'],['heifer','🐄 Düve'],['sold','💰 Satıldı'],['dead','💀 Öldü']].map(([k,l])=>
+        `<div class="chip ${animalFilterStatus===k?'active':''}" data-astatus="${k}">${l}</div>`).join('')}
+    </div>
+
+    <div style="font-size:10px;font-weight:800;color:var(--gray4);text-transform:uppercase;margin-bottom:6px">Irk</div>
+    <div class="chip-row" style="margin-bottom:12px">
+      ${[['all','Tüm Irklar'],['holstein','Holstein'],['simental','Simental'],['montofon','Montofon'],['other','Diğer']].map(([k,l])=>
+        `<div class="chip ${animalFilterBreed===k?'active':''}" data-breed="${k}">${l}</div>`).join('')}
+    </div>
+
+    <div style="font-size:10px;font-weight:800;color:var(--gray4);text-transform:uppercase;margin-bottom:6px">Uyarı Durumu</div>
+    <div class="chip-row" style="flex-wrap:wrap;gap:6px">
+      ${[
+        ['all','Tümü'],
+        ['no-alert','✅ Uyarısız'],
+        ['any-alert','⚠️ Herhangi Uyarı'],
+        ['heifer-ready','⏰ Tohumlama Zamanı (Düve)'],
+        ['preg-check','🔬 Gebelik Kontrolü Bekleyen'],
+        ['preg-check-late','⚠️ Gebelik Kontrolü Gecikmiş'],
+        ['hidden-heat','🤔 Gebe mi? Gizli Kızgınlık mı?'],
+        ['preg-result','❓ Gebelik Sonucu Girilmedi'],
+        ['heat-window','👀 Kızgınlık Penceresi Açık'],
+        ['heat-expected','🔥 Kızgınlık Bekleniyor'],
+        ['no-take','🔥 Tohum Tutmadı'],
+        ['repro-problem','🔴 Reprodüktif Sorun'],
+        ['embryo-death','⚠️ Embriyonik/Fetal Ölüm'],
+        ['postpartum','🩺 Postpartum Dönem'],
+        ['heat-wait','👀 Kızgınlık Bekle (80. gün)'],
+        ['problem-cow','💉 Sorunlu İnek (100. gün)'],
+        ['dry-now','🛑 Kuruya Al'],
+        ['dry-risk','🚨 Kuruya Alınmadı — Risk'],
+        ['calving-soon','🐣 Buzağılama Yaklaşıyor'],
+        ['calving-late','🚨 Buzağılama Tarihi Geçti'],
+      ].map(([k,l])=>`<div class="chip ${animalFilterAlert===k?'active':''}" data-alert="${k}" style="font-size:10px">${l}</div>`).join('')}
+    </div>
   </div>
 
-  <div style="font-size:12px;color:var(--gray4);margin-bottom:10px">${fa.length} hayvan · Toplam aktif: ${active.length}</div>
+  <div style="font-size:12px;color:var(--gray4);margin-bottom:10px">${fa.length} hayvan gösteriliyor · Toplam aktif: ${active.length}</div>
   ${fa.length ? fa.map(a => buildAnimalCard(a)).join('') : `<div class="empty"><div class="eicon">🐄</div><p>Bu kategoride hayvan yok</p></div>`}`;
 }
 
@@ -2807,6 +2876,11 @@ window.selectDisease = function(name) {
   if(dd) dd.style.display = 'none';
 };
 
+window.clearAllFilters = function() {
+  animalFilterStatus='all'; animalFilterBreed='all'; animalFilterAlert='all';
+  renderFarm();
+};
+
 window.toggleEventFields = function(type) {
   const pregGroup = document.getElementById('ev-pregday-group');
   const insemNote = document.getElementById('ev-insem-note');
@@ -2839,6 +2913,12 @@ function bindFarmEvents() {
     render(); renderFarm();
   }));
 
+  document.getElementById('toggle-filter-btn')?.addEventListener('click', () => {
+    filterPanelOpen = !filterPanelOpen; renderFarm();
+  });
+  document.querySelectorAll('[data-alert]').forEach(c => c.addEventListener('click', () => {
+    animalFilterAlert = c.dataset.alert; renderFarm();
+  }));
   document.querySelectorAll('[data-breed]').forEach(c => c.addEventListener('click', () => {
     animalFilterBreed = c.dataset.breed; renderFarm();
   }));
