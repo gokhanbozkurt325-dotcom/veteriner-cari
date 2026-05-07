@@ -1391,20 +1391,6 @@ function bindEvents(){
       render(); await loadFarmData(); renderFarm();
     });
   });
-    homeFarmOpen=!homeFarmOpen;
-    if(homeFarmOpen&&farms.length===0){await loadFarmData();}
-    render();
-  });
-  document.getElementById('goto-farms-full-btn')?.addEventListener('click',async()=>{
-    nav='farms'; farmNav='farms'; homeFarmOpen=false; render(); await loadFarmData(); renderFarm();
-  });
-  // İşletme özet kartları tıklanınca o işletmeye git
-  farms.forEach(f=>{
-    document.getElementById('home-farm-'+f.id)?.addEventListener('click',async()=>{
-      nav='farms'; farmNav='farm-detail'; selectedFarmId=f.id; homeFarmOpen=false;
-      render(); await loadFarmData(); renderFarm();
-    });
-  });
   document.getElementById('add-person-btn')?.addEventListener('click',()=>{ modal='add-person'; render(); });
   document.getElementById('edit-person-btn')?.addEventListener('click',()=>{ modal='edit-person'; render(); });
   document.getElementById('add-tx-btn')?.addEventListener('click',()=>{ modal='add-tx'; render(); });
