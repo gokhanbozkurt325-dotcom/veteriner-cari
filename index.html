@@ -467,6 +467,7 @@ function bindLoginEvents(){
 function buildHeader(overdueCount){
   const titles={home:'Ana Sayfa',persons:'Cari Hesaplar',detail:'Hesap Detayı',report:'Raporlar',overdue:'Gecikme Takibi',settings:'Ayarlar',admin:'Kullanıcı Yönetimi',farms:'İşletmeler'};
   const showBack=nav==='detail'||(nav==='farms'&&farmNav!=='farms');
+  const showClose=nav!=='home'; // Ana sayfa hariç ✕ göster
   const dp=detailPid?persons.find(p=>p.id===detailPid):null;
   const farmTitle=nav==='farms'?(farmNav==='animal-detail'?(animals.find(a=>a.id===selectedAnimalId)?.ear_tag||'Hayvan'):(farmNav==='farm-detail'?(farms.find(f=>f.id===selectedFarmId)?.owner_name||'İşletme'):'İşletmeler')):'';
   return `<div class="header">
@@ -477,6 +478,7 @@ function buildHeader(overdueCount){
     </div>
     ${nav==='persons'?`<button class="hbtn" id="add-person-btn" style="font-size:22px;font-weight:300">+</button>`:''}
     ${nav==='detail'?`<button class="hbtn" id="edit-person-btn">✏️</button>`:''}
+    ${showClose&&nav!=='detail'&&nav!=='persons'?`<button class="hbtn" id="close-page-btn" style="font-size:18px">✕</button>`:''}
   </div>`;
 }
 function buildNav(overdueCount){
@@ -653,6 +655,10 @@ function buildHome(){
   const overdueCount=getOverduePersons().length;
   const debtors=persons.filter(p=>getBalance(p.id)>0).sort((a,b)=>getBalance(b.id)-getBalance(a.id)).slice(0,3);
   const recent=txs.slice(0,5);
+
+  const cardBase='background:linear-gradient(135deg,#0ea5e9,#0284c7);padding:12px 16px;cursor:pointer;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:space-between;margin-bottom:10px';
+  const cardStyle=cardBase+';border-radius:var(--radius)';
+
   return `
   <div class="stats-grid">
     <div class="stat-card sc-red"><div class="lbl">Toplam Alacak</div><div class="val">${fmt(totalBal)}</div></div>
@@ -661,32 +667,63 @@ function buildHome(){
     <div class="stat-card sc-amber"><div class="lbl">Bugün İşlem</div><div class="val">${todayCt} adet</div></div>
   </div>
 
-  ${buildCalendar()}
-  ${buildReminderPanel()}
+  ${overdueCount>0||debtors.length?`
+  <div style="margin-bottom:10px">
+    ${overdueCount>0?`<div class="overdue-banner" style="cursor:pointer;margin-bottom:8px" data-nav="overdue">
+      <div class="ob-icon">⚠️</div><div class="ob-text">${overdueCount} kişide ödeme gecikmiş!</div>
+    </div>`:''}
+    ${debtors.length?`
+    <div style="background:#fff;border-radius:var(--radius);border:1px solid var(--gray2);box-shadow:var(--shadow);overflow:hidden">
+      <div style="padding:10px 14px;font-size:12px;font-weight:800;color:var(--text);border-bottom:1px solid var(--gray2)">⚠️ Bekleyen Alacaklar</div>
+      ${debtors.map(p=>{
+        const lastP=getLastPayment(p.id);
+        return `<div class="list-item" data-person="${p.id}" style="border-bottom:1px solid var(--gray2)">
+          <div class="avatar ${isOverdue(p.id)?'overdue-av':''}">${initials(p.name)}</div>
+          <div class="ii"><div class="iname">${p.name}</div><div class="isub">Son ödeme: ${lastP?fmtDate(lastP.date):'Hiç yok'}</div></div>
+          <div class="iright"><div class="amt amt-debt">-${fmt(getBalance(p.id))}</div></div>
+        </div>`;
+      }).join('')}
+    </div>`:''}
+  </div>`:''}
 
+  <!-- Hızlı Erişim Butonları -->
   <div style="margin-bottom:14px">
-    <div style="background:linear-gradient(135deg,#0ea5e9,#0284c7);border-radius:${homeFarmOpen?'var(--radius) var(--radius) 0 0':'var(--radius)'};padding:12px 16px;cursor:pointer;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:space-between" id="goto-farms-btn">
+
+    <!-- Cariler -->
+    <div style="${cardStyle}" id="home-persons-btn">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:22px">👥</span>
+        <div>
+          <div style="color:#fff;font-family:'Nunito',sans-serif;font-weight:800;font-size:14px">Cariler</div>
+          <div style="color:rgba(255,255,255,.75);font-size:11px">${persons.length} kayıtlı · ${overdueCount} gecikmiş · Toplam alacak: ${fmt(totalBal)}</div>
+        </div>
+      </div>
+      <span style="color:rgba(255,255,255,.7);font-size:22px">›</span>
+    </div>
+
+    <!-- İşletmeler -->
+    <div style="${cardBase};border-radius:${homeFarmOpen?`var(--radius) var(--radius) 0 0`:`var(--radius)`};margin-bottom:0" id="goto-farms-btn">
       <div style="display:flex;align-items:center;gap:10px">
         <span style="font-size:22px">🏭</span>
         <div>
           <div style="color:#fff;font-family:'Nunito',sans-serif;font-weight:800;font-size:14px">İşletmeler</div>
           <div style="color:rgba(255,255,255,.75);font-size:11px">
             ${farms.length} işletme · ${animals.filter(a=>!['sold','dead'].includes(a.status)).length} aktif hayvan
-            ${animals.filter(a=>a.status==='pregnant').length ? ' · 🤰 '+animals.filter(a=>a.status==='pregnant').length+' gebe' : ''}
-            ${animals.filter(a=>getAnimalAlerts(a).length>0).length ? ' · ⚠️ '+animals.filter(a=>getAnimalAlerts(a).length>0).length+' uyarı' : ''}
+            ${animals.filter(a=>a.status==='pregnant').length?' · 🤰 '+animals.filter(a=>a.status==='pregnant').length+' gebe':''}
+            ${animals.filter(a=>getAnimalAlerts(a).length>0).length?' · ⚠️ '+animals.filter(a=>getAnimalAlerts(a).length>0).length+' uyarı':''}
           </div>
         </div>
       </div>
-      <span style="color:rgba(255,255,255,.7);font-size:18px;transition:.2s">${homeFarmOpen?'▾':'›'}</span>
+      <span style="color:rgba(255,255,255,.7);font-size:18px">${homeFarmOpen?'▾':'›'}</span>
     </div>
-    ${homeFarmOpen ? `
-    <div style="background:#fff;border:1.5px solid #0ea5e9;border-top:none;border-radius:0 0 var(--radius) var(--radius);padding:12px 14px">
-      ${farms.length ? farms.map(f => {
-        const fa = animals.filter(a=>a.farm_id===f.id&&!['sold','dead'].includes(a.status));
-        const aw = fa.filter(a=>getAnimalAlerts(a).length>0).length;
-        const pr = fa.filter(a=>a.status==='pregnant').length;
-        const ky = fa.filter(a=>a.status==='dry').length;
-        const op = fa.filter(a=>a.status==='open').length;
+    ${homeFarmOpen?`
+    <div style="background:#fff;border:1.5px solid #0ea5e9;border-top:none;border-radius:0 0 var(--radius) var(--radius);padding:12px 14px;margin-bottom:10px">
+      ${farms.length?farms.map(f=>{
+        const fa=animals.filter(a=>a.farm_id===f.id&&!['sold','dead'].includes(a.status));
+        const aw=fa.filter(a=>getAnimalAlerts(a).length>0).length;
+        const pr=fa.filter(a=>a.status==='pregnant').length;
+        const ky=fa.filter(a=>a.status==='dry').length;
+        const op=fa.filter(a=>a.status==='open').length;
         return `<div style="padding:8px 0;border-bottom:1px solid var(--gray2);cursor:pointer" id="home-farm-${f.id}">
           <div style="font-weight:700;font-size:13px;margin-bottom:4px">🏭 ${f.owner_name||'İsimsiz'}</div>
           <div style="display:flex;gap:6px;flex-wrap:wrap">
@@ -697,19 +734,38 @@ function buildHome(){
             ${aw?`<span style="font-size:11px;background:var(--red-light);color:var(--red);padding:2px 8px;border-radius:10px">⚠️ ${aw} uyarı</span>`:''}
           </div>
         </div>`;
-      }).join('') : `<div style="font-size:12px;color:var(--gray4);text-align:center;padding:10px">Henüz işletme yok</div>`}
+      }).join(''):`<div style="font-size:12px;color:var(--gray4);text-align:center;padding:10px">Henüz işletme yok</div>`}
       <button class="btn-p" id="goto-farms-full-btn" style="width:100%;margin-top:10px;font-size:12px">Tüm İşletmeleri Gör →</button>
-    </div>` : ''}
+    </div>`:'<div style="margin-bottom:10px"></div>'}
+
+    <!-- Gecikme -->
+    <div style="${cardStyle}" id="home-overdue-btn">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:22px">⚠️</span>
+        <div>
+          <div style="color:#fff;font-family:'Nunito',sans-serif;font-weight:800;font-size:14px">Gecikme Takibi</div>
+          <div style="color:rgba(255,255,255,.75);font-size:11px">${overdueCount} kişi gecikmiş · Vadesi geçen ödemeler</div>
+        </div>
+      </div>
+      <span style="color:rgba(255,255,255,.7);font-size:22px">›</span>
+    </div>
+
+    <!-- Raporlar -->
+    <div style="${cardStyle}" id="home-report-btn">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:22px">📊</span>
+        <div>
+          <div style="color:#fff;font-family:'Nunito',sans-serif;font-weight:800;font-size:14px">Raporlar</div>
+          <div style="color:rgba(255,255,255,.75);font-size:11px">${txs.length} işlem · Aylık özet ve borçlular listesi</div>
+        </div>
+      </div>
+      <span style="color:rgba(255,255,255,.7);font-size:22px">›</span>
+    </div>
   </div>
 
-  ${overdueCount>0?`<div class="overdue-banner" style="cursor:pointer" data-nav="overdue"><div class="ob-icon">⚠️</div><div class="ob-text">${overdueCount} kişide ödeme gecikmiş!</div></div>`:''}  ${debtors.length?`<div class="sec-title">⚠️ Bekleyen Alacaklar</div>`+debtors.map(p=>{
-    const lastP=getLastPayment(p.id);
-    return `<div class="list-item" data-person="${p.id}">
-      <div class="avatar ${isOverdue(p.id)?'overdue-av':''}">${initials(p.name)}</div>
-      <div class="ii"><div class="iname">${p.name}</div><div class="isub">Son ödeme: ${lastP?fmtDate(lastP.date):'Hiç yok'}</div></div>
-      <div class="iright"><div class="amt amt-debt">-${fmt(getBalance(p.id))}</div></div>
-    </div>`;
-  }).join(''):''}
+  ${buildCalendar()}
+  ${buildReminderPanel()}
+
   <div class="sec-title">🕐 Son İşlemler</div>
   ${recent.length?recent.map(t=>{
     const p=persons.find(x=>x.id===t.person_id);
@@ -721,7 +777,8 @@ function buildHome(){
       <div class="tx-amt ${isPos?'tx-pos':'tx-neg'}">${isPos?'+':'-'}${fmt(t.amount)}</div>
     </div>`;
   }).join(''):`<div class="empty"><div class="eicon">📋</div><p>Henüz işlem yok</p></div>`}
-  <button class="fab" id="quick-add-btn">+</button>`;}
+  <button class="fab" id="quick-add-btn">+</button>`;
+}
 
 
 // ─── PERSONS ──────────────────────────────────────────────────
@@ -1229,7 +1286,28 @@ function bindEvents(){
     if(nav==='farms'){ farmNav='farms'; render(); await loadFarmData(); renderFarm(); }
     else render();
   }));
-  document.getElementById('back-btn')?.addEventListener('click',()=>{
+  // ✕ Kapat butonu — ana sayfaya dön
+  document.getElementById('close-page-btn')?.addEventListener('click',()=>{
+    if(nav==='farms') { farmNav='farms'; selectedFarmId=null; selectedAnimalId=null; }
+    nav='home'; render();
+  });
+
+  // Swipe ile sayfa geçişi
+  const navOrder=['home','persons','farms','overdue','report','settings'];
+  const appEl=document.getElementById('app');
+  if(appEl&&!appEl._swipeInit){
+    appEl._swipeInit=true;
+    let startX=0,startY=0;
+    appEl.addEventListener('touchstart',e=>{startX=e.touches[0].clientX;startY=e.touches[0].clientY;},{passive:true});
+    appEl.addEventListener('touchend',e=>{
+      const dx=e.changedTouches[0].clientX-startX;
+      const dy=e.changedTouches[0].clientY-startY;
+      if(Math.abs(dx)<60||Math.abs(dy)>Math.abs(dx)) return; // minimum swipe
+      const idx=navOrder.indexOf(nav);
+      if(dx<0&&idx<navOrder.length-1){ nav=navOrder[idx+1]; render(); if(nav==='farms'){loadFarmData().then(renderFarm);} }
+      if(dx>0&&idx>0){ nav=navOrder[idx-1]; render(); if(nav==='farms'){loadFarmData().then(renderFarm);} }
+    },{passive:true});
+  }
     if(nav==='detail'){ nav='persons'; detailPid=null; render(); }
     else if(nav==='farms'){
       if(farmNav==='animal-detail'){ farmNav='farm-detail'; selectedAnimalId=null; modal=null; render(); renderFarm(); }
@@ -1294,7 +1372,23 @@ function bindEvents(){
   document.querySelectorAll('.reminder-item[data-person]').forEach(el=>{
     el.addEventListener('click',()=>{ detailPid=el.dataset.person; nav='detail'; txTab='all'; render(); });
   });
+  document.getElementById('home-persons-btn')?.addEventListener('click',()=>{ nav='persons'; render(); });
+  document.getElementById('home-overdue-btn')?.addEventListener('click',()=>{ nav='overdue'; render(); });
+  document.getElementById('home-report-btn')?.addEventListener('click',()=>{ nav='report'; render(); });
   document.getElementById('goto-farms-btn')?.addEventListener('click',async()=>{
+    homeFarmOpen=!homeFarmOpen;
+    if(homeFarmOpen&&farms.length===0){ await loadFarmData(); }
+    render();
+  });
+  document.getElementById('goto-farms-full-btn')?.addEventListener('click',async()=>{
+    nav='farms'; farmNav='farms'; homeFarmOpen=false; render(); await loadFarmData(); renderFarm();
+  });
+  farms.forEach(f=>{
+    document.getElementById('home-farm-'+f.id)?.addEventListener('click',async()=>{
+      nav='farms'; farmNav='farm-detail'; selectedFarmId=f.id; homeFarmOpen=false;
+      render(); await loadFarmData(); renderFarm();
+    });
+  });
     homeFarmOpen=!homeFarmOpen;
     if(homeFarmOpen&&farms.length===0){await loadFarmData();}
     render();
