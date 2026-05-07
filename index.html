@@ -393,7 +393,12 @@ async function updateTx(id,upd){
 function toast(msg){ document.querySelectorAll('.toast').forEach(e=>e.remove()); const d=document.createElement('div'); d.className='toast'; d.textContent=msg; document.body.appendChild(d); setTimeout(()=>d.remove(),2200); }
 
 // Global modal kapatıcı — onclick ile çağrılır
-window.closeModal = function(){ modal=null; render(); };
+window.closeModal = function(){
+  modal = null;
+  render();
+  // Farm modülü açıksa onu da yenile
+  if(nav === 'farms' && typeof renderFarm === 'function') renderFarm();
+};
 
 // ─── RENDER ───────────────────────────────────────────────────
 function render(){ 
@@ -2200,12 +2205,27 @@ function buildAnimalDetail() {
     expectedBirth = addDays(lastInsem.event_date, GESTATION_DAYS);
   }
 
-  // Bir sonraki kızgınlık penceresi
+  // Bir sonraki kızgınlık penceresi — tarih geçmişse bir sonraki döngüye geç
   const heatRef = lastHeat || lastInsem;
   let nextHeatStart = null, nextHeatEnd = null;
+  let heatWindowNote = '';
   if(heatRef && (a.status === 'open' || a.status === 'heifer')) {
-    nextHeatStart = addDays(heatRef.event_date, HEAT_MIN);
-    nextHeatEnd = addDays(heatRef.event_date, HEAT_MAX);
+    let refDate = heatRef.event_date;
+    let start = addDays(refDate, HEAT_MIN);
+    let end = addDays(refDate, HEAT_MAX);
+    const tdStr = today();
+    // Pencere geçmişse bir sonraki 21 günlük döngüye geç
+    if(end < tdStr) {
+      const daysPassed = daysBetween(refDate, tdStr);
+      // Kaç 21 günlük döngü geçmiş?
+      const cycles = Math.floor(daysPassed / 21);
+      const nextRef = addDays(refDate, cycles * 21);
+      start = addDays(nextRef, HEAT_MIN);
+      end = addDays(nextRef, HEAT_MAX);
+      heatWindowNote = `Kızgınlık penceresi beklenen sürede görülmedi · ${cycles}. döngü`;
+    }
+    nextHeatStart = start;
+    nextHeatEnd = end;
   }
 
   const dSinceInsem = lastInsem ? daysBetween(lastInsem.event_date, today()) : null;
@@ -2253,6 +2273,7 @@ function buildAnimalDetail() {
   ${nextHeatStart ? `
   <div class="heat-track">
     <div class="heat-track-title">🔥 Kızgınlık Takip Penceresi</div>
+    ${heatWindowNote ? `<div style="font-size:10px;color:var(--amber);font-weight:700;margin-bottom:6px">⚠️ ${heatWindowNote}</div>` : ''}
     <div class="heat-window">
       <div>
         <div class="hw-date">${fmtDate(nextHeatStart)} — ${fmtDate(nextHeatEnd)}</div>
@@ -3070,23 +3091,21 @@ function bindFarmEvents() {
     const updates = {};
 
     if(type === 'insemination') {
-      // Kaçıncı tohumlama?
       const prevInsems = animalEvents.filter(e => e.animal_id === a.id && e.event_type === 'insemination').length;
       const insemNo = prevInsems + 1;
       const bullName = document.getElementById('ev-bull-name')?.value.trim() || '';
-      const insemNote = `${insemNo}. tohumlama${bullName ? ' — Boğa: ' + bullName : ''}${notes ? ' — ' + notes : ''}`;
-      // Tohumlama: hayvan açık durumda kalır, tohumlama tarihi güncellenir
+      const insemLabel = insemNo === 1 ? 'İlk tohumlama' : insemNo + '. tohumlama (tekrar)';
+      const insemNote = `${insemLabel}${bullName ? ' — Boğa: ' + bullName : ''}${notes ? ' — ' + notes : ''}`;
       updates.last_insemination_date = date;
-      // Eğer gebe işaretliyse açığa al
       if(a.status === 'pregnant') updates.status = 'open';
-      // Notes'u güncelle
-      Object.assign({}, {notes: insemNote});
       await addAnimalEvent({
         animal_id: selectedAnimalId, event_type: type,
         event_date: date, event_day: null, notes: insemNote,
       });
       if(Object.keys(updates).length) await updateAnimal(selectedAnimalId, updates);
-      modal = null; toast('✅ ' + insemNo + '. tohumlama kaydedildi'); renderFarm();
+      modal = null;
+      toast('✅ ' + insemLabel + ' kaydedildi');
+      await loadFarmData(); render(); renderFarm();
       return;
     }
 
