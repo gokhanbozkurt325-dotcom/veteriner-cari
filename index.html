@@ -237,12 +237,24 @@ textarea.fi{resize:none;height:76px}
 const SUPABASE_URL = 'https://srbjawvtbzqxypuwskxw.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyYmphd3Z0YnpxeHlwdXdza3h3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5MDQ0OTAsImV4cCI6MjA5MzQ4MDQ5MH0.o3_pwC1HDRgXDahDtVaC3MOFmam3tTSCd54zuxV94cc';
 
-// Oturum - localStorage'da sakla
+// Oturum
 let currentUser = JSON.parse(localStorage.getItem('vc_current_user')||'null');
 function setCurrentUser(u){ currentUser=u; localStorage.setItem('vc_current_user',JSON.stringify(u)); }
 function clearCurrentUser(){ currentUser=null; localStorage.removeItem('vc_current_user'); localStorage.removeItem('vc_loggedin'); }
 function isAdmin(){ return currentUser&&currentUser.role==='admin'; }
 function userId(){ return currentUser?currentUser.id:null; }
+
+// Brute force koruması
+const loginAttempts = {count:0, lockedUntil:0};
+function isLoginLocked(){
+  if(loginAttempts.lockedUntil > Date.now()){
+    const left = Math.ceil((loginAttempts.lockedUntil - Date.now())/1000);
+    return `Çok fazla hatalı giriş. ${left} saniye bekleyin.`;
+  }
+  return false;
+}
+function recordLoginFail(){ loginAttempts.count++; if(loginAttempts.count>=5){ loginAttempts.lockedUntil=Date.now()+120000; loginAttempts.count=0; } }
+function recordLoginSuccess(){ loginAttempts.count=0; loginAttempts.lockedUntil=0; }
 const DEFAULT_PIN = '1234';
 
 const TX_TYPES = {
@@ -466,15 +478,33 @@ function buildLogin(){
 }
 function bindLoginEvents(){
   const doLogin=async()=>{
+    const err=document.getElementById('login-err');
+
+    // Brute force kontrolü
+    const locked = isLoginLocked();
+    if(locked){ err.textContent=locked; err.className='login-err'; return; }
+
     const username=document.getElementById('login-username').value.trim().toLowerCase();
     const password=document.getElementById('login-password').value;
-    const err=document.getElementById('login-err');
     if(!username||!password){ err.textContent='Kullanıcı adı ve şifre giriniz!'; err.className='login-err shake'; return; }
     try{
       const res=await sbReq('GET',`vc_users?username=eq.${username}&password=eq.${password}&select=*`);
-      if(!res||!res.length){ err.textContent='Kullanıcı adı veya şifre hatalı!'; err.className='login-err shake'; return; }
+      if(!res||!res.length){
+        // Başarısız giriş sayacı
+        loginAttempts.count++;
+        if(loginAttempts.count>=5){
+          loginAttempts.lockedUntil=Date.now()+30000; // 30 saniye kilitle
+          loginAttempts.count=0;
+          err.textContent='5 hatalı giriş! 30 saniye beklemeniz gerekiyor.';
+        } else {
+          err.textContent=`Kullanıcı adı veya şifre hatalı! (${loginAttempts.count}/5)`;
+        }
+        err.className='login-err shake'; return;
+      }
       const user=res[0];
-      if(!user.active){ err.textContent='Hesabınız henüz onaylanmamış. Lütfen admin ile iletişime geçin.'; err.className='login-err'; return; }
+      if(!user.active){ err.textContent='Hesabınız henüz onaylanmamış.'; err.className='login-err'; return; }
+      // Başarılı giriş — sayacı sıfırla
+      loginAttempts.count=0; loginAttempts.lockedUntil=0;
       setCurrentUser(user);
       await loadAll();
     }catch(e){ err.textContent='Bağlantı hatası, tekrar deneyin.'; err.className='login-err'; }
