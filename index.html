@@ -2405,6 +2405,7 @@ function buildAnimalDetail() {
   const statusInfo = ANIMAL_STATUS[a.status] || {label:a.status};
 
   const lastInsem = evs.find(e => e.event_type === 'insemination');
+  const inseminations = evs.filter(e => e.event_type === 'insemination');
   const lastHeat = evs.find(e => e.event_type === 'heat');
   const lastBirth = evs.find(e => e.event_type === 'birth');
   const lastPregCheck = evs.find(e => e.event_type === 'pregnancy_check');
