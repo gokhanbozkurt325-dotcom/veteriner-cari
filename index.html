@@ -255,7 +255,7 @@ const TX_TYPES = {
 // ─── HELPERS ──────────────────────────────────────────────────
 const uid = ()=>'_'+Math.random().toString(36).substr(2,9);
 const fmt = n=>Math.abs(parseFloat(n)||0).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})+' ₺';
-const fmtDate = d=>{ try{ return new Date(d).toLocaleDateString('tr-TR',{day:'2-digit',month:'short',year:'numeric'}); }catch{ return d||'-'; }};
+const fmtDate = d=>{ if(!d||d===''||d==='null') return '-'; try{ const dt=new Date(d); if(isNaN(dt.getTime())) return '-'; return dt.toLocaleDateString('tr-TR',{day:'2-digit',month:'short',year:'numeric'}); }catch{ return '-'; }};
 const initials = name=>{ const p=(name||'?').trim().split(' '); return p.length>=2?(p[0][0]+p[p.length-1][0]).toUpperCase():(name||'?').substring(0,2).toUpperCase(); };
 const getPin = ()=>localStorage.getItem('vc_pin')||DEFAULT_PIN;
 const today = ()=>new Date().toISOString().slice(0,10);
@@ -405,13 +405,25 @@ window.closeModal = function(){
 // ─── RENDER ───────────────────────────────────────────────────
 function render(){
   if(nav==='farms'){
-    // Farms sayfasında sadece wrapper'ı kur, içeriği renderFarm yönetir
     const overdueCount = currentUser ? getOverduePersons().length : 0;
     document.getElementById('app').innerHTML =
       buildHeader(overdueCount) +
       `<div class="content"><div id="farm-module"></div></div>` +
       buildNav(overdueCount);
-    bindEvents();
+    // Sadece nav handler'larını bağla (farms hariç)
+    document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click',async()=>{
+      const newNav=b.dataset.nav;
+      if(newNav==='farms'){ renderFarm(); return; }
+      nav=newNav; if(nav!=='detail') detailPid=null; modal=null; txTab='all';
+      if(nav==='admin') await loadAllUsers();
+      render();
+    }));
+    document.getElementById('back-btn')?.addEventListener('click',()=>{
+      if(farmNav==='animal-detail'){ farmNav='farm-detail'; selectedAnimalId=null; modal=null; renderFarm(); }
+      else if(farmNav==='farm-detail'){ farmNav='farms'; selectedFarmId=null; modal=null; renderFarm(); }
+      else { nav='home'; render(); }
+    });
+    document.getElementById('close-page-btn')?.addEventListener('click',()=>{ nav='home'; render(); });
     if(typeof renderFarm === 'function') renderFarm();
     return;
   }
@@ -1289,10 +1301,17 @@ function bindEvents(){
   if(!currentUser){ bindLoginEvents(); return; }
 
   document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click',async()=>{
-    nav=b.dataset.nav; if(nav!=='detail') detailPid=null; modal=null; txTab='all';
+    const newNav=b.dataset.nav;
+    if(newNav==='farms'){
+      nav='farms'; farmNav='farms'; detailPid=null; modal=null;
+      render(); // render farms wrapper'ı kurar ve renderFarm'ı çağırır
+      if(farms.length===0) await loadFarmData();
+      renderFarm();
+      return;
+    }
+    nav=newNav; if(nav!=='detail') detailPid=null; modal=null; txTab='all';
     if(nav==='admin') await loadAllUsers();
-    if(nav==='farms'){ farmNav='farms'; render(); await loadFarmData(); renderFarm(); }
-    else render();
+    render();
   }));
   // ✕ Kapat butonu — ana sayfaya dön
   document.getElementById('close-page-btn')?.addEventListener('click',()=>{
