@@ -888,106 +888,184 @@ function bindPersonListEvents(){
 }
 
 function buildPersons(){
-  // Dönem hesaplamaları
-  const now = new Date(); const todayStr = today();
+  const todayStr = today();
+
+  // ── DOĞRU HESAPLAMA ──
+  // Sadece mevcut kişilerin işlemleri (silinmiş kişilerin txs'den de silindiği varsayımıyla)
+  // Ama ek güvence: sadece persons içinde olan person_id'leri dahil et
+  const validPids = new Set(persons.map(p=>p.id));
+  const validTxs = txs.filter(t=>validPids.has(t.person_id));
+
+  // Toplam anlık bakiye (tüm zamanlar)
+  let totalDebtAll=0, totalPaidAll=0;
+  validTxs.forEach(t=>{ const a=parseFloat(t.amount||0); t.type==='payment'?totalPaidAll+=a:totalDebtAll+=a; });
+  const netBalance = totalDebtAll - totalPaidAll; // gerçek toplam alacak
 
   // Bugün
-  const todayTxs = txs.filter(t=>t.date===todayStr);
+  const todayTxs  = validTxs.filter(t=>t.date===todayStr);
   const todayDebt = todayTxs.filter(t=>t.type!=='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
   const todayPaid = todayTxs.filter(t=>t.type==='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
 
-  // Son 7 gün
-  const w1Start = addDays(todayStr,-7), w2Start = addDays(todayStr,-14);
-  const week1Txs = txs.filter(t=>t.date>=w1Start&&t.date<=todayStr);
-  const week2Txs = txs.filter(t=>t.date>=w2Start&&t.date<w1Start);
-  const week1Debt = week1Txs.filter(t=>t.type!=='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
-  const week1Paid = week1Txs.filter(t=>t.type==='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
-  const week2Debt = week2Txs.filter(t=>t.type!=='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
-  const week2Paid = week2Txs.filter(t=>t.type==='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
+  // Son 7 gün vs önceki 7 gün
+  const w1s=addDays(todayStr,-6), w2s=addDays(todayStr,-13);
+  const wk1 = validTxs.filter(t=>t.date>=w1s&&t.date<=todayStr);
+  const wk2 = validTxs.filter(t=>t.date>=w2s&&t.date<w1s);
+  const wk1Debt=wk1.filter(t=>t.type!=='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
+  const wk1Paid=wk1.filter(t=>t.type==='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
+  const wk2Debt=wk2.filter(t=>t.type!=='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
+  const wk2Paid=wk2.filter(t=>t.type==='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
 
-  // Son 30 gün
-  const m1Start = addDays(todayStr,-30), m2Start = addDays(todayStr,-60);
-  const month1Txs = txs.filter(t=>t.date>=m1Start&&t.date<=todayStr);
-  const month2Txs = txs.filter(t=>t.date>=m2Start&&t.date<m1Start);
-  const month1Debt = month1Txs.filter(t=>t.type!=='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
-  const month1Paid = month1Txs.filter(t=>t.type==='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
-  const month2Debt = month2Txs.filter(t=>t.type!=='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
-  const month2Paid = month2Txs.filter(t=>t.type==='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
+  // Son 30 gün vs önceki 30 gün
+  const m1s=addDays(todayStr,-29), m2s=addDays(todayStr,-59);
+  const mo1 = validTxs.filter(t=>t.date>=m1s&&t.date<=todayStr);
+  const mo2 = validTxs.filter(t=>t.date>=m2s&&t.date<m1s);
+  const mo1Debt=mo1.filter(t=>t.type!=='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
+  const mo1Paid=mo1.filter(t=>t.type==='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
+  const mo2Debt=mo2.filter(t=>t.type!=='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
+  const mo2Paid=mo2.filter(t=>t.type==='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
 
-  const pct = (a,b) => b===0 ? (a>0?100:0) : Math.round(((a-b)/b)*100);
-  const arrow = (v) => v>0?`<span style="color:var(--green)">▲${v}%</span>`:v<0?`<span style="color:var(--red)">▼${Math.abs(v)}%</span>`:`<span style="color:var(--gray4)">→ 0%</span>`;
+  const pct=(a,b)=>b===0?(a>0?100:0):Math.round(((a-b)/b)*100);
+  const diff=(a,b)=>{ const v=pct(a,b); return v>0?`<span style="color:#4ade80;font-size:9px;font-weight:700">▲${v}%</span>`:v<0?`<span style="color:#f87171;font-size:9px;font-weight:700">▼${Math.abs(v)}%</span>`:`<span style="color:rgba(255,255,255,.4);font-size:9px">→</span>`; };
 
-  // Son 14 günlük günlük grafik verisi
-  const chartDays = [];
-  for(let i=13;i>=0;i--){
-    const d = addDays(todayStr,-i);
-    const dayDebt = txs.filter(t=>t.date===d&&t.type!=='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
-    const dayPaid = txs.filter(t=>t.date===d&&t.type==='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
-    chartDays.push({d, debt:dayDebt, paid:dayPaid});
+  // ── GRAFİK VERİSİ ──
+  // Seçili periyoda göre kümülatif toplam alacak çizgisi
+  // chartMode: '7' | '30' | '365'
+  // Her nokta: o güne kadar birikmiş net alacak
+  function getChartData(mode){
+    const days = mode==='7'?7:mode==='30'?30:12; // 1 yıl = 12 ay
+    const points=[];
+    if(mode==='365'){
+      // Aylık göster
+      for(let i=11;i>=0;i--){
+        const dt=new Date(); dt.setDate(1); dt.setMonth(dt.getMonth()-i);
+        const mStr=dt.toISOString().slice(0,7);
+        const mDebt=validTxs.filter(t=>t.date.startsWith(mStr)&&t.type!=='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
+        const mPaid=validTxs.filter(t=>t.date.startsWith(mStr)&&t.type==='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
+        const label=dt.toLocaleDateString('tr-TR',{month:'short'});
+        points.push({label, debt:mDebt, paid:mPaid, net:mDebt-mPaid});
+      }
+    } else {
+      for(let i=days-1;i>=0;i--){
+        const d=addDays(todayStr,-i);
+        const dDebt=validTxs.filter(t=>t.date===d&&t.type!=='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
+        const dPaid=validTxs.filter(t=>t.date===d&&t.type==='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
+        const label=mode==='7'?['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'][new Date(d).getDay()===0?6:new Date(d).getDay()-1]:d.slice(5).replace('-','/');
+        points.push({label, debt:dDebt, paid:dPaid, net:dDebt-dPaid, isToday:d===todayStr});
+      }
+    }
+    return points;
   }
-  const maxVal = Math.max(...chartDays.map(d=>Math.max(d.debt,d.paid)),1);
 
-  const barH = (v) => Math.max(2, Math.round((v/maxVal)*52));
+  // Grafik HTML (SVG çizgi grafiği)
+  function buildLineChart(mode){
+    const pts = getChartData(mode);
+    const W=340, H=100, PL=8, PR=8, PT=10, PB=20;
+    const iW=W-PL-PR, iH=H-PT-PB;
+    const n=pts.length;
+    if(n===0) return '';
+
+    const maxD=Math.max(...pts.map(p=>p.debt),1);
+    const maxP=Math.max(...pts.map(p=>p.paid),1);
+    const maxAll=Math.max(maxD,maxP,1);
+
+    const xPos=(i)=>PL+((i/(n-1))*iW);
+    const yDebt=(v)=>PT+iH-(v/maxAll)*iH;
+    const yPaid=(v)=>PT+iH-(v/maxAll)*iH;
+
+    // Borç çizgisi
+    let debtPath='', paidPath='';
+    pts.forEach((p,i)=>{
+      const x=xPos(i).toFixed(1), yd=yDebt(p.debt).toFixed(1), yp=yPaid(p.paid).toFixed(1);
+      debtPath += (i===0?`M${x},${yd}`:`L${x},${yd}`);
+      paidPath += (i===0?`M${x},${yp}`:`L${x},${yp}`);
+    });
+
+    // Alan dolgusu
+    let debtArea=debtPath+`L${xPos(n-1).toFixed(1)},${(PT+iH).toFixed(1)}L${PL},${(PT+iH).toFixed(1)}Z`;
+    let paidArea=paidPath+`L${xPos(n-1).toFixed(1)},${(PT+iH).toFixed(1)}L${PL},${(PT+iH).toFixed(1)}Z`;
+
+    // X ekseni etiketleri (sadece ilk, orta, son)
+    const labelIdxs = n<=7 ? pts.map((_,i)=>i) : [0,Math.floor(n/2),n-1];
+
+    return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;overflow:visible">
+      <defs>
+        <linearGradient id="dg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f87171" stop-opacity=".35"/><stop offset="100%" stop-color="#f87171" stop-opacity="0"/></linearGradient>
+        <linearGradient id="pg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4ade80" stop-opacity=".35"/><stop offset="100%" stop-color="#4ade80" stop-opacity="0"/></linearGradient>
+      </defs>
+      <!-- Grid -->
+      ${[0.25,0.5,0.75,1].map(r=>`<line x1="${PL}" y1="${(PT+iH-(r*iH)).toFixed(1)}" x2="${W-PR}" y2="${(PT+iH-(r*iH)).toFixed(1)}" stroke="rgba(255,255,255,.08)" stroke-width="1"/>`).join('')}
+      <!-- Alan -->
+      <path d="${debtArea}" fill="url(#dg)"/>
+      <path d="${paidArea}" fill="url(#pg)"/>
+      <!-- Çizgiler -->
+      <path d="${debtPath}" fill="none" stroke="#f87171" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="${paidPath}" fill="none" stroke="#4ade80" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- Bugün noktası -->
+      ${pts.map((p,i)=>p.isToday?`<circle cx="${xPos(i).toFixed(1)}" cy="${yDebt(p.debt).toFixed(1)}" r="3" fill="#f87171"/><circle cx="${xPos(i).toFixed(1)}" cy="${yPaid(p.paid).toFixed(1)}" r="3" fill="#4ade80"/>`:``).join('')}
+      <!-- X ekseni etiketleri -->
+      ${labelIdxs.map(i=>`<text x="${xPos(i).toFixed(1)}" y="${H-4}" text-anchor="middle" fill="rgba(255,255,255,.4)" font-size="8" font-family="Nunito Sans,sans-serif">${pts[i].label}</text>`).join('')}
+    </svg>`;
+  }
+
+  // Aktif grafik modu (state'te tutuyoruz)
+  if(!window._chartMode) window._chartMode='7';
+  const cm=window._chartMode;
 
   return `
-  <!-- Özet Kartı -->
-  <div style="background:linear-gradient(135deg,var(--blue),var(--blue2));border-radius:var(--radius);padding:16px;margin-bottom:14px;box-shadow:0 4px 18px rgba(12,68,124,.2)">
-    <div style="color:rgba(255,255,255,.6);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">📊 Cari Özet</div>
+  <!-- Cari Özet -->
+  <div style="background:#fff;border-radius:var(--radius);border:1px solid var(--gray2);box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden">
 
-    <!-- Bugün -->
-    <div style="background:rgba(255,255,255,.12);border-radius:10px;padding:12px;margin-bottom:10px">
-      <div style="color:rgba(255,255,255,.55);font-size:10px;font-weight:700;margin-bottom:8px">📅 BUGÜN — ${new Date().toLocaleDateString('tr-TR',{day:'2-digit',month:'long'})}</div>
-      <div style="display:flex;gap:10px">
-        <div style="flex:1;text-align:center">
-          <div style="color:rgba(255,255,255,.55);font-size:9px;font-weight:700">Borç</div>
-          <div style="color:#f87171;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900">${todayDebt>0?fmt(todayDebt):'—'}</div>
+    <!-- Başlık + Toplam Bakiye -->
+    <div style="background:linear-gradient(135deg,var(--blue),var(--blue2));padding:14px 16px">
+      <div style="color:rgba(255,255,255,.6);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">📊 Cari Özet</div>
+      <div style="display:flex;align-items:flex-end;justify-content:space-between">
+        <div>
+          <div style="color:rgba(255,255,255,.6);font-size:11px;font-weight:600">Toplam Net Alacak</div>
+          <div style="color:#fff;font-family:'Nunito',sans-serif;font-size:26px;font-weight:900;line-height:1.1">${fmt(netBalance)}</div>
+          <div style="color:rgba(255,255,255,.5);font-size:10px;margin-top:2px">${persons.filter(p=>getBalance(p.id)>0).length} borçlu kişi · ${persons.length} toplam cari</div>
         </div>
-        <div style="flex:1;text-align:center">
-          <div style="color:rgba(255,255,255,.55);font-size:9px;font-weight:700">Tahsil</div>
-          <div style="color:#4ade80;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900">${todayPaid>0?fmt(todayPaid):'—'}</div>
-        </div>
-        <div style="flex:1;text-align:center">
-          <div style="color:rgba(255,255,255,.55);font-size:9px;font-weight:700">İşlem</div>
-          <div style="color:#fff;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900">${todayTxs.length}</div>
+        <div style="text-align:right">
+          <div style="color:rgba(255,255,255,.5);font-size:9px;font-weight:700">TOPLAM TAHSİL</div>
+          <div style="color:#4ade80;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900">${fmt(totalPaidAll)}</div>
         </div>
       </div>
     </div>
 
-    <!-- Hafta ve Ay -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
-      <div style="background:rgba(255,255,255,.1);border-radius:10px;padding:10px">
-        <div style="color:rgba(255,255,255,.55);font-size:9px;font-weight:800;text-transform:uppercase;margin-bottom:6px">Son 7 Gün</div>
-        <div style="color:#f87171;font-size:12px;font-weight:800">${fmt(week1Debt)}</div>
-        <div style="font-size:9px;margin-top:2px">${arrow(pct(week1Debt,week2Debt))} önceki haftaya göre</div>
-        <div style="color:#4ade80;font-size:11px;font-weight:700;margin-top:4px">+${fmt(week1Paid)} tahsil</div>
-        <div style="font-size:9px;margin-top:2px">${arrow(pct(week1Paid,week2Paid))} önceki haftaya göre</div>
+    <!-- Bugün / Hafta / Ay kartları -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--gray2)">
+      <div style="padding:10px 8px;border-right:1px solid var(--gray2)">
+        <div style="font-size:9px;font-weight:700;color:var(--gray4);text-transform:uppercase;margin-bottom:4px">📅 Bugün</div>
+        <div style="font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;color:${todayDebt>0?'var(--red)':'var(--gray4)'}">${todayDebt>0?'-'+fmt(todayDebt):'—'}</div>
+        <div style="font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;color:${todayPaid>0?'var(--green)':'var(--gray3)'};margin-top:2px">${todayPaid>0?'+'+fmt(todayPaid):'Tahsil yok'}</div>
+        <div style="font-size:9px;color:var(--gray4);margin-top:2px">${todayTxs.length} işlem</div>
       </div>
-      <div style="background:rgba(255,255,255,.1);border-radius:10px;padding:10px">
-        <div style="color:rgba(255,255,255,.55);font-size:9px;font-weight:800;text-transform:uppercase;margin-bottom:6px">Son 30 Gün</div>
-        <div style="color:#f87171;font-size:12px;font-weight:800">${fmt(month1Debt)}</div>
-        <div style="font-size:9px;margin-top:2px">${arrow(pct(month1Debt,month2Debt))} önceki aya göre</div>
-        <div style="color:#4ade80;font-size:11px;font-weight:700;margin-top:4px">+${fmt(month1Paid)} tahsil</div>
-        <div style="font-size:9px;margin-top:2px">${arrow(pct(month1Paid,month2Paid))} önceki aya göre</div>
+      <div style="padding:10px 8px;border-right:1px solid var(--gray2)">
+        <div style="font-size:9px;font-weight:700;color:var(--gray4);text-transform:uppercase;margin-bottom:4px">Son 7 Gün</div>
+        <div style="font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;color:var(--red)">${wk1Debt>0?'-'+fmt(wk1Debt):'—'}</div>
+        <div style="font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;color:var(--green);margin-top:2px">${wk1Paid>0?'+'+fmt(wk1Paid):'—'}</div>
+        <div style="font-size:9px;color:var(--gray4);margin-top:2px">${diff(wk1Debt,wk2Debt)} borç · ${diff(wk1Paid,wk2Paid)} tahsil</div>
+      </div>
+      <div style="padding:10px 8px">
+        <div style="font-size:9px;font-weight:700;color:var(--gray4);text-transform:uppercase;margin-bottom:4px">Son 30 Gün</div>
+        <div style="font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;color:var(--red)">${mo1Debt>0?'-'+fmt(mo1Debt):'—'}</div>
+        <div style="font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;color:var(--green);margin-top:2px">${mo1Paid>0?'+'+fmt(mo1Paid):'—'}</div>
+        <div style="font-size:9px;color:var(--gray4);margin-top:2px">${diff(mo1Debt,mo2Debt)} borç · ${diff(mo1Paid,mo2Paid)} tahsil</div>
       </div>
     </div>
 
-    <!-- 14 günlük mini grafik -->
-    <div>
-      <div style="color:rgba(255,255,255,.5);font-size:9px;font-weight:700;text-transform:uppercase;margin-bottom:6px">Son 14 Gün — Borç 🔴 / Tahsil 🟢</div>
-      <div style="display:flex;align-items:flex-end;gap:3px;height:60px">
-        ${chartDays.map((d,i)=>{
-          const dh=barH(d.debt), ph=barH(d.paid);
-          const isToday=d.d===todayStr;
-          return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;position:relative" title="${d.d}">
-            ${d.debt>0?`<div style="width:100%;background:rgba(248,113,113,${isToday?1:.7});border-radius:2px 2px 0 0;height:${dh}px"></div>`:`<div style="height:${dh}px"></div>`}
-            ${d.paid>0?`<div style="width:100%;background:rgba(74,222,128,${isToday?1:.7});border-radius:0 0 2px 2px;height:${ph}px"></div>`:`<div style="height:${ph}px"></div>`}
-            ${isToday?`<div style="position:absolute;bottom:-10px;left:50%;transform:translateX(-50%);width:4px;height:4px;background:#fff;border-radius:50%"></div>`:''}
-          </div>`;
-        }).join('')}
+    <!-- Grafik -->
+    <div style="padding:12px 14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="display:flex;gap:12px;align-items:center">
+          <span style="display:flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:var(--text2)"><span style="display:inline-block;width:14px;height:2px;background:#f87171;border-radius:1px"></span>Borç</span>
+          <span style="display:flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:var(--text2)"><span style="display:inline-block;width:14px;height:2px;background:#4ade80;border-radius:1px"></span>Tahsil</span>
+        </div>
+        <div style="display:flex;gap:4px">
+          ${['7','30','365'].map(m=>`<button onclick="window._chartMode='${m}';buildPersonsChart()" style="border:none;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:700;cursor:pointer;background:${cm===m?'var(--blue)':'var(--gray)'};color:${cm===m?'#fff':'var(--gray4)'}">${m==='365'?'1Y':m==='30'?'30G':'7G'}</button>`).join('')}
+        </div>
       </div>
-      <div style="display:flex;justify-content:space-between;margin-top:10px">
-        <div style="color:rgba(255,255,255,.4);font-size:9px">${chartDays[0].d.slice(5).replace('-','/')}</div>
-        <div style="color:rgba(255,255,255,.4);font-size:9px">Bugün</div>
+      <div id="persons-chart" style="background:var(--gray);border-radius:10px;padding:10px">
+        ${buildLineChart(cm)}
       </div>
     </div>
   </div>
@@ -998,6 +1076,69 @@ function buildPersons(){
   </div>
   <div id="persons-list">${buildPersonsList()}</div>`;
 }
+
+// Grafik güncelleme fonksiyonu (tab değişince)
+window.buildPersonsChart = function(){
+  const cm=window._chartMode||'7';
+  const chartEl=document.getElementById('persons-chart');
+  if(!chartEl) return;
+  // buildLineChart'ı yeniden çağır
+  const todayStr=today();
+  const validPids=new Set(persons.map(p=>p.id));
+  const validTxs=txs.filter(t=>validPids.has(t.person_id));
+  function getChartData(mode){
+    const pts=[];
+    if(mode==='365'){
+      for(let i=11;i>=0;i--){
+        const dt=new Date(); dt.setDate(1); dt.setMonth(dt.getMonth()-i);
+        const mStr=dt.toISOString().slice(0,7);
+        const mDebt=validTxs.filter(t=>t.date.startsWith(mStr)&&t.type!=='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
+        const mPaid=validTxs.filter(t=>t.date.startsWith(mStr)&&t.type==='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
+        const label=dt.toLocaleDateString('tr-TR',{month:'short'});
+        pts.push({label,debt:mDebt,paid:mPaid,net:mDebt-mPaid});
+      }
+    } else {
+      const days=mode==='7'?7:30;
+      for(let i=days-1;i>=0;i--){
+        const d=addDays(todayStr,-i);
+        const dDebt=validTxs.filter(t=>t.date===d&&t.type!=='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
+        const dPaid=validTxs.filter(t=>t.date===d&&t.type==='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
+        const label=mode==='7'?['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'][new Date(d).getDay()===0?6:new Date(d).getDay()-1]:d.slice(5).replace('-','/');
+        pts.push({label,debt:dDebt,paid:dPaid,net:dDebt-dPaid,isToday:d===todayStr});
+      }
+    }
+    return pts;
+  }
+  const pts=getChartData(cm);
+  const W=340,H=100,PL=8,PR=8,PT=10,PB=20,iW=W-PL-PR,iH=H-PT-PB,n=pts.length;
+  if(!n){chartEl.innerHTML='<div style="text-align:center;padding:20px;font-size:12px;color:var(--gray4)">Veri yok</div>';return;}
+  const maxAll=Math.max(...pts.map(p=>Math.max(p.debt,p.paid)),1);
+  const xPos=i=>PL+((i/(n-1||1))*iW);
+  const yV=v=>PT+iH-(v/maxAll)*iH;
+  let dp='',pp='';
+  pts.forEach((p,i)=>{const x=xPos(i).toFixed(1);dp+=(i===0?`M${x},${yV(p.debt).toFixed(1)}`:`L${x},${yV(p.debt).toFixed(1)}`);pp+=(i===0?`M${x},${yV(p.paid).toFixed(1)}`:`L${x},${yV(p.paid).toFixed(1)}`);});
+  const dA=dp+`L${xPos(n-1).toFixed(1)},${(PT+iH).toFixed(1)}L${PL},${(PT+iH).toFixed(1)}Z`;
+  const pA=pp+`L${xPos(n-1).toFixed(1)},${(PT+iH).toFixed(1)}L${PL},${(PT+iH).toFixed(1)}Z`;
+  const labelIdxs=n<=7?pts.map((_,i)=>i):[0,Math.floor(n/2),n-1];
+  chartEl.innerHTML=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;overflow:visible">
+    <defs>
+      <linearGradient id="dg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f87171" stop-opacity=".35"/><stop offset="100%" stop-color="#f87171" stop-opacity="0"/></linearGradient>
+      <linearGradient id="pg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4ade80" stop-opacity=".35"/><stop offset="100%" stop-color="#4ade80" stop-opacity="0"/></linearGradient>
+    </defs>
+    ${[.25,.5,.75,1].map(r=>`<line x1="${PL}" y1="${(PT+iH-r*iH).toFixed(1)}" x2="${W-PR}" y2="${(PT+iH-r*iH).toFixed(1)}" stroke="rgba(0,0,0,.06)" stroke-width="1"/>`).join('')}
+    <path d="${dA}" fill="url(#dg2)"/>
+    <path d="${pA}" fill="url(#pg2)"/>
+    <path d="${dp}" fill="none" stroke="#ef4444" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="${pp}" fill="none" stroke="#22c55e" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    ${pts.map((p,i)=>p.isToday?`<circle cx="${xPos(i).toFixed(1)}" cy="${yV(p.debt).toFixed(1)}" r="3" fill="#ef4444"/><circle cx="${xPos(i).toFixed(1)}" cy="${yV(p.paid).toFixed(1)}" r="3" fill="#22c55e"/>`:``).join('')}
+    ${labelIdxs.map(i=>`<text x="${xPos(i).toFixed(1)}" y="${H-4}" text-anchor="middle" fill="rgba(0,0,0,.35)" font-size="8" font-family="Nunito Sans,sans-serif">${pts[i].label}</text>`).join('')}
+  </svg>`;
+  // Tab butonlarını güncelle
+  document.querySelectorAll('[onclick*="buildPersonsChart"]').forEach(b=>{
+    const m=b.getAttribute('onclick').match(/'(\w+)'/)?.[1];
+    if(m){ b.style.background=m===cm?'var(--blue)':'var(--gray)'; b.style.color=m===cm?'#fff':'var(--gray4)'; }
+  });
+};
 
 
 // ─── OVERDUE PAGE ─────────────────────────────────────────────
