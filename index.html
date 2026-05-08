@@ -386,8 +386,8 @@ async function loadAll(){
     persons=JSON.parse(localStorage.getItem('vc_persons_'+userId())||'[]');
     txs=JSON.parse(localStorage.getItem('vc_txs_'+userId())||'[]');
   }
-  await loadReminders();
-  await loadFarmData();
+  try{ await loadReminders(); }catch(e){ console.error('Reminders error',e); }
+  try{ if(typeof loadFarmData==='function') await loadFarmData(); }catch(e){ console.error('FarmData error',e); }
   dataLoading=false; render();
 }
 function saveLocal(){
@@ -1672,7 +1672,7 @@ function dlPersonReport(pid){
 }
 
 // ─── INIT ─────────────────────────────────────────────────────
-if(currentUser) loadAll(); else render();
+// Init ikinci script bloğunun sonuna taşındı (loadFarmData orada tanımlı)
 </script>
 
 
@@ -3584,6 +3584,9 @@ function renderFarm() {
   app.innerHTML = buildFarmModule() + fm;
   bindFarmEvents();
 }
+
+// ─── INIT ─────────────────────────────────────────────────────
+if(currentUser) loadAll(); else render();
 </script>
 </body>
 </html>
