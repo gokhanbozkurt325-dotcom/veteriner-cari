@@ -277,6 +277,24 @@ const daysDiff = (d)=>{ const ms=new Date(d)-new Date(today()); return Math.ceil
 let persons=[], txs=[], dataLoading=true;
 let pinVal='', pinErr='';
 let nav='home', detailPid=null, txTab='all', filterType='all', search='';
+let navHistory=[];
+
+function navigateTo(newNav, opts={}){
+  if(newNav !== nav) navHistory.push(nav);
+  nav = newNav;
+  if(newNav !== 'detail') { if(!opts.keepPid) detailPid = null; }
+  modal = null;
+  if(!opts.keepTab) txTab = 'all';
+}
+function goBack(){
+  if(navHistory.length > 0){
+    nav = navHistory.pop();
+    modal = null;
+    render();
+  } else {
+    nav = 'home'; modal = null; render();
+  }
+}
 let modal=null, editTxId=null, editReminderId=null;
 let bulkWaList=[], bulkWaIndex=0, bulkWaLimit=0;
 let calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
@@ -426,16 +444,16 @@ function render(){
     document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click',async()=>{
       const newNav=b.dataset.nav;
       if(newNav==='farms'){ renderFarm(); return; }
-      nav=newNav; if(nav!=='detail') detailPid=null; modal=null; txTab='all';
-      if(nav==='admin') await loadAllUsers();
+      navigateTo(newNav);
+      if(newNav==='admin') await loadAllUsers();
       render();
     }));
     document.getElementById('back-btn')?.addEventListener('click',()=>{
       if(farmNav==='animal-detail'){ farmNav='farm-detail'; selectedAnimalId=null; modal=null; renderFarm(); }
       else if(farmNav==='farm-detail'){ farmNav='farms'; selectedFarmId=null; modal=null; renderFarm(); }
-      else { nav='home'; render(); }
+      else { goBack(); }
     });
-    document.getElementById('close-page-btn')?.addEventListener('click',()=>{ nav='home'; render(); });
+    document.getElementById('close-page-btn')?.addEventListener('click',()=>{ goBack(); });
     if(typeof renderFarm === 'function') renderFarm();
     return;
   }
@@ -706,15 +724,50 @@ function buildHome(){
   const debtors=persons.filter(p=>getBalance(p.id)>0).sort((a,b)=>getBalance(b.id)-getBalance(a.id)).slice(0,3);
   const recent=txs.slice(0,5);
 
+  // Bu hafta vadesi gelenler
+  const weekEnd = addDays(today(),7);
+  const weekDue = txs.filter(t=>t.type!=='payment'&&t.due_date&&t.due_date>=today()&&t.due_date<=weekEnd&&getBalance(t.person_id)>0);
+  const weekDueTotal = weekDue.reduce((s,t)=>s+parseFloat(t.amount||0),0);
+
+  // Bu ay vadesi gelenler
+  const monthEnd = addDays(today(),30);
+  const monthDue = txs.filter(t=>t.type!=='payment'&&t.due_date&&t.due_date>=today()&&t.due_date<=monthEnd&&getBalance(t.person_id)>0);
+  const monthDueTotal = monthDue.reduce((s,t)=>s+parseFloat(t.amount||0),0);
+
   const cardBase='background:linear-gradient(135deg,#0ea5e9,#0284c7);padding:12px 16px;cursor:pointer;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:space-between;margin-bottom:10px';
   const cardStyle=cardBase+';border-radius:var(--radius)';
 
   return `
-  <div class="stats-grid">
-    <div class="stat-card sc-red"><div class="lbl">Toplam Alacak</div><div class="val">${fmt(totalBal)}</div></div>
-    <div class="stat-card sc-green"><div class="lbl">Toplam Tahsil</div><div class="val">${fmt(totalPaid)}</div></div>
-    <div class="stat-card sc-blue"><div class="lbl">Cari Sayısı</div><div class="val">${persons.length} kişi</div></div>
-    <div class="stat-card sc-amber"><div class="lbl">Bugün İşlem</div><div class="val">${todayCt} adet</div></div>
+  <!-- Özet Kart -->
+  <div style="background:linear-gradient(135deg,var(--blue) 0%,var(--blue2) 100%);border-radius:var(--radius);padding:16px;margin-bottom:14px;box-shadow:0 4px 18px rgba(12,68,124,.25)">
+    <div style="color:rgba(255,255,255,.6);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">📊 Genel Özet</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+      <div style="background:rgba(255,255,255,.12);border-radius:10px;padding:10px">
+        <div style="color:rgba(255,255,255,.6);font-size:9px;font-weight:700;text-transform:uppercase">Toplam Alacak</div>
+        <div style="color:#fff;font-family:'Nunito',sans-serif;font-size:18px;font-weight:900;margin-top:3px">${fmt(totalBal)}</div>
+      </div>
+      <div style="background:rgba(255,255,255,.12);border-radius:10px;padding:10px">
+        <div style="color:rgba(255,255,255,.6);font-size:9px;font-weight:700;text-transform:uppercase">Toplam Tahsil</div>
+        <div style="color:#4ade80;font-family:'Nunito',sans-serif;font-size:18px;font-weight:900;margin-top:3px">${fmt(totalPaid)}</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <div style="background:rgba(255,255,255,.08);border-radius:9px;padding:9px;text-align:center">
+        <div style="color:rgba(255,255,255,.55);font-size:9px;font-weight:700;text-transform:uppercase">Bu Hafta</div>
+        <div style="color:#fbbf24;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;margin-top:3px">${weekDue.length?fmt(weekDueTotal):'—'}</div>
+        <div style="color:rgba(255,255,255,.4);font-size:9px;margin-top:1px">${weekDue.length} vade</div>
+      </div>
+      <div style="background:rgba(255,255,255,.08);border-radius:9px;padding:9px;text-align:center">
+        <div style="color:rgba(255,255,255,.55);font-size:9px;font-weight:700;text-transform:uppercase">Bu Ay</div>
+        <div style="color:#fbbf24;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;margin-top:3px">${monthDue.length?fmt(monthDueTotal):'—'}</div>
+        <div style="color:rgba(255,255,255,.4);font-size:9px;margin-top:1px">${monthDue.length} vade</div>
+      </div>
+      <div style="background:rgba(255,255,255,.08);border-radius:9px;padding:9px;text-align:center">
+        <div style="color:rgba(255,255,255,.55);font-size:9px;font-weight:700;text-transform:uppercase">Gecikmiş</div>
+        <div style="color:#f87171;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;margin-top:3px">${overdueCount}</div>
+        <div style="color:rgba(255,255,255,.4);font-size:9px;margin-top:1px">kişi</div>
+      </div>
+    </div>
   </div>
 
   ${overdueCount>0||debtors.length?`
@@ -738,21 +791,18 @@ function buildHome(){
 
   <!-- Hızlı Erişim Butonları -->
   <div style="margin-bottom:14px">
-
-    <!-- Cariler -->
     <div style="${cardStyle}" id="home-persons-btn">
       <div style="display:flex;align-items:center;gap:10px">
         <span style="font-size:22px">👥</span>
         <div>
           <div style="color:#fff;font-family:'Nunito',sans-serif;font-weight:800;font-size:14px">Cariler</div>
-          <div style="color:rgba(255,255,255,.75);font-size:11px">${persons.length} kayıtlı · ${overdueCount} gecikmiş · Toplam alacak: ${fmt(totalBal)}</div>
+          <div style="color:rgba(255,255,255,.75);font-size:11px">${persons.length} kayıtlı · ${overdueCount} gecikmiş · Toplam: ${fmt(totalBal)}</div>
         </div>
       </div>
       <span style="color:rgba(255,255,255,.7);font-size:22px">›</span>
     </div>
 
-    <!-- İşletmeler -->
-    <div style="${cardBase};border-radius:${homeFarmOpen?`var(--radius) var(--radius) 0 0`:`var(--radius)`};margin-bottom:0" id="goto-farms-btn">
+    <div style="${cardStyle}" id="goto-farms-btn">
       <div style="display:flex;align-items:center;gap:10px">
         <span style="font-size:22px">🏭</span>
         <div>
@@ -764,31 +814,9 @@ function buildHome(){
           </div>
         </div>
       </div>
-      <span style="color:rgba(255,255,255,.7);font-size:18px">${homeFarmOpen?'▾':'›'}</span>
+      <span style="color:rgba(255,255,255,.7);font-size:22px">›</span>
     </div>
-    ${homeFarmOpen?`
-    <div style="background:#fff;border:1.5px solid #0ea5e9;border-top:none;border-radius:0 0 var(--radius) var(--radius);padding:12px 14px;margin-bottom:10px">
-      ${farms.length?farms.map(f=>{
-        const fa=animals.filter(a=>a.farm_id===f.id&&!['sold','dead'].includes(a.status));
-        const aw=fa.filter(a=>getAnimalAlerts(a).length>0).length;
-        const pr=fa.filter(a=>a.status==='pregnant').length;
-        const ky=fa.filter(a=>a.status==='dry').length;
-        const op=fa.filter(a=>a.status==='open').length;
-        return `<div style="padding:8px 0;border-bottom:1px solid var(--gray2);cursor:pointer" id="home-farm-${f.id}">
-          <div style="font-weight:700;font-size:13px;margin-bottom:4px">🏭 ${f.owner_name||'İsimsiz'}</div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap">
-            <span style="font-size:11px;background:var(--gray);padding:2px 8px;border-radius:10px">${fa.length} hayvan</span>
-            ${op?`<span style="font-size:11px;background:var(--amber-light);color:var(--amber);padding:2px 8px;border-radius:10px">🟡 ${op} açık</span>`:''}
-            ${pr?`<span style="font-size:11px;background:var(--green-light);color:var(--green);padding:2px 8px;border-radius:10px">🤰 ${pr} gebe</span>`:''}
-            ${ky?`<span style="font-size:11px;background:var(--amber-light);color:var(--amber);padding:2px 8px;border-radius:10px">🛑 ${ky} kuru</span>`:''}
-            ${aw?`<span style="font-size:11px;background:var(--red-light);color:var(--red);padding:2px 8px;border-radius:10px">⚠️ ${aw} uyarı</span>`:''}
-          </div>
-        </div>`;
-      }).join(''):`<div style="font-size:12px;color:var(--gray4);text-align:center;padding:10px">Henüz işletme yok</div>`}
-      <button class="btn-p" id="goto-farms-full-btn" style="width:100%;margin-top:10px;font-size:12px">Tüm İşletmeleri Gör →</button>
-    </div>`:'<div style="margin-bottom:10px"></div>'}
 
-    <!-- Gecikme -->
     <div style="${cardStyle}" id="home-overdue-btn">
       <div style="display:flex;align-items:center;gap:10px">
         <span style="font-size:22px">⚠️</span>
@@ -800,7 +828,6 @@ function buildHome(){
       <span style="color:rgba(255,255,255,.7);font-size:22px">›</span>
     </div>
 
-    <!-- Raporlar -->
     <div style="${cardStyle}" id="home-report-btn">
       <div style="display:flex;align-items:center;gap:10px">
         <span style="font-size:22px">📊</span>
@@ -831,20 +858,16 @@ function buildHome(){
 }
 
 
+
 // ─── PERSONS ──────────────────────────────────────────────────
-function buildPersons(){
+function buildPersonsList(){
   let list=[...persons];
   if(search) list=list.filter(p=>p.name.toLowerCase().includes(search.toLowerCase())||(p.phone&&p.phone.includes(search)));
   if(filterType==='debt') list=list.filter(p=>getBalance(p.id)>0);
   if(filterType==='clean') list=list.filter(p=>getBalance(p.id)<=0);
   if(filterType==='overdue') list=list.filter(p=>isOverdue(p.id));
   list.sort((a,b)=>getBalance(b.id)-getBalance(a.id));
-  return `
-  <div class="search-bar"><span class="search-icon">🔍</span><input class="fi" id="search-input" placeholder="İsim veya telefon ara..." value="${search}"></div>
-  <div class="chip-row">
-    ${[['all','Tümü'],['debt','Borçlu'],['overdue','Gecikmiş 🔴'],['clean','Temiz']].map(([k,l])=>`<div class="chip ${k==='overdue'?'red-chip':''} ${filterType===k?'active':''}" data-filter="${k}">${l}</div>`).join('')}
-  </div>
-  ${list.length?list.map(p=>{
+  return list.length?list.map(p=>{
     const bal=getBalance(p.id);
     const lastTx=getLastTx(p.id);
     const lastPay=getLastPayment(p.id);
@@ -863,8 +886,23 @@ function buildPersons(){
         <button class="btn-sm btn-sm-wa wa-btn" data-pid="${p.id}" style="margin-top:4px;font-size:10px;padding:3px 7px" onclick="event.stopPropagation()">📱 WA</button>
       </div>
     </div>`;
-  }).join(''):`<div class="empty"><div class="eicon">👥</div><p>Kayıt bulunamadı</p></div>`}`;
+  }).join(''):`<div class="empty"><div class="eicon">👥</div><p>Kayıt bulunamadı</p></div>`;
 }
+
+function bindPersonListEvents(){
+  document.querySelectorAll('[data-person]').forEach(el=>el.addEventListener('click',()=>{ detailPid=el.dataset.person; navigateTo('detail',{keepPid:true}); txTab='all'; render(); }));
+  document.querySelectorAll('.wa-btn').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); sendWhatsApp(b.dataset.pid); }));
+}
+
+function buildPersons(){
+  return `
+  <div class="search-bar"><span class="search-icon">🔍</span><input class="fi" id="search-input" placeholder="İsim veya telefon ara..." value="${search}" autocomplete="off"></div>
+  <div class="chip-row">
+    ${[['all','Tümü'],['debt','Borçlu'],['overdue','Gecikmiş 🔴'],['clean','Temiz']].map(([k,l])=>`<div class="chip ${k==='overdue'?'red-chip':''} ${filterType===k?'active':''}" data-filter="${k}">${l}</div>`).join('')}
+  </div>
+  <div id="persons-list">${buildPersonsList()}</div>`;
+}
+
 
 // ─── OVERDUE PAGE ─────────────────────────────────────────────
 function buildOverdue(){
@@ -1333,24 +1371,23 @@ function bindEvents(){
   document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click',async()=>{
     const newNav=b.dataset.nav;
     if(newNav==='farms'){
-      nav='farms'; farmNav='farms'; detailPid=null; modal=null;
-      render(); // render farms wrapper'ı kurar ve renderFarm'ı çağırır
+      navigateTo('farms'); farmNav='farms'; detailPid=null;
+      render();
       if(farms.length===0) await loadFarmData();
       renderFarm();
       return;
     }
-    nav=newNav; if(nav!=='detail') detailPid=null; modal=null; txTab='all';
-    if(nav==='admin') await loadAllUsers();
+    navigateTo(newNav);
+    if(newNav==='admin') await loadAllUsers();
     render();
   }));
-  // ✕ Kapat butonu — ana sayfaya dön
+  // ✕ Kapat butonu — bir önceki sayfaya dön
   document.getElementById('close-page-btn')?.addEventListener('click',()=>{
     if(nav==='farms') { farmNav='farms'; selectedFarmId=null; selectedAnimalId=null; }
-    nav='home'; render();
+    goBack();
   });
 
-  // Swipe ile sayfa geçişi
-  const navOrder=['home','persons','farms','overdue','report','settings'];
+  // iPhone tarzı swipe: sağdan sola = geri
   const appEl=document.getElementById('app');
   if(appEl&&!appEl._swipeInit){
     appEl._swipeInit=true;
@@ -1359,22 +1396,38 @@ function bindEvents(){
     appEl.addEventListener('touchend',e=>{
       const dx=e.changedTouches[0].clientX-startX;
       const dy=e.changedTouches[0].clientY-startY;
-      if(Math.abs(dx)<60||Math.abs(dy)>Math.abs(dx)) return;
-      const idx=navOrder.indexOf(nav);
-      if(dx<0&&idx<navOrder.length-1){ nav=navOrder[idx+1]; render(); if(nav==='farms'){loadFarmData().then(renderFarm);} }
-      if(dx>0&&idx>0){ nav=navOrder[idx-1]; render(); if(nav==='farms'){loadFarmData().then(renderFarm);} }
+      // Yalnızca sağdan sola sürükleme (geri git) — sol kenardan başlamalı
+      if(Math.abs(dx)<70||Math.abs(dy)>Math.abs(dx)) return;
+      if(dx>70 && startX<60){
+        // Soldan sağa & ekranın sol kenarından başladı = iPhone back gesture
+        if(nav==='farms'){
+          if(farmNav==='animal-detail'){ farmNav='farm-detail'; selectedAnimalId=null; modal=null; renderFarm(); }
+          else if(farmNav==='farm-detail'){ farmNav='farms'; selectedFarmId=null; modal=null; renderFarm(); }
+          else goBack();
+        } else {
+          goBack();
+        }
+      }
     },{passive:true});
   }
 
   document.getElementById('back-btn')?.addEventListener('click',()=>{
-    if(nav==='detail'){ nav='persons'; detailPid=null; render(); }
-    else if(nav==='farms'){
+    if(nav==='farms'){
       if(farmNav==='animal-detail'){ farmNav='farm-detail'; selectedAnimalId=null; modal=null; renderFarm(); }
       else if(farmNav==='farm-detail'){ farmNav='farms'; selectedFarmId=null; modal=null; renderFarm(); }
+      else goBack();
+    } else {
+      goBack();
     }
   });
-  document.querySelectorAll('[data-person]').forEach(el=>el.addEventListener('click',()=>{ detailPid=el.dataset.person; nav='detail'; txTab='all'; render(); }));
-  document.getElementById('search-input')?.addEventListener('input',e=>{ search=e.target.value; render(); });
+  document.querySelectorAll('[data-person]').forEach(el=>el.addEventListener('click',()=>{ detailPid=el.dataset.person; navigateTo('detail',{keepPid:true}); txTab='all'; render(); }));
+  document.getElementById('search-input')?.addEventListener('input',e=>{ 
+    search=e.target.value; 
+    // Sadece listeyi güncelle, input odağını kaybetme
+    const listEl = document.getElementById('persons-list');
+    if(listEl){ listEl.innerHTML = buildPersonsList(); bindPersonListEvents(); }
+    else render(); 
+  });
   document.querySelectorAll('[data-filter]').forEach(c=>c.addEventListener('click',()=>{ filterType=c.dataset.filter; render(); }));
   document.querySelectorAll('[data-tab]').forEach(t=>t.addEventListener('click',()=>{ txTab=t.dataset.tab; render(); }));
   // Takvim navigasyon
@@ -1429,22 +1482,20 @@ function bindEvents(){
   });
   // Hatırlatma panelinden kişiye git
   document.querySelectorAll('.reminder-item[data-person]').forEach(el=>{
-    el.addEventListener('click',()=>{ detailPid=el.dataset.person; nav='detail'; txTab='all'; render(); });
+    el.addEventListener('click',()=>{ detailPid=el.dataset.person; navigateTo('detail',{keepPid:true}); txTab='all'; render(); });
   });
-  document.getElementById('home-persons-btn')?.addEventListener('click',()=>{ nav='persons'; render(); });
-  document.getElementById('home-overdue-btn')?.addEventListener('click',()=>{ nav='overdue'; render(); });
-  document.getElementById('home-report-btn')?.addEventListener('click',()=>{ nav='report'; render(); });
+  document.getElementById('home-persons-btn')?.addEventListener('click',()=>{ navigateTo('persons'); render(); });
+  document.getElementById('home-overdue-btn')?.addEventListener('click',()=>{ navigateTo('overdue'); render(); });
+  document.getElementById('home-report-btn')?.addEventListener('click',()=>{ navigateTo('report'); render(); });
   document.getElementById('goto-farms-btn')?.addEventListener('click',async()=>{
-    homeFarmOpen=!homeFarmOpen;
-    if(homeFarmOpen&&farms.length===0){ await loadFarmData(); }
-    render();
+    navigateTo('farms'); farmNav='farms'; homeFarmOpen=false; render(); await loadFarmData(); renderFarm();
   });
   document.getElementById('goto-farms-full-btn')?.addEventListener('click',async()=>{
-    nav='farms'; farmNav='farms'; homeFarmOpen=false; render(); await loadFarmData(); renderFarm();
+    navigateTo('farms'); farmNav='farms'; homeFarmOpen=false; render(); await loadFarmData(); renderFarm();
   });
   farms.forEach(f=>{
     document.getElementById('home-farm-'+f.id)?.addEventListener('click',async()=>{
-      nav='farms'; farmNav='farm-detail'; selectedFarmId=f.id; homeFarmOpen=false;
+      navigateTo('farms'); farmNav='farm-detail'; selectedFarmId=f.id; homeFarmOpen=false;
       render(); await loadFarmData(); renderFarm();
     });
   });
@@ -1500,7 +1551,7 @@ function bindEvents(){
     modal=null; toast('✅ Güncellendi'); render();
   });
   document.getElementById('confirm-delete-btn')?.addEventListener('click',async()=>{
-    await deletePerson(detailPid); modal=null; nav='persons'; detailPid=null; toast('🗑 Cari silindi'); render();
+    await deletePerson(detailPid); modal=null; navigateTo('persons'); detailPid=null; toast('🗑 Cari silindi'); render();
   });
   document.getElementById('save-tx-btn')?.addEventListener('click',async()=>{
     const pid=document.getElementById('f-pid').value, type=document.getElementById('f-type').value,
@@ -2321,6 +2372,7 @@ function buildFarmDetail() {
 
   const active = animals.filter(a => a.farm_id === selectedFarmId && !['sold','dead'].includes(a.status));
   const selCount = [...selectedAnimals].filter(id => fa.some(a=>a.id===id)).length;
+  const activeFilterCount = [animalFilterStatus!=='all',animalFilterBreed!=='all',animalFilterAlert!=='all'].filter(Boolean).length;
 
   return `
   <div class="detail-hero" style="background:linear-gradient(135deg,#16a34a,#15803d)">
@@ -2332,7 +2384,7 @@ function buildFarmDetail() {
   <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
     <button class="btn-p" id="add-animal-btn" style="font-size:12px;padding:9px;flex:2">🐄 Hayvan Ekle</button>
     <button class="btn-sm btn-sm-b" id="toggle-filter-btn" style="padding:9px 12px;font-size:11px;position:relative">
-      🔽 Filtrele${(animalFilterStatus!=='all'||animalFilterBreed!=='all'||animalFilterAlert!=='all')?` <span style="background:var(--blue);color:#fff;border-radius:10px;padding:1px 6px;font-size:9px">${[animalFilterStatus!=='all',animalFilterBreed!=='all',animalFilterAlert!=='all'].filter(Boolean).length}</span>`:''}
+      🔽 Filtre${activeFilterCount?` <span style="background:var(--blue);color:#fff;border-radius:10px;padding:1px 6px;font-size:9px">${activeFilterCount}</span>`:''}
     </button>
     <button class="btn-sm btn-sm-b" id="excel-import-btn" style="padding:9px 12px;font-size:11px">📊</button>
     <button class="btn-sm" id="bulk-select-btn" style="padding:9px 12px;font-size:11px;background:${bulkMode?'var(--amber-light)':'var(--gray)'};color:${bulkMode?'var(--amber)':'var(--text2)'};border:none;border-radius:var(--radius-sm);cursor:pointer">☑️ Seç</button>
@@ -2347,53 +2399,7 @@ function buildFarmDetail() {
     <button class="btn-sm" id="cancel-bulk-btn" style="font-size:11px;padding:6px 10px;background:var(--gray);border:none;border-radius:var(--radius-sm);cursor:pointer">İptal</button>
   </div>` : ''}
 
-  <!-- Filtre Paneli -->
-  <div id="filter-panel" style="${filterPanelOpen?'':'display:none'};background:#fff;border:1.5px solid var(--blue-mid);border-radius:var(--radius);padding:14px;margin-bottom:12px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <div style="font-size:12px;font-weight:800;color:var(--text)">🔽 Filtrele</div>
-      <button onclick="clearAllFilters()" style="font-size:11px;color:var(--blue);background:none;border:none;cursor:pointer;font-weight:700">Temizle</button>
-    </div>
-
-    <div style="font-size:10px;font-weight:800;color:var(--gray4);text-transform:uppercase;margin-bottom:6px">Durum</div>
-    <div class="chip-row" style="margin-bottom:12px">
-      ${[['all','Tümü'],['open','Açık'],['pregnant','🤰 Gebe'],['dry','🛑 Kuru'],['heifer','🐄 Düve'],['sold','💰 Satıldı'],['dead','💀 Öldü']].map(([k,l])=>
-        `<div class="chip ${animalFilterStatus===k?'active':''}" data-astatus="${k}">${l}</div>`).join('')}
-    </div>
-
-    <div style="font-size:10px;font-weight:800;color:var(--gray4);text-transform:uppercase;margin-bottom:6px">Irk</div>
-    <div class="chip-row" style="margin-bottom:12px">
-      ${[['all','Tüm Irklar'],['holstein','Holstein'],['simental','Simental'],['montofon','Montofon'],['other','Diğer']].map(([k,l])=>
-        `<div class="chip ${animalFilterBreed===k?'active':''}" data-breed="${k}">${l}</div>`).join('')}
-    </div>
-
-    <div style="font-size:10px;font-weight:800;color:var(--gray4);text-transform:uppercase;margin-bottom:6px">Uyarı Durumu</div>
-    <div class="chip-row" style="flex-wrap:wrap;gap:6px">
-      ${[
-        ['all','Tümü'],
-        ['no-alert','✅ Uyarısız'],
-        ['any-alert','⚠️ Herhangi Uyarı'],
-        ['heifer-ready','⏰ Tohumlama Zamanı (Düve)'],
-        ['preg-check','🔬 Gebelik Kontrolü Bekleyen'],
-        ['preg-check-late','⚠️ Gebelik Kontrolü Gecikmiş'],
-        ['hidden-heat','🤔 Gebe mi? Gizli Kızgınlık mı?'],
-        ['preg-result','❓ Gebelik Sonucu Girilmedi'],
-        ['heat-window','👀 Kızgınlık Penceresi Açık'],
-        ['heat-expected','🔥 Kızgınlık Bekleniyor'],
-        ['no-take','🔥 Tohum Tutmadı'],
-        ['repro-problem','🔴 Reprodüktif Sorun'],
-        ['embryo-death','⚠️ Embriyonik/Fetal Ölüm'],
-        ['postpartum','🩺 Postpartum Dönem'],
-        ['heat-wait','👀 Kızgınlık Bekle (80. gün)'],
-        ['problem-cow','💉 Sorunlu İnek (100. gün)'],
-        ['dry-now','🛑 Kuruya Al'],
-        ['dry-risk','🚨 Kuruya Alınmadı — Risk'],
-        ['calving-soon','🐣 Buzağılama Yaklaşıyor'],
-        ['calving-late','🚨 Buzağılama Tarihi Geçti'],
-      ].map(([k,l])=>`<div class="chip ${animalFilterAlert===k?'active':''}" data-alert="${k}" style="font-size:10px">${l}</div>`).join('')}
-    </div>
-  </div>
-
-  <div style="font-size:12px;color:var(--gray4);margin-bottom:10px">${fa.length} hayvan gösteriliyor · Toplam aktif: ${active.length}</div>
+  <div style="font-size:12px;color:var(--gray4);margin-bottom:10px">${fa.length} hayvan gösteriliyor · Toplam aktif: ${active.length}${activeFilterCount?` · <span style="color:var(--blue);font-weight:700">${activeFilterCount} filtre aktif</span>`:''}</div>
   ${fa.length ? fa.map(a => buildAnimalCard(a)).join('') : `<div class="empty"><div class="eicon">🐄</div><p>Bu kategoride hayvan yok</p></div>`}`;
 }
 
@@ -2604,6 +2610,44 @@ function buildAnimalDetail() {
 
 // ─── FARM MODALS ─────────────────────────────────────────────
 function buildFarmModal() {
+  if(modal === 'filter-animals') return mWrap('🔽 Hayvan Filtrele', `
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;font-weight:800;color:var(--gray4);text-transform:uppercase;margin-bottom:8px">📋 Durum</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        ${[['all','Tümü'],['open','🟡 Açık'],['pregnant','🤰 Gebe'],['dry','🛑 Kuru'],['heifer','🐄 Düve'],['sold','💰 Satıldı'],['dead','💀 Öldü']].map(([k,l])=>
+          `<div class="chip ${animalFilterStatus===k?'active':''}" data-astatus="${k}" style="text-align:center;padding:10px 8px">${l}</div>`).join('')}
+      </div>
+    </div>
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;font-weight:800;color:var(--gray4);text-transform:uppercase;margin-bottom:8px">🐄 Irk</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        ${[['all','Tüm Irklar'],['holstein','Holstein'],['simental','Simental'],['montofon','Montofon'],['other','Diğer']].map(([k,l])=>
+          `<div class="chip ${animalFilterBreed===k?'active':''}" data-breed="${k}" style="text-align:center;padding:10px 8px">${l}</div>`).join('')}
+      </div>
+    </div>
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;font-weight:800;color:var(--gray4);text-transform:uppercase;margin-bottom:8px">⚠️ Uyarı Durumu</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        ${[
+          ['all','Tümü'],['no-alert','✅ Uyarısız'],['any-alert','⚠️ Herhangi Uyarı'],
+          ['heifer-ready','⏰ Tohumlama Zamanı (Düve)'],['preg-check','🔬 Gebelik Kontrolü Bekleyen'],
+          ['preg-check-late','⚠️ Gebelik Kontrolü Gecikmiş'],['hidden-heat','🤔 Gebe mi? Gizli Kızgınlık mı?'],
+          ['preg-result','❓ Gebelik Sonucu Girilmedi'],['heat-window','👀 Kızgınlık Penceresi Açık'],
+          ['heat-expected','🔥 Kızgınlık Bekleniyor'],['no-take','🔥 Tohum Tutmadı'],
+          ['repro-problem','🔴 Reprodüktif Sorun'],['embryo-death','⚠️ Embriyonik/Fetal Ölüm'],
+          ['postpartum','🩺 Postpartum Dönem'],['heat-wait','👀 Kızgınlık Bekle (80. gün)'],
+          ['problem-cow','💉 Sorunlu İnek (100. gün)'],['dry-now','🛑 Kuruya Al'],
+          ['dry-risk','🚨 Kuruya Alınmadı — Risk'],['calving-soon','🐣 Buzağılama Yaklaşıyor'],
+          ['calving-late','🚨 Buzağılama Tarihi Geçti'],
+        ].map(([k,l])=>
+          `<div class="chip ${animalFilterAlert===k?'active':''}" data-alert="${k}" style="padding:10px 12px;font-size:12px">${l}</div>`).join('')}
+      </div>
+    </div>
+    <div class="btn-row">
+      <button onclick="clearAllFilters()" class="btn-o" style="flex:1">🗑 Temizle</button>
+      <button onclick="closeModal()" class="btn-p" style="flex:1">✅ Uygula</button>
+    </div>`);
+
   if(modal === 'add-farm') return mWrap('🏭 Yeni İşletme', `
     <div class="fg"><label class="fl">Sahip Adı *</label><input class="fi" id="fm-owner" placeholder="Ahmet Yılmaz" autofocus></div>
     <div class="fg"><label class="fl">İşletme No</label><input class="fi" id="fm-no" placeholder="TR-34-1234"></div>
@@ -3091,10 +3135,11 @@ function bindFarmEvents() {
   }));
 
   document.getElementById('toggle-filter-btn')?.addEventListener('click', () => {
-    filterPanelOpen = !filterPanelOpen; renderFarm();
+    modal = 'filter-animals'; renderFarm();
   });
   document.querySelectorAll('[data-alert]').forEach(c => c.addEventListener('click', () => {
     animalFilterAlert = c.dataset.alert; renderFarm();
+    // Filtre modalı açıksa içinde kalmasın
   }));
   document.querySelectorAll('[data-breed]').forEach(c => c.addEventListener('click', () => {
     animalFilterBreed = c.dataset.breed; renderFarm();
