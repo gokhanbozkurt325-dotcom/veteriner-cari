@@ -889,17 +889,13 @@ function bindPersonListEvents(){
 
 function buildPersons(){
   const todayStr = today();
-
-  // ── DOĞRU HESAPLAMA ──
-  // Sadece mevcut kişilerin işlemleri (silinmiş kişilerin txs'den de silindiği varsayımıyla)
-  // Ama ek güvence: sadece persons içinde olan person_id'leri dahil et
   const validPids = new Set(persons.map(p=>p.id));
-  const validTxs = txs.filter(t=>validPids.has(t.person_id));
+  const validTxs  = txs.filter(t=>validPids.has(t.person_id));
 
-  // Toplam anlık bakiye (tüm zamanlar)
+  // Toplam bakiye
   let totalDebtAll=0, totalPaidAll=0;
   validTxs.forEach(t=>{ const a=parseFloat(t.amount||0); t.type==='payment'?totalPaidAll+=a:totalDebtAll+=a; });
-  const netBalance = totalDebtAll - totalPaidAll; // gerçek toplam alacak
+  const netBalance = totalDebtAll - totalPaidAll;
 
   // Bugün
   const todayTxs  = validTxs.filter(t=>t.date===todayStr);
@@ -907,166 +903,133 @@ function buildPersons(){
   const todayPaid = todayTxs.filter(t=>t.type==='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
 
   // Son 7 gün vs önceki 7 gün
-  const w1s=addDays(todayStr,-6), w2s=addDays(todayStr,-13);
-  const wk1 = validTxs.filter(t=>t.date>=w1s&&t.date<=todayStr);
-  const wk2 = validTxs.filter(t=>t.date>=w2s&&t.date<w1s);
+  const w1s=addDays(todayStr,-6), w2s=addDays(todayStr,-13), w2e=addDays(todayStr,-7);
+  const wk1=validTxs.filter(t=>t.date>=w1s&&t.date<=todayStr);
+  const wk2=validTxs.filter(t=>t.date>=w2s&&t.date<=w2e);
   const wk1Debt=wk1.filter(t=>t.type!=='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
   const wk1Paid=wk1.filter(t=>t.type==='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
   const wk2Debt=wk2.filter(t=>t.type!=='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
   const wk2Paid=wk2.filter(t=>t.type==='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
 
   // Son 30 gün vs önceki 30 gün
-  const m1s=addDays(todayStr,-29), m2s=addDays(todayStr,-59);
-  const mo1 = validTxs.filter(t=>t.date>=m1s&&t.date<=todayStr);
-  const mo2 = validTxs.filter(t=>t.date>=m2s&&t.date<m1s);
+  const m1s=addDays(todayStr,-29), m2s=addDays(todayStr,-59), m2e=addDays(todayStr,-30);
+  const mo1=validTxs.filter(t=>t.date>=m1s&&t.date<=todayStr);
+  const mo2=validTxs.filter(t=>t.date>=m2s&&t.date<=m2e);
   const mo1Debt=mo1.filter(t=>t.type!=='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
   const mo1Paid=mo1.filter(t=>t.type==='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
   const mo2Debt=mo2.filter(t=>t.type!=='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
   const mo2Paid=mo2.filter(t=>t.type==='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
 
-  const pct=(a,b)=>b===0?(a>0?100:0):Math.round(((a-b)/b)*100);
-  const diff=(a,b)=>{ const v=pct(a,b); return v>0?`<span style="color:#4ade80;font-size:9px;font-weight:700">▲${v}%</span>`:v<0?`<span style="color:#f87171;font-size:9px;font-weight:700">▼${Math.abs(v)}%</span>`:`<span style="color:rgba(255,255,255,.4);font-size:9px">→</span>`; };
-
-  // ── GRAFİK VERİSİ ──
-  // Seçili periyoda göre kümülatif toplam alacak çizgisi
-  // chartMode: '7' | '30' | '365'
-  // Her nokta: o güne kadar birikmiş net alacak
-  function getChartData(mode){
-    const days = mode==='7'?7:mode==='30'?30:12; // 1 yıl = 12 ay
-    const points=[];
-    if(mode==='365'){
-      // Aylık göster
-      for(let i=11;i>=0;i--){
-        const dt=new Date(); dt.setDate(1); dt.setMonth(dt.getMonth()-i);
-        const mStr=dt.toISOString().slice(0,7);
-        const mDebt=validTxs.filter(t=>t.date.startsWith(mStr)&&t.type!=='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
-        const mPaid=validTxs.filter(t=>t.date.startsWith(mStr)&&t.type==='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
-        const label=dt.toLocaleDateString('tr-TR',{month:'short'});
-        points.push({label, debt:mDebt, paid:mPaid, net:mDebt-mPaid});
-      }
-    } else {
-      for(let i=days-1;i>=0;i--){
-        const d=addDays(todayStr,-i);
-        const dDebt=validTxs.filter(t=>t.date===d&&t.type!=='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
-        const dPaid=validTxs.filter(t=>t.date===d&&t.type==='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
-        const label=mode==='7'?['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'][new Date(d).getDay()===0?6:new Date(d).getDay()-1]:d.slice(5).replace('-','/');
-        points.push({label, debt:dDebt, paid:dPaid, net:dDebt-dPaid, isToday:d===todayStr});
-      }
-    }
-    return points;
+  // Fark metni: miktar + yüzde
+  function diffText(curr, prev, label){
+    if(curr===0&&prev===0) return `<span style="color:var(--gray3);font-size:10px">Veri yok</span>`;
+    const pct = prev===0?(curr>0?100:0):Math.round(((curr-prev)/prev)*100);
+    const absDiff = Math.abs(curr-prev);
+    const up = curr>=prev;
+    const col = label==='borç' ? (up?'#ef4444':'#22c55e') : (up?'#22c55e':'#ef4444');
+    const arr = up?'▲':'▼';
+    return `<span style="color:${col};font-size:10px;font-weight:700">${arr}${Math.abs(pct)}% (${fmt(absDiff)})</span>`;
   }
 
-  // Grafik HTML (SVG çizgi grafiği)
-  function buildLineChart(mode){
-    const pts = getChartData(mode);
-    const W=340, H=100, PL=8, PR=8, PT=10, PB=20;
-    const iW=W-PL-PR, iH=H-PT-PB;
-    const n=pts.length;
-    if(n===0) return '';
-
-    const maxD=Math.max(...pts.map(p=>p.debt),1);
-    const maxP=Math.max(...pts.map(p=>p.paid),1);
-    const maxAll=Math.max(maxD,maxP,1);
-
-    const xPos=(i)=>PL+((i/(n-1))*iW);
-    const yDebt=(v)=>PT+iH-(v/maxAll)*iH;
-    const yPaid=(v)=>PT+iH-(v/maxAll)*iH;
-
-    // Borç çizgisi
-    let debtPath='', paidPath='';
-    pts.forEach((p,i)=>{
-      const x=xPos(i).toFixed(1), yd=yDebt(p.debt).toFixed(1), yp=yPaid(p.paid).toFixed(1);
-      debtPath += (i===0?`M${x},${yd}`:`L${x},${yd}`);
-      paidPath += (i===0?`M${x},${yp}`:`L${x},${yp}`);
-    });
-
-    // Alan dolgusu
-    let debtArea=debtPath+`L${xPos(n-1).toFixed(1)},${(PT+iH).toFixed(1)}L${PL},${(PT+iH).toFixed(1)}Z`;
-    let paidArea=paidPath+`L${xPos(n-1).toFixed(1)},${(PT+iH).toFixed(1)}L${PL},${(PT+iH).toFixed(1)}Z`;
-
-    // X ekseni etiketleri (sadece ilk, orta, son)
-    const labelIdxs = n<=7 ? pts.map((_,i)=>i) : [0,Math.floor(n/2),n-1];
-
-    return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;overflow:visible">
-      <defs>
-        <linearGradient id="dg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f87171" stop-opacity=".35"/><stop offset="100%" stop-color="#f87171" stop-opacity="0"/></linearGradient>
-        <linearGradient id="pg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4ade80" stop-opacity=".35"/><stop offset="100%" stop-color="#4ade80" stop-opacity="0"/></linearGradient>
-      </defs>
-      <!-- Grid -->
-      ${[0.25,0.5,0.75,1].map(r=>`<line x1="${PL}" y1="${(PT+iH-(r*iH)).toFixed(1)}" x2="${W-PR}" y2="${(PT+iH-(r*iH)).toFixed(1)}" stroke="rgba(255,255,255,.08)" stroke-width="1"/>`).join('')}
-      <!-- Alan -->
-      <path d="${debtArea}" fill="url(#dg)"/>
-      <path d="${paidArea}" fill="url(#pg)"/>
-      <!-- Çizgiler -->
-      <path d="${debtPath}" fill="none" stroke="#f87171" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="${paidPath}" fill="none" stroke="#4ade80" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-      <!-- Bugün noktası -->
-      ${pts.map((p,i)=>p.isToday?`<circle cx="${xPos(i).toFixed(1)}" cy="${yDebt(p.debt).toFixed(1)}" r="3" fill="#f87171"/><circle cx="${xPos(i).toFixed(1)}" cy="${yPaid(p.paid).toFixed(1)}" r="3" fill="#4ade80"/>`:``).join('')}
-      <!-- X ekseni etiketleri -->
-      ${labelIdxs.map(i=>`<text x="${xPos(i).toFixed(1)}" y="${H-4}" text-anchor="middle" fill="rgba(255,255,255,.4)" font-size="8" font-family="Nunito Sans,sans-serif">${pts[i].label}</text>`).join('')}
-    </svg>`;
-  }
-
-  // Aktif grafik modu (state'te tutuyoruz)
   if(!window._chartMode) window._chartMode='7';
   const cm=window._chartMode;
 
   return `
-  <!-- Cari Özet -->
   <div style="background:#fff;border-radius:var(--radius);border:1px solid var(--gray2);box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden">
 
-    <!-- Başlık + Toplam Bakiye -->
-    <div style="background:linear-gradient(135deg,var(--blue),var(--blue2));padding:14px 16px">
-      <div style="color:rgba(255,255,255,.6);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">📊 Cari Özet</div>
-      <div style="display:flex;align-items:flex-end;justify-content:space-between">
+    <!-- Üst başlık -->
+    <div style="background:linear-gradient(135deg,var(--blue),var(--blue2));padding:14px 16px 12px">
+      <div style="color:rgba(255,255,255,.6);font-size:10px;font-weight:800;letter-spacing:.5px;margin-bottom:6px">📊 CARİ ÖZET</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-end">
         <div>
-          <div style="color:rgba(255,255,255,.6);font-size:11px;font-weight:600">Toplam Net Alacak</div>
-          <div style="color:#fff;font-family:'Nunito',sans-serif;font-size:26px;font-weight:900;line-height:1.1">${fmt(netBalance)}</div>
-          <div style="color:rgba(255,255,255,.5);font-size:10px;margin-top:2px">${persons.filter(p=>getBalance(p.id)>0).length} borçlu kişi · ${persons.length} toplam cari</div>
+          <div style="color:rgba(255,255,255,.55);font-size:11px">Net Alacak (Toplam)</div>
+          <div style="color:#fff;font-family:'Nunito',sans-serif;font-size:28px;font-weight:900;line-height:1">${fmt(netBalance)}</div>
         </div>
         <div style="text-align:right">
-          <div style="color:rgba(255,255,255,.5);font-size:9px;font-weight:700">TOPLAM TAHSİL</div>
-          <div style="color:#4ade80;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900">${fmt(totalPaidAll)}</div>
+          <div style="color:rgba(255,255,255,.45);font-size:9px;font-weight:700;text-transform:uppercase">Tüm Zamanlarda Tahsil</div>
+          <div style="color:#4ade80;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900">${fmt(totalPaidAll)}</div>
+          <div style="color:rgba(255,255,255,.4);font-size:9px;margin-top:2px">${persons.filter(p=>getBalance(p.id)>0).length} borçlu · ${persons.length} cari</div>
         </div>
       </div>
     </div>
 
-    <!-- Bugün / Hafta / Ay kartları -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--gray2)">
-      <div style="padding:10px 8px;border-right:1px solid var(--gray2)">
-        <div style="font-size:9px;font-weight:700;color:var(--gray4);text-transform:uppercase;margin-bottom:4px">📅 Bugün</div>
-        <div style="font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;color:${todayDebt>0?'var(--red)':'var(--gray4)'}">${todayDebt>0?'-'+fmt(todayDebt):'—'}</div>
-        <div style="font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;color:${todayPaid>0?'var(--green)':'var(--gray3)'};margin-top:2px">${todayPaid>0?'+'+fmt(todayPaid):'Tahsil yok'}</div>
-        <div style="font-size:9px;color:var(--gray4);margin-top:2px">${todayTxs.length} işlem</div>
+    <!-- Bugün -->
+    <div style="border-bottom:1px solid var(--gray2);padding:10px 14px;background:#fafbfc">
+      <div style="font-size:10px;font-weight:800;color:var(--gray4);text-transform:uppercase;margin-bottom:6px">📅 Bugün — ${new Date().toLocaleDateString('tr-TR',{day:'2-digit',month:'long',year:'numeric'})}</div>
+      <div style="display:flex;gap:16px;align-items:center">
+        <div>
+          <div style="font-size:9px;color:var(--gray4);font-weight:600">Yeni Borç</div>
+          <div style="font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;color:${todayDebt>0?'var(--red)':'var(--gray3)'}">${todayDebt>0?'-'+fmt(todayDebt):'—'}</div>
+        </div>
+        <div style="width:1px;height:28px;background:var(--gray2)"></div>
+        <div>
+          <div style="font-size:9px;color:var(--gray4);font-weight:600">Tahsil</div>
+          <div style="font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;color:${todayPaid>0?'var(--green)':'var(--gray3)'}">${todayPaid>0?'+'+fmt(todayPaid):'—'}</div>
+        </div>
+        <div style="width:1px;height:28px;background:var(--gray2)"></div>
+        <div>
+          <div style="font-size:9px;color:var(--gray4);font-weight:600">Net</div>
+          <div style="font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;color:${(todayDebt-todayPaid)>0?'var(--red)':(todayDebt-todayPaid)<0?'var(--green)':'var(--gray3)'}">${(todayDebt-todayPaid)!==0?(todayDebt-todayPaid>0?'-':'+')+fmt(Math.abs(todayDebt-todayPaid)):'—'}</div>
+        </div>
+        <div style="margin-left:auto;font-size:11px;color:var(--gray4)">${todayTxs.length} işlem</div>
       </div>
-      <div style="padding:10px 8px;border-right:1px solid var(--gray2)">
-        <div style="font-size:9px;font-weight:700;color:var(--gray4);text-transform:uppercase;margin-bottom:4px">Son 7 Gün</div>
-        <div style="font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;color:var(--red)">${wk1Debt>0?'-'+fmt(wk1Debt):'—'}</div>
-        <div style="font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;color:var(--green);margin-top:2px">${wk1Paid>0?'+'+fmt(wk1Paid):'—'}</div>
-        <div style="font-size:9px;color:var(--gray4);margin-top:2px">${diff(wk1Debt,wk2Debt)} borç · ${diff(wk1Paid,wk2Paid)} tahsil</div>
+    </div>
+
+    <!-- Son 7 gün karşılaştırması -->
+    <div style="border-bottom:1px solid var(--gray2);padding:10px 14px">
+      <div style="font-size:10px;font-weight:800;color:var(--gray4);text-transform:uppercase;margin-bottom:8px">Son 7 Gün <span style="font-weight:400;text-transform:none;font-size:9px;color:var(--gray3)">(önceki 7 güne kıyasla)</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div style="background:var(--red-light);border-radius:9px;padding:9px 10px">
+          <div style="font-size:9px;color:var(--red);font-weight:700;margin-bottom:3px">🔴 Yeni Borç</div>
+          <div style="font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;color:var(--red)">${wk1Debt>0?fmt(wk1Debt):'—'}</div>
+          <div style="margin-top:3px">${diffText(wk1Debt,wk2Debt,'borç')} <span style="font-size:9px;color:var(--gray4)">önceki: ${wk2Debt>0?fmt(wk2Debt):'—'}</span></div>
+        </div>
+        <div style="background:var(--green-light);border-radius:9px;padding:9px 10px">
+          <div style="font-size:9px;color:var(--green);font-weight:700;margin-bottom:3px">🟢 Tahsil</div>
+          <div style="font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;color:var(--green)">${wk1Paid>0?fmt(wk1Paid):'—'}</div>
+          <div style="margin-top:3px">${diffText(wk1Paid,wk2Paid,'tahsil')} <span style="font-size:9px;color:var(--gray4)">önceki: ${wk2Paid>0?fmt(wk2Paid):'—'}</span></div>
+        </div>
       </div>
-      <div style="padding:10px 8px">
-        <div style="font-size:9px;font-weight:700;color:var(--gray4);text-transform:uppercase;margin-bottom:4px">Son 30 Gün</div>
-        <div style="font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;color:var(--red)">${mo1Debt>0?'-'+fmt(mo1Debt):'—'}</div>
-        <div style="font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;color:var(--green);margin-top:2px">${mo1Paid>0?'+'+fmt(mo1Paid):'—'}</div>
-        <div style="font-size:9px;color:var(--gray4);margin-top:2px">${diff(mo1Debt,mo2Debt)} borç · ${diff(mo1Paid,mo2Paid)} tahsil</div>
+    </div>
+
+    <!-- Son 30 gün karşılaştırması -->
+    <div style="border-bottom:1px solid var(--gray2);padding:10px 14px">
+      <div style="font-size:10px;font-weight:800;color:var(--gray4);text-transform:uppercase;margin-bottom:8px">Son 30 Gün <span style="font-weight:400;text-transform:none;font-size:9px;color:var(--gray3)">(önceki 30 güne kıyasla)</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div style="background:var(--red-light);border-radius:9px;padding:9px 10px">
+          <div style="font-size:9px;color:var(--red);font-weight:700;margin-bottom:3px">🔴 Yeni Borç</div>
+          <div style="font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;color:var(--red)">${mo1Debt>0?fmt(mo1Debt):'—'}</div>
+          <div style="margin-top:3px">${diffText(mo1Debt,mo2Debt,'borç')} <span style="font-size:9px;color:var(--gray4)">önceki: ${mo2Debt>0?fmt(mo2Debt):'—'}</span></div>
+        </div>
+        <div style="background:var(--green-light);border-radius:9px;padding:9px 10px">
+          <div style="font-size:9px;color:var(--green);font-weight:700;margin-bottom:3px">🟢 Tahsil</div>
+          <div style="font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;color:var(--green)">${mo1Paid>0?fmt(mo1Paid):'—'}</div>
+          <div style="margin-top:3px">${diffText(mo1Paid,mo2Paid,'tahsil')} <span style="font-size:9px;color:var(--gray4)">önceki: ${mo2Paid>0?fmt(mo2Paid):'—'}</span></div>
+        </div>
       </div>
     </div>
 
     <!-- Grafik -->
     <div style="padding:12px 14px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-        <div style="display:flex;gap:12px;align-items:center">
-          <span style="display:flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:var(--text2)"><span style="display:inline-block;width:14px;height:2px;background:#f87171;border-radius:1px"></span>Borç</span>
-          <span style="display:flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:var(--text2)"><span style="display:inline-block;width:14px;height:2px;background:#4ade80;border-radius:1px"></span>Tahsil</span>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="display:flex;gap:12px">
+          <span style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--text2)">
+            <span style="display:inline-block;width:16px;height:3px;background:#ef4444;border-radius:2px"></span>Borç
+          </span>
+          <span style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--text2)">
+            <span style="display:inline-block;width:16px;height:3px;background:#22c55e;border-radius:2px"></span>Tahsil
+          </span>
         </div>
-        <div style="display:flex;gap:4px">
-          ${['7','30','365'].map(m=>`<button onclick="window._chartMode='${m}';buildPersonsChart()" style="border:none;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:700;cursor:pointer;background:${cm===m?'var(--blue)':'var(--gray)'};color:${cm===m?'#fff':'var(--gray4)'}">${m==='365'?'1Y':m==='30'?'30G':'7G'}</button>`).join('')}
+        <div style="display:flex;gap:4px;background:var(--gray);border-radius:8px;padding:3px">
+          ${['7','30','365'].map(m=>`<button onclick="window._chartMode='${m}';window.buildPersonsChart()" style="border:none;border-radius:6px;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer;transition:.15s;background:${cm===m?'#fff':'transparent'};color:${cm===m?'var(--blue)':'var(--gray4)'};box-shadow:${cm===m?'0 1px 4px rgba(0,0,0,.1)':'none'}">${m==='365'?'1 Yıl':m==='30'?'30 Gün':'7 Gün'}</button>`).join('')}
         </div>
       </div>
-      <div id="persons-chart" style="background:var(--gray);border-radius:10px;padding:10px">
-        ${buildLineChart(cm)}
+      <!-- Tooltip alanı -->
+      <div id="chart-tooltip" style="min-height:32px;margin-bottom:6px;padding:6px 10px;background:var(--gray);border-radius:8px;font-size:11px;color:var(--text2);display:flex;gap:12px;align-items:center">
+        <span style="color:var(--gray3)">↔ Grafiğe dokunun</span>
       </div>
+      <canvas id="persons-chart" height="120" style="width:100%;display:block;cursor:crosshair;border-radius:8px;background:var(--gray)"></canvas>
+      <div id="chart-xlabels" style="display:flex;justify-content:space-between;margin-top:4px;padding:0 2px"></div>
     </div>
   </div>
 
@@ -1077,68 +1040,178 @@ function buildPersons(){
   <div id="persons-list">${buildPersonsList()}</div>`;
 }
 
-// Grafik güncelleme fonksiyonu (tab değişince)
+// ── Grafik çizim motoru ──
 window.buildPersonsChart = function(){
-  const cm=window._chartMode||'7';
-  const chartEl=document.getElementById('persons-chart');
-  if(!chartEl) return;
-  // buildLineChart'ı yeniden çağır
-  const todayStr=today();
-  const validPids=new Set(persons.map(p=>p.id));
-  const validTxs=txs.filter(t=>validPids.has(t.person_id));
-  function getChartData(mode){
-    const pts=[];
-    if(mode==='365'){
-      for(let i=11;i>=0;i--){
-        const dt=new Date(); dt.setDate(1); dt.setMonth(dt.getMonth()-i);
-        const mStr=dt.toISOString().slice(0,7);
-        const mDebt=validTxs.filter(t=>t.date.startsWith(mStr)&&t.type!=='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
-        const mPaid=validTxs.filter(t=>t.date.startsWith(mStr)&&t.type==='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
-        const label=dt.toLocaleDateString('tr-TR',{month:'short'});
-        pts.push({label,debt:mDebt,paid:mPaid,net:mDebt-mPaid});
-      }
-    } else {
-      const days=mode==='7'?7:30;
-      for(let i=days-1;i>=0;i--){
-        const d=addDays(todayStr,-i);
-        const dDebt=validTxs.filter(t=>t.date===d&&t.type!=='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
-        const dPaid=validTxs.filter(t=>t.date===d&&t.type==='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
-        const label=mode==='7'?['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'][new Date(d).getDay()===0?6:new Date(d).getDay()-1]:d.slice(5).replace('-','/');
-        pts.push({label,debt:dDebt,paid:dPaid,net:dDebt-dPaid,isToday:d===todayStr});
-      }
+  const cm   = window._chartMode || '7';
+  const cvs  = document.getElementById('persons-chart');
+  const tip  = document.getElementById('chart-tooltip');
+  const xlbl = document.getElementById('chart-xlabels');
+  if(!cvs) return;
+
+  const todayStr  = today();
+  const validPids = new Set(persons.map(p=>p.id));
+  const validTxs  = txs.filter(t=>validPids.has(t.person_id));
+
+  // Veri noktaları
+  const pts = [];
+  if(cm==='365'){
+    for(let i=11;i>=0;i--){
+      const dt=new Date(); dt.setDate(1); dt.setMonth(dt.getMonth()-i);
+      const ms=dt.toISOString().slice(0,7);
+      const debt=validTxs.filter(t=>t.date.startsWith(ms)&&t.type!=='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
+      const paid=validTxs.filter(t=>t.date.startsWith(ms)&&t.type==='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
+      pts.push({label:dt.toLocaleDateString('tr-TR',{month:'short',year:'2-digit'}),debt,paid,full:dt.toLocaleDateString('tr-TR',{month:'long',year:'numeric'})});
     }
-    return pts;
+  } else {
+    const days=cm==='30'?30:7;
+    for(let i=days-1;i>=0;i--){
+      const d=addDays(todayStr,-i);
+      const debt=validTxs.filter(t=>t.date===d&&t.type!=='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
+      const paid=validTxs.filter(t=>t.date===d&&t.type==='payment').reduce((s,t)=>s+parseFloat(t.amount||0),0);
+      const dt=new Date(d);
+      const label=cm==='7'?dt.toLocaleDateString('tr-TR',{weekday:'short'}):d.slice(5).replace('-','/');
+      pts.push({label,debt,paid,full:dt.toLocaleDateString('tr-TR',{day:'2-digit',month:'long'}),isToday:d===todayStr,dateStr:d});
+    }
   }
-  const pts=getChartData(cm);
-  const W=340,H=100,PL=8,PR=8,PT=10,PB=20,iW=W-PL-PR,iH=H-PT-PB,n=pts.length;
-  if(!n){chartEl.innerHTML='<div style="text-align:center;padding:20px;font-size:12px;color:var(--gray4)">Veri yok</div>';return;}
-  const maxAll=Math.max(...pts.map(p=>Math.max(p.debt,p.paid)),1);
-  const xPos=i=>PL+((i/(n-1||1))*iW);
-  const yV=v=>PT+iH-(v/maxAll)*iH;
-  let dp='',pp='';
-  pts.forEach((p,i)=>{const x=xPos(i).toFixed(1);dp+=(i===0?`M${x},${yV(p.debt).toFixed(1)}`:`L${x},${yV(p.debt).toFixed(1)}`);pp+=(i===0?`M${x},${yV(p.paid).toFixed(1)}`:`L${x},${yV(p.paid).toFixed(1)}`);});
-  const dA=dp+`L${xPos(n-1).toFixed(1)},${(PT+iH).toFixed(1)}L${PL},${(PT+iH).toFixed(1)}Z`;
-  const pA=pp+`L${xPos(n-1).toFixed(1)},${(PT+iH).toFixed(1)}L${PL},${(PT+iH).toFixed(1)}Z`;
-  const labelIdxs=n<=7?pts.map((_,i)=>i):[0,Math.floor(n/2),n-1];
-  chartEl.innerHTML=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;overflow:visible">
-    <defs>
-      <linearGradient id="dg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f87171" stop-opacity=".35"/><stop offset="100%" stop-color="#f87171" stop-opacity="0"/></linearGradient>
-      <linearGradient id="pg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4ade80" stop-opacity=".35"/><stop offset="100%" stop-color="#4ade80" stop-opacity="0"/></linearGradient>
-    </defs>
-    ${[.25,.5,.75,1].map(r=>`<line x1="${PL}" y1="${(PT+iH-r*iH).toFixed(1)}" x2="${W-PR}" y2="${(PT+iH-r*iH).toFixed(1)}" stroke="rgba(0,0,0,.06)" stroke-width="1"/>`).join('')}
-    <path d="${dA}" fill="url(#dg2)"/>
-    <path d="${pA}" fill="url(#pg2)"/>
-    <path d="${dp}" fill="none" stroke="#ef4444" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="${pp}" fill="none" stroke="#22c55e" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-    ${pts.map((p,i)=>p.isToday?`<circle cx="${xPos(i).toFixed(1)}" cy="${yV(p.debt).toFixed(1)}" r="3" fill="#ef4444"/><circle cx="${xPos(i).toFixed(1)}" cy="${yV(p.paid).toFixed(1)}" r="3" fill="#22c55e"/>`:``).join('')}
-    ${labelIdxs.map(i=>`<text x="${xPos(i).toFixed(1)}" y="${H-4}" text-anchor="middle" fill="rgba(0,0,0,.35)" font-size="8" font-family="Nunito Sans,sans-serif">${pts[i].label}</text>`).join('')}
-  </svg>`;
-  // Tab butonlarını güncelle
+
+  // Canvas boyutları
+  const dpr   = window.devicePixelRatio||1;
+  const W     = cvs.offsetWidth||320;
+  const H     = 120;
+  cvs.width   = W*dpr; cvs.height=H*dpr;
+  cvs.style.width=W+'px'; cvs.style.height=H+'px';
+  const ctx   = cvs.getContext('2d');
+  ctx.scale(dpr,dpr);
+
+  const PAD={top:10,bottom:8,left:42,right:10};
+  const iW=W-PAD.left-PAD.right;
+  const iH=H-PAD.top-PAD.bottom;
+  const n=pts.length;
+  if(!n) return;
+
+  const maxVal=Math.max(...pts.map(p=>Math.max(p.debt,p.paid)),1);
+
+  const xOf=i=>PAD.left+((n===1?0.5:i/(n-1))*iW);
+  const yOf=v=>PAD.top+iH-(v/maxVal)*iH;
+
+  // Y eksen etiketleri (3 seviye)
+  ctx.fillStyle='rgba(0,0,0,.25)';
+  ctx.font=`9px Nunito Sans,sans-serif`;
+  ctx.textAlign='right';
+  [0.5,1].forEach(r=>{
+    const val=maxVal*r;
+    const y=yOf(val);
+    ctx.fillText(val>=1000?Math.round(val/1000)+'K':Math.round(val)+'', PAD.left-4, y+3);
+    ctx.beginPath(); ctx.strokeStyle='rgba(0,0,0,.06)'; ctx.lineWidth=1;
+    ctx.moveTo(PAD.left,y); ctx.lineTo(W-PAD.right,y); ctx.stroke();
+  });
+
+  // Alan çizim yardımcısı
+  function drawArea(color, alpha, getY){
+    ctx.beginPath();
+    pts.forEach((p,i)=>{ i===0?ctx.moveTo(xOf(i),getY(p)):ctx.lineTo(xOf(i),getY(p)); });
+    ctx.lineTo(xOf(n-1), PAD.top+iH);
+    ctx.lineTo(xOf(0),   PAD.top+iH);
+    ctx.closePath();
+    ctx.fillStyle=color.replace(')',`,${alpha})`).replace('rgb','rgba');
+    ctx.fill();
+  }
+  // Çizgi çizim yardımcısı
+  function drawLine(color, getY){
+    ctx.beginPath();
+    pts.forEach((p,i)=>{ i===0?ctx.moveTo(xOf(i),getY(p)):ctx.lineTo(xOf(i),getY(p)); });
+    ctx.strokeStyle=color; ctx.lineWidth=2; ctx.lineJoin='round'; ctx.lineCap='round';
+    ctx.stroke();
+  }
+
+  drawArea('rgb(239,68,68)', 0.12, p=>yOf(p.debt));
+  drawArea('rgb(34,197,94)', 0.12, p=>yOf(p.paid));
+  drawLine('#ef4444', p=>yOf(p.debt));
+  drawLine('#22c55e', p=>yOf(p.paid));
+
+  // Noktalar
+  pts.forEach((p,i)=>{
+    if(p.isToday || cm==='365'){
+      [['#ef4444',p.debt],['#22c55e',p.paid]].forEach(([c,v])=>{
+        ctx.beginPath(); ctx.arc(xOf(i),yOf(v),3.5,0,Math.PI*2);
+        ctx.fillStyle='#fff'; ctx.fill();
+        ctx.strokeStyle=c; ctx.lineWidth=2; ctx.stroke();
+      });
+    }
+  });
+
+  // Bugün dikey çizgi
+  const todayIdx=pts.findIndex(p=>p.isToday);
+  if(todayIdx>=0){
+    ctx.beginPath(); ctx.setLineDash([3,3]);
+    ctx.strokeStyle='rgba(12,68,124,.3)'; ctx.lineWidth=1;
+    ctx.moveTo(xOf(todayIdx),PAD.top); ctx.lineTo(xOf(todayIdx),PAD.top+iH);
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  // X etiketleri (HTML)
+  if(xlbl){
+    const labelIdxs = n<=7 ? pts.map((_,i)=>i) : n<=12 ? pts.map((_,i)=>i) : [0,Math.floor(n/4),Math.floor(n/2),Math.floor(3*n/4),n-1];
+    xlbl.innerHTML=`<div style="position:relative;width:100%;height:14px">` +
+      labelIdxs.map(i=>{
+        const leftPct=((xOf(i)-PAD.left)/iW*100).toFixed(1);
+        return `<span style="position:absolute;left:${leftPct}%;transform:translateX(-50%);font-size:9px;color:var(--gray4);font-weight:${pts[i].isToday?700:400};white-space:nowrap">${pts[i].label}</span>`;
+      }).join('') + '</div>';
+  }
+
+  // Tooltip — hover/touch
+  function showTip(idx){
+    if(idx<0||idx>=pts.length){ tip.innerHTML=`<span style="color:var(--gray3)">↔ Grafiğe dokunun</span>`; return; }
+    const p=pts[idx];
+    tip.innerHTML=`<span style="font-weight:700;color:var(--text)">${p.full}${p.isToday?' · Bugün':''}</span>
+      <span style="color:#ef4444;font-weight:700">▼ ${p.debt>0?fmt(p.debt):'—'}</span>
+      <span style="color:#22c55e;font-weight:700">▲ ${p.paid>0?fmt(p.paid):'—'}</span>
+      ${p.debt||p.paid?`<span style="color:${p.debt-p.paid>0?'var(--red)':'var(--green)'};font-size:10px">Net: ${p.debt-p.paid>0?'-':'+'}${fmt(Math.abs(p.debt-p.paid))}</span>`:''}`;
+    // Nokta vurgula
+    ctx.clearRect(0,0,W,H);
+    // Yeniden çiz
+    drawArea('rgb(239,68,68)', 0.12, pt=>yOf(pt.debt));
+    drawArea('rgb(34,197,94)', 0.12, pt=>yOf(pt.paid));
+    drawLine('#ef4444', pt=>yOf(pt.debt));
+    drawLine('#22c55e', pt=>yOf(pt.paid));
+    if(todayIdx>=0){ ctx.beginPath(); ctx.setLineDash([3,3]); ctx.strokeStyle='rgba(12,68,124,.3)'; ctx.lineWidth=1; ctx.moveTo(xOf(todayIdx),PAD.top); ctx.lineTo(xOf(todayIdx),PAD.top+iH); ctx.stroke(); ctx.setLineDash([]); }
+    // Seçili çizgi
+    ctx.beginPath(); ctx.strokeStyle='rgba(0,0,0,.12)'; ctx.lineWidth=1; ctx.setLineDash([]);
+    ctx.moveTo(xOf(idx),PAD.top); ctx.lineTo(xOf(idx),PAD.top+iH); ctx.stroke();
+    // Seçili noktalar
+    [['#ef4444',p.debt],['#22c55e',p.paid]].forEach(([c,v])=>{
+      ctx.beginPath(); ctx.arc(xOf(idx),yOf(v),5,0,Math.PI*2);
+      ctx.fillStyle='#fff'; ctx.fill();
+      ctx.strokeStyle=c; ctx.lineWidth=2.5; ctx.stroke();
+    });
+    // Y eksen yeniden
+    ctx.fillStyle='rgba(0,0,0,.25)'; ctx.font=`9px Nunito Sans,sans-serif`; ctx.textAlign='right';
+    [0.5,1].forEach(r=>{ ctx.fillText((maxVal*r)>=1000?Math.round((maxVal*r)/1000)+'K':Math.round(maxVal*r)+'', PAD.left-4, yOf(maxVal*r)+3); });
+  }
+
+  function idxFromX(clientX){
+    const rect=cvs.getBoundingClientRect();
+    const x=(clientX-rect.left);
+    let closest=0, minD=Infinity;
+    pts.forEach((_,i)=>{ const d=Math.abs(xOf(i)-x); if(d<minD){minD=d;closest=i;} });
+    return minD<iW/n+10?closest:-1;
+  }
+
+  cvs.onmousemove =e=>showTip(idxFromX(e.clientX));
+  cvs.onmouseleave=()=>showTip(-1);
+  cvs.ontouchmove =e=>{ e.preventDefault(); showTip(idxFromX(e.touches[0].clientX)); },{passive:false};
+  cvs.ontouchstart=e=>{ showTip(idxFromX(e.touches[0].clientX)); };
+
+  // Tab buton stilleri güncelle
   document.querySelectorAll('[onclick*="buildPersonsChart"]').forEach(b=>{
-    const m=b.getAttribute('onclick').match(/'(\w+)'/)?.[1];
-    if(m){ b.style.background=m===cm?'var(--blue)':'var(--gray)'; b.style.color=m===cm?'#fff':'var(--gray4)'; }
+    const m=b.getAttribute('onclick')?.match(/'(\w+)'/)?.[1];
+    if(!m) return;
+    b.style.background=m===cm?'#fff':'transparent';
+    b.style.color=m===cm?'var(--blue)':'var(--gray4)';
+    b.style.boxShadow=m===cm?'0 1px 4px rgba(0,0,0,.1)':'none';
   });
 };
+
 
 
 // ─── OVERDUE PAGE ─────────────────────────────────────────────
@@ -1632,6 +1705,11 @@ window.toggleDueDate = function(val){
 // ─── EVENTS ───────────────────────────────────────────────────
 function bindEvents(){
   if(!currentUser){ bindLoginEvents(); return; }
+
+  // Grafik canvas'ı varsa çiz
+  if(nav==='persons' && document.getElementById('persons-chart')){
+    setTimeout(()=>window.buildPersonsChart&&window.buildPersonsChart(), 50);
+  }
 
   document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click',async()=>{
     const newNav=b.dataset.nav;
