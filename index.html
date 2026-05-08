@@ -403,12 +403,20 @@ window.closeModal = function(){
 };
 
 // ─── RENDER ───────────────────────────────────────────────────
-function render(){ 
-  document.getElementById('app').innerHTML=buildHTML(); 
-  bindEvents(); 
+function render(){
   if(nav==='farms'){
-    renderFarm();
+    // Farms sayfasında sadece wrapper'ı kur, içeriği renderFarm yönetir
+    const overdueCount = currentUser ? getOverduePersons().length : 0;
+    document.getElementById('app').innerHTML =
+      buildHeader(overdueCount) +
+      `<div class="content"><div id="farm-module"></div></div>` +
+      buildNav(overdueCount);
+    bindEvents();
+    if(typeof renderFarm === 'function') renderFarm();
+    return;
   }
+  document.getElementById('app').innerHTML = buildHTML();
+  bindEvents();
 }
 
 function buildHTML(){
@@ -1312,8 +1320,8 @@ function bindEvents(){
   document.getElementById('back-btn')?.addEventListener('click',()=>{
     if(nav==='detail'){ nav='persons'; detailPid=null; render(); }
     else if(nav==='farms'){
-      if(farmNav==='animal-detail'){ farmNav='farm-detail'; selectedAnimalId=null; modal=null; render(); renderFarm(); }
-      else if(farmNav==='farm-detail'){ farmNav='farms'; selectedFarmId=null; modal=null; render(); renderFarm(); }
+      if(farmNav==='animal-detail'){ farmNav='farm-detail'; selectedAnimalId=null; modal=null; renderFarm(); }
+      else if(farmNav==='farm-detail'){ farmNav='farms'; selectedFarmId=null; modal=null; renderFarm(); }
     }
   });
   document.querySelectorAll('[data-person]').forEach(el=>el.addEventListener('click',()=>{ detailPid=el.dataset.person; nav='detail'; txTab='all'; render(); }));
@@ -3016,7 +3024,6 @@ function bindFarmEvents() {
     farmNav = 'farm-detail';
     animalFilterBreed = 'all'; animalFilterStatus = 'all'; animalFilterAlert = 'all';
     filterPanelOpen = false;
-    document.querySelector('.header .main') && (document.querySelector('.header .main').textContent = farms.find(f=>f.id===selectedFarmId)?.owner_name||'İşletme');
     renderFarm();
   }));
 
@@ -3030,8 +3037,6 @@ function bindFarmEvents() {
     }
     selectedAnimalId = el.dataset.animalid;
     farmNav = 'animal-detail';
-    // Sadece header'ı güncelle (title değişimi için), farm-module'ü renderFarm yeniler
-    document.querySelector('.header .main') && (document.querySelector('.header .main').textContent = animals.find(a=>a.id===selectedAnimalId)?.ear_tag||'Hayvan');
     renderFarm();
   }));
 
@@ -3307,7 +3312,7 @@ function bindFarmEvents() {
       if(Object.keys(updates).length) await updateAnimal(selectedAnimalId, updates);
       modal = null;
       toast('✅ ' + insemLabel + ' kaydedildi');
-      await loadFarmData(); render(); renderFarm();
+      await loadFarmData(); renderFarm();
       return;
     }
 
