@@ -554,8 +554,6 @@ function buildNav(overdueCount){
     {id:'home',icon:'🏠',label:'Ana Sayfa'},
     {id:'persons',icon:'👥',label:'Cariler'},
     {id:'farms',icon:'🏭',label:'İşletme'},
-    {id:'overdue',icon:'⚠️',label:'Gecikme',badge:overdueCount},
-    {id:'report',icon:'📊',label:'Raporlar'},
     {id:'settings',icon:'⚙️',label:'Ayarlar'},
   ];
   if(isAdmin()) items.push({id:'admin',icon:'👑',label:'Admin'});
@@ -770,24 +768,6 @@ function buildHome(){
     </div>
   </div>
 
-  ${overdueCount>0||debtors.length?`
-  <div style="margin-bottom:10px">
-    ${overdueCount>0?`<div class="overdue-banner" style="cursor:pointer;margin-bottom:8px" data-nav="overdue">
-      <div class="ob-icon">⚠️</div><div class="ob-text">${overdueCount} kişide ödeme gecikmiş!</div>
-    </div>`:''}
-    ${debtors.length?`
-    <div style="background:#fff;border-radius:var(--radius);border:1px solid var(--gray2);box-shadow:var(--shadow);overflow:hidden">
-      <div style="padding:10px 14px;font-size:12px;font-weight:800;color:var(--text);border-bottom:1px solid var(--gray2)">⚠️ Bekleyen Alacaklar</div>
-      ${debtors.map(p=>{
-        const lastP=getLastPayment(p.id);
-        return `<div class="list-item" data-person="${p.id}" style="border-bottom:1px solid var(--gray2)">
-          <div class="avatar ${isOverdue(p.id)?'overdue-av':''}">${initials(p.name)}</div>
-          <div class="ii"><div class="iname">${p.name}</div><div class="isub">Son ödeme: ${lastP?fmtDate(lastP.date):'Hiç yok'}</div></div>
-          <div class="iright"><div class="amt amt-debt">-${fmt(getBalance(p.id))}</div></div>
-        </div>`;
-      }).join('')}
-    </div>`:''}
-  </div>`:''}
 
   <!-- Hızlı Erişim Butonları -->
   <div style="margin-bottom:14px">
@@ -841,7 +821,6 @@ function buildHome(){
   </div>
 
   ${buildCalendar()}
-  ${buildReminderPanel()}
 
   <div class="sec-title">🕐 Son İşlemler</div>
   ${recent.length?recent.map(t=>{
@@ -2644,8 +2623,8 @@ function buildFarmModal() {
       </div>
     </div>
     <div class="btn-row">
-      <button onclick="clearAllFilters()" class="btn-o" style="flex:1">🗑 Temizle</button>
-      <button onclick="closeModal()" class="btn-p" style="flex:1">✅ Uygula</button>
+      <button id="filter-clear-btn" class="btn-o" style="flex:1">🗑 Temizle</button>
+      <button id="filter-apply-btn" class="btn-p" style="flex:1">✅ Uygula</button>
     </div>`);
 
   if(modal === 'add-farm') return mWrap('🏭 Yeni İşletme', `
@@ -3137,16 +3116,27 @@ function bindFarmEvents() {
   document.getElementById('toggle-filter-btn')?.addEventListener('click', () => {
     modal = 'filter-animals'; renderFarm();
   });
+  document.getElementById('filter-apply-btn')?.addEventListener('click', () => {
+    modal = null; renderFarm();
+  });
+  document.getElementById('filter-clear-btn')?.addEventListener('click', () => {
+    animalFilterStatus='all'; animalFilterBreed='all'; animalFilterAlert='all';
+    renderFarm();
+  });
   document.querySelectorAll('[data-alert]').forEach(c => c.addEventListener('click', () => {
-    animalFilterAlert = c.dataset.alert; renderFarm();
-    // Filtre modalı açıksa içinde kalmasın
+    animalFilterAlert = c.dataset.alert;
+    if(modal === 'filter-animals') renderFarm();
+    else renderFarm();
   }));
   document.querySelectorAll('[data-breed]').forEach(c => c.addEventListener('click', () => {
-    animalFilterBreed = c.dataset.breed; renderFarm();
+    animalFilterBreed = c.dataset.breed;
+    if(modal === 'filter-animals') renderFarm();
+    else renderFarm();
   }));
-
   document.querySelectorAll('[data-astatus]').forEach(c => c.addEventListener('click', () => {
-    animalFilterStatus = c.dataset.astatus; renderFarm();
+    animalFilterStatus = c.dataset.astatus;
+    if(modal === 'filter-animals') renderFarm();
+    else renderFarm();
   }));
 
   // Butonlar
@@ -3270,6 +3260,10 @@ function bindFarmEvents() {
   document.querySelectorAll('.modal-cancel-btn').forEach(b => b.addEventListener('click', () => {
     modal = null; renderFarm();
   }));
+  // Modal overlay tıklama ile kapat
+  document.getElementById('modal-overlay')?.addEventListener('click', e => {
+    if(e.target.id==='modal-overlay'){ modal = null; renderFarm(); }
+  });
 
   // ── İşletme Kaydet ──
   document.getElementById('save-farm-btn')?.addEventListener('click', async () => {
@@ -3585,7 +3579,7 @@ function bindFarmEvents() {
 function renderFarm() {
   const app = document.getElementById('farm-module');
   if(!app) return;
-  const farmModals = ['add-farm','add-animal','edit-animal','add-event','excel-import','heat-insem-followup'];
+  const farmModals = ['add-farm','add-animal','edit-animal','add-event','excel-import','heat-insem-followup','filter-animals','add-disease'];
   const fm = modal && farmModals.includes(modal) ? buildFarmModal() : '';
   app.innerHTML = buildFarmModule() + fm;
   bindFarmEvents();
