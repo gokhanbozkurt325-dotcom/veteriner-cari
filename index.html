@@ -1294,7 +1294,7 @@ function buildOverdue(){
     const gün=due?Math.abs(daysDiff(due.due_date)):0;
     const severity = gün>30?'var(--red)':gün>14?'var(--amber)':'var(--amber)';
     const severityBg = gün>30?'var(--red-light)':'var(--amber-light)';
-    return `<div class="list-item overdue" data-person="${p.id}" style="padding-bottom:28px;overflow:hidden;position:relative">
+    return `<div class="list-item overdue" data-person="${p.id}" style="padding-bottom:0;overflow:hidden">
       <div class="avatar overdue-av">${initials(p.name)}</div>
       <div class="ii">
         <div class="iname">${p.name}</div>
@@ -1306,7 +1306,7 @@ function buildOverdue(){
         <div class="amt amt-debt">-${fmt(bal)}</div>
         <button class="btn-sm btn-sm-wa wa-btn" data-pid="${p.id}" style="margin-top:6px;font-size:10px;padding:3px 7px" onclick="event.stopPropagation()">📱 WA</button>
       </div>
-      <div style="position:absolute;bottom:0;left:0;right:0;background:${severityBg};border-top:1px solid ${severity};padding:4px 14px;font-size:10px;font-weight:700;color:${severity};pointer-events:none">
+      <div style="position:absolute;bottom:0;left:0;right:0;background:${severityBg};border-top:1px solid ${severity};padding:4px 14px;font-size:10px;font-weight:700;color:${severity}">
         ${gün>30?'🔴 Kritik gecikme — '+gün+' gün':gün>14?'🟠 Uzun süreli — '+gün+' gün':'🟡 Yakın vadeli — '+gün+' gün'} · ${fmt(bal)}
       </div>
     </div>`;
@@ -1572,29 +1572,6 @@ function buildModal(){
     return mWrap('⚠️ Cariyi Sil',`
       <p style="font-size:14px;color:var(--text2);margin-bottom:18px"><b>${p?p.name:''}</b> adlı kişiyi ve tüm işlem kayıtlarını silmek istiyor musunuz?<br><br>⚠️ Bu işlem <b>geri alınamaz.</b></p>
       <div class="btn-row"><button class="modal-cancel-btn btn-o" type="button" onclick="closeModal()">İptal</button><button class="btn-d" id="confirm-delete-btn">Evet, Sil</button></div>`); }
-
-  if(modal==='gelistir') return mWrap('🚀 Programı Geliştir',`
-    <div style="text-align:center;padding:8px 0 16px">
-      <div style="font-size:48px;margin-bottom:10px">🙏</div>
-      <div style="font-family:'Nunito',sans-serif;font-size:17px;font-weight:900;color:var(--blue);margin-bottom:8px">Katkınız Çok Değerli!</div>
-      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:16px">
-        Bu programı daha iyi hale getirmek için <b>görüşlerinize</b> ihtiyaç duyuyoruz.<br>
-        Eksik gördüğünüz özellikler, yaşadığınız sorunlar veya yeni fikirleriniz — her biri programın geleceğini şekillendiriyor.<br><br>
-        Teşekkür ederiz! 🐄✨
-      </p>
-    </div>
-    <div class="fg">
-      <label class="fl">Öneriniz veya geri bildiriminiz</label>
-      <textarea class="fi" id="gelistir-text" placeholder="Yeni özellik, hata bildirimi, iyileştirme önerisi..." style="min-height:100px"></textarea>
-    </div>
-    <div class="fg">
-      <label class="fl">Adınız (isteğe bağlı)</label>
-      <input class="fi" id="gelistir-name" placeholder="Adınız">
-    </div>
-    <div class="btn-row">
-      <button class="modal-cancel-btn btn-o" type="button" onclick="closeModal()">Kapat</button>
-      <button class="btn-p" id="gelistir-send-btn">📤 Gönder</button>
-    </div>`);
 
   return '';
 }
@@ -1879,8 +1856,7 @@ function bindEvents(){
       goBack();
     }
   });
-  // Cariler listesi tıklama
-  bindPersonListEvents();
+  document.querySelectorAll('[data-person]').forEach(el=>el.addEventListener('click',()=>{ detailPid=el.dataset.person; navigateTo('detail',{keepPid:true}); txTab='all'; render(); }));
   document.getElementById('search-input')?.addEventListener('input',e=>{ 
     search=e.target.value; 
     // Sadece listeyi güncelle, input odağını kaybetme
@@ -1978,19 +1954,6 @@ function bindEvents(){
   document.getElementById('home-persons-btn')?.addEventListener('click',()=>{ navigateTo('persons'); render(); });
   document.getElementById('home-overdue-btn')?.addEventListener('click',()=>{ navigateTo('overdue'); render(); });
   document.getElementById('home-report-btn')?.addEventListener('click',()=>{ navigateTo('report'); render(); });
-
-  // Ana sayfa FAB — "Programı Geliştir"
-  document.getElementById('quick-add-btn')?.addEventListener('click',()=>{ modal='gelistir'; render(); });
-
-  // Gönder butonu
-  document.getElementById('gelistir-send-btn')?.addEventListener('click',()=>{
-    const txt=document.getElementById('gelistir-text')?.value.trim();
-    const name=document.getElementById('gelistir-name')?.value.trim();
-    if(!txt){ toast('⚠️ Lütfen bir şeyler yazın'); return; }
-    // WhatsApp ile gönder (opsiyonel) veya sadece teşekkür
-    toast('✅ Teşekkürler! Geri bildiriminiz alındı 🙏');
-    closeModal();
-  });
   document.getElementById('goto-farms-btn')?.addEventListener('click',async()=>{
     navigateTo('farms'); farmNav='farms'; homeFarmOpen=false; render(); await loadFarmData(); renderFarm();
   });
