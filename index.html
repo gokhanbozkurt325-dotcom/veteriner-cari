@@ -1879,18 +1879,8 @@ function bindEvents(){
       goBack();
     }
   });
-  // Cariler listesi — event delegation (render sonrası da çalışır)
-  const personsList = document.getElementById('persons-list');
-  if(personsList && !personsList._delegated){
-    personsList._delegated = true;
-    personsList.addEventListener('click', e=>{
-      const card = e.target.closest('[data-person]');
-      if(!card) return;
-      if(e.target.closest('.wa-btn')) return;
-      detailPid=card.dataset.person; navigateTo('detail',{keepPid:true}); txTab='all'; render();
-    });
-  }
-  document.querySelectorAll('[data-person]').forEach(el=>el.addEventListener('click',()=>{ detailPid=el.dataset.person; navigateTo('detail',{keepPid:true}); txTab='all'; render(); }));
+  // Cariler listesi tıklama
+  bindPersonListEvents();
   document.getElementById('search-input')?.addEventListener('input',e=>{ 
     search=e.target.value; 
     // Sadece listeyi güncelle, input odağını kaybetme
