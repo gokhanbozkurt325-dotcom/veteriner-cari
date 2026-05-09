@@ -474,6 +474,13 @@ document.addEventListener('click', function(e){
     render();
     return;
   }
+  // FAB — Admine Sor
+  if(e.target.closest('#fab-ask-btn')){
+    fabMenuOpen = false;
+    modal = 'ask-admin';
+    render();
+    return;
+  }
   // FAB — Programı Geliştir
   if(e.target.closest('#fab-gelistir-btn')){
     fabMenuOpen = false;
@@ -512,6 +519,18 @@ document.addEventListener('click', function(e){
     if(!txt){ toast('⚠️ Lütfen bir şeyler yazın'); return; }
     toast('✅ Teşekkürler! Geri bildiriminiz alındı 🙏');
     closeModal();
+    return;
+  }
+  // Admine Sor gönder
+  if(e.target.closest('#send-ask-btn')){
+    const soru = document.getElementById('ask-question')?.value.trim();
+    const ad = document.getElementById('ask-name')?.value.trim();
+    if(!soru){ toast('⚠️ Lütfen sorunuzu yazın'); return; }
+    const ann = {id:uid(), title:(ad?ad+': ':'')+soru, message:'', created_at:new Date().toISOString(), created_by:userId()};
+    sbReq('POST','vc_announcements',ann).then(()=>{
+      toast('✅ Sorunuz iletildi!');
+      closeModal();
+    }).catch(()=>toast('❌ Gönderilemedi'));
     return;
   }
   // Duyuru gönder
@@ -962,6 +981,10 @@ function buildHome(){
       <span style="background:#fff;border-radius:10px;padding:6px 12px;font-size:12px;font-weight:700;color:var(--blue);box-shadow:0 2px 10px rgba(0,0,0,.15)">📢 Duyuru Gönder</span>
       <button id="fab-announce-btn" style="width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,#7c3aed,#6d28d9);border:none;color:#fff;font-size:22px;cursor:pointer;box-shadow:0 3px 12px rgba(109,40,217,.4)">📢</button>
     </div>`:''}
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="background:#fff;border-radius:10px;padding:6px 12px;font-size:12px;font-weight:700;color:var(--blue);box-shadow:0 2px 10px rgba(0,0,0,.15)">💬 Admine Sor</span>
+      <button id="fab-ask-btn" style="width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,#0891b2,#0e7490);border:none;color:#fff;font-size:22px;cursor:pointer;box-shadow:0 3px 12px rgba(8,145,178,.4)">💬</button>
+    </div>
     <div style="display:flex;align-items:center;gap:10px">
       <span style="background:#fff;border-radius:10px;padding:6px 12px;font-size:12px;font-weight:700;color:var(--blue);box-shadow:0 2px 10px rgba(0,0,0,.15)">💡 Programı Geliştir</span>
       <button id="fab-gelistir-btn" style="width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,var(--blue),var(--blue2));border:none;color:#fff;font-size:22px;cursor:pointer;box-shadow:0 3px 12px rgba(12,68,124,.3)">💡</button>
@@ -1684,6 +1707,20 @@ function buildModal(){
       <p style="font-size:14px;color:var(--text2);margin-bottom:18px"><b>${p?p.name:''}</b> adlı kişiyi ve tüm işlem kayıtlarını silmek istiyor musunuz?<br><br>⚠️ Bu işlem <b>geri alınamaz.</b></p>
       <div class="btn-row"><button class="modal-cancel-btn btn-o" type="button" onclick="closeModal()">İptal</button><button class="btn-d" id="confirm-delete-btn">Evet, Sil</button></div>`); }
 
+  if(modal==='ask-admin') return mWrap('💬 Admine Sor',`
+    <div style="text-align:center;padding:6px 0 14px">
+      <div style="font-size:40px;margin-bottom:8px">💬</div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:16px">
+        Aklınıza takılan soruları, program hakkındaki meraklarınızı veya destek taleplerinizi buradan iletebilirsiniz.
+      </p>
+    </div>
+    <div class="fg"><label class="fl">Sorunuz *</label><textarea class="fi" id="ask-question" placeholder="Sorunuzu veya talebinizi yazın..." style="min-height:100px"></textarea></div>
+    <div class="fg"><label class="fl">Adınız</label><input class="fi" id="ask-name" placeholder="Adınız" value="${currentUser?.full_name||''}"></div>
+    <div class="btn-row">
+      <button class="modal-cancel-btn btn-o" type="button" onclick="closeModal()">İptal</button>
+      <button class="btn-p" id="send-ask-btn">💬 Gönder</button>
+    </div>`);
+
   if(modal==='announce') return mWrap('📢 Duyuru Gönder',`
     <p style="font-size:12px;color:var(--text2);margin-bottom:14px">Tüm aktif kullanıcıların ana sayfasında görünecek.</p>
     <div class="fg"><label class="fl">Başlık *</label><input class="fi" id="ann-title" placeholder="Duyuru başlığı..."></div>
@@ -1768,7 +1805,7 @@ function buildAdmin(){
   const annList=Array.isArray(announcements)?announcements:[];
   return `
   <div style="display:flex;gap:8px;margin-bottom:14px">
-    <button class="btn-p" id="add-user-btn" style="font-size:13px">+ Yeni Kullanıcı Ekle</button>
+    ${currentUser?.username==='cemilbas'?`<button class="btn-p" id="add-user-btn" style="font-size:13px">+ Yeni Kullanıcı Ekle</button>`:''}
     <button class="btn-sm btn-sm-b" id="refresh-users-btn" style="padding:10px 14px">🔄</button>
   </div>
 
@@ -2318,7 +2355,7 @@ function dlFilteredReport(){
       +'<div class="sb"><div class="sl">Kisi Sayisi</div><div class="sv">'+list.length+'</div></div>'
     +'</div>'
     +'<table><tr><th>Ad Soyad</th><th>Telefon</th><th>Adres</th><th>Toplam Borc</th><th>Odenen</th><th>Bakiye</th><th>Durum</th></tr>'+rows+'</table>'
-    +'<script>window.onload=function(){window.print();}<\/script>'
+    /* print kaldırıldı */
     +'</body></html>';
   openPrintWindow(html);
 }
@@ -2363,7 +2400,7 @@ function dlFullReport(){
     +'<div class="pb"></div>'
     +'<h2>Tüm Islemler</h2>'
     +'<table><tr><th>Tarih</th><th>Kisi</th><th>Tur</th><th>Aciklama</th><th>Vade</th><th>Tutar</th></tr>'+txRows+'</table>'
-    +'<script>window.onload=function(){window.print();}<\/script>'
+    /* print kaldırıldı */
     +'</body></html>';
   openPrintWindow(html);
 }
@@ -2391,7 +2428,7 @@ function dlPersonReport(pid){
       +'<div class="sb"><div class="sl">Bakiye</div><div class="sv" style="color:'+(b>0?'#C0392B':'#1A7A4A')+'">'+(b>0?'-':'+')+fmt(Math.abs(b))+'</div></div>'
     +'</div>'
     +'<table><tr><th>Tarih</th><th>Tur</th><th>Aciklama</th><th>Vade</th><th>Not</th><th>Tutar</th></tr>'+rows+'</table>'
-    +'<script>window.onload=function(){window.print();}<\/script>'
+    /* print kaldırıldı */
     +'</body></html>';
   openPrintWindow(html);
 }
