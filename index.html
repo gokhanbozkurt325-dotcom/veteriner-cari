@@ -505,7 +505,15 @@ function buildLogin(){
     <div class="fg"><label class="fl">Şifre</label><input class="fi" id="login-password" type="password" placeholder="••••••" autocomplete="current-password"></div>
     <div class="login-err" id="login-err">&nbsp;</div>
     <button class="btn-p" id="login-btn">Giriş Yap</button>
-  </div></div>`;
+  </div>
+  <p style="color:rgba(255,255,255,.70);font-size:11px;font-weight:600;margin-top:18px;text-align:center;letter-spacing:.3px">Veteriner Hekim ile Akıllı Yetiştiriciyi Buluşturan Platform</p>
+  <div style="display:flex;gap:12px;margin-top:16px;justify-content:center;flex-wrap:wrap">
+    <span style="color:rgba(255,255,255,.75);font-size:11px;font-weight:700;background:rgba(255,255,255,.12);padding:5px 12px;border-radius:20px">Raporlama</span>
+    <span style="color:rgba(255,255,255,.75);font-size:11px;font-weight:700;background:rgba(255,255,255,.12);padding:5px 12px;border-radius:20px">Yapay Zeka</span>
+    <span style="color:rgba(255,255,255,.75);font-size:11px;font-weight:700;background:rgba(255,255,255,.12);padding:5px 12px;border-radius:20px">Sürü Takip</span>
+    <span style="color:rgba(255,255,255,.75);font-size:11px;font-weight:700;background:rgba(255,255,255,.12);padding:5px 12px;border-radius:20px">Cari Hesaplama</span>
+  </div>
+  </div>`;
 }
 function bindLoginEvents(){
   const doLogin=async()=>{
@@ -2421,19 +2429,32 @@ function getAnimalAlerts(animal) {
         detail:`Kontrol yapıldı — hayvanın durumunu (Gebe/Açık) güncelleyin`});
     }
 
-    // Tohumlama sonrası 18-24. günde kızgınlık = tohum tutmadı
+    // Tohumlama sonrası kızgınlık kontrolü
     const heatAfterInsem = heats.find(h => h.event_date > lastInsem.event_date);
     if(heatAfterInsem) {
       const dHeat = daysBetween(lastInsem.event_date, heatAfterInsem.event_date);
+      // Kural 2.1: <17 günde kızgınlık = foliküler kist şüphesi (anormal siklus)
+      if(dHeat < 17) {
+        alerts.push({priority:0, type:'red', icon:'🔥',
+          title:'Anormal Siklus — Foliküler Kist Şüphesi',
+          detail:`${insemNo}. tohumlamadan ${dHeat} gün sonra kızgınlık (17 günden kısa) — veteriner muayenesi gerekli`});
+      }
+      // Kural 2.3: 18-24. günde kızgınlık = düzenli siklusta başarısız tohumlama
       if(dHeat >= HEAT_MIN && dHeat <= HEAT_MAX) {
         alerts.push({priority:0, type:'red', icon:'🔥',
           title:'Tohum Tutmadı Olabilir',
           detail:`${insemNo}. tohumlamadan ${dHeat} gün sonra kızgınlık — gebelik muayenesi şart`});
       }
-      // 2. tohumlama 30-40+ gün sonrası kızgınlık = embriyonik/fetal ölüm
-      if(dHeat > 30 && insemNo >= 2) {
+      // Kural 3.1: 25-35. günde kızgınlık = erken embriyonik ölüm (EED) şüphesi
+      if(dHeat >= 25 && dHeat <= 35) {
         alerts.push({priority:0, type:'red', icon:'⚠️',
-          title:'Embriyonik/Fetal Ölüm Olabilir',
+          title:'Erken Embriyonik Ölüm (EED) Şüphesi',
+          detail:`${insemNo}. tohumlamadan ${dHeat} gün sonra kızgınlık — luteal yetmezlik veya subklinik endometritis olabilir, veteriner değerlendirmesi gerekli`});
+      }
+      // Embriyonik/fetal ölüm: 35+ gün sonra kızgınlık
+      if(dHeat > 35) {
+        alerts.push({priority:0, type:'red', icon:'⚠️',
+          title:'Embriyonik/Fetal Kayıp Olabilir',
           detail:`${insemNo}. tohumlamadan ${dHeat} gün sonra kızgınlık — embriyonik kayıp şüphesi, veteriner değerlendirmesi gerekli`});
       }
     } else {
@@ -2494,6 +2515,16 @@ function getAnimalAlerts(animal) {
         title:'⚠️ Tohumlama Gecikiyor — Sorunlu İnek',
         detail:`Doğumdan ${dSinceBirth} gün geçti — tohumlama yapılmadı, müdahale gerekli`});
     }
+
+    // Kural 1.1: Erken tohumlama uyarısı (<60 gün = VWP dolmamış)
+    if(lastInsem && dSinceBirth !== null) {
+      const dAtInsem = daysBetween(lastBirth.event_date, lastInsem.event_date);
+      if(dAtInsem >= 0 && dAtInsem < 60) {
+        alerts.push({priority:1, type:'amber', icon:'⚠️',
+          title:'Riskli Erken Tohumlama',
+          detail:`Doğumdan ${dAtInsem} gün sonra tohumlama yapıldı — uterus involüsyonu için önerilen 60 günlük bekleme süresi (VWP) dolmamıştı`});
+      }
+    }
   }
 
   // ══════════════════════════════════════════════════
@@ -2532,6 +2563,25 @@ function getAnimalAlerts(animal) {
         alerts.push({priority:1, type:'amber', icon:'🛑',
           title:'Kuruya Alma Zamanı',
           detail:`Doğuma ${dToCalve} gün kaldı — kuruya alma planlanmalı`});
+      }
+
+      // Kural 5.1: 60-90. günde 2. gebelik muayenesi (kesinleştirme)
+      const dSinceInsem2 = lastInsem ? daysBetween(lastInsem.event_date, tdStr) : null;
+      const hasSecondCheck = pregChecks.length >= 2;
+      if(!hasSecondCheck && lastPregCheck && dSinceInsem2 !== null) {
+        const insemDayAtFirstCheck = lastInsem ? daysBetween(lastInsem.event_date, lastPregCheck.event_date) : 0;
+        if(dSinceInsem2 >= 60 && dSinceInsem2 <= 90 && insemDayAtFirstCheck < 60) {
+          alerts.push({priority:1, type:'purple', icon:'🔬',
+            title:'Kesinleştirme Muayenesi Zamanı',
+            detail:`Gebelik ${dSinceInsem2}. gün — erken fetal kayıp ve mumifikasyonu dışlamak için 2. muayene önerilir`});
+        }
+      }
+
+      // Kural 6.3: Close-up (geçiş) dönemi — doğuma 19-23 gün kaldı
+      if(dToCalve >= 19 && dToCalve <= 23) {
+        alerts.push({priority:1, type:'amber', icon:'📋',
+          title:'Geçiş (Close-Up) Dönemi',
+          detail:`Doğuma ${dToCalve} gün kaldı — anyonik rasyona geçiş yapın, doğum bölmesine alın`});
       }
 
       // Doğum yaklaşıyor: son 15 gün
@@ -2576,9 +2626,6 @@ function getAnimalAlerts(animal) {
     // Beklenen doğuma göre uyarı (kuruya alınma tarihinden değil!)
     if(expectedBirth) {
       const dToCalve = daysBetween(tdStr, expectedBirth);
-
-      // Doğuma 50 gün kala hala kuruya alınmamış (gebe iken uyarı verildiyse burada tekrar)
-      // Bu aşamada kuru olduğu için bu kontrol geçerli değil
 
       // Son 10 gün: doğum yaklaşıyor
       if(dToCalve >= 0 && dToCalve <= 10) {
