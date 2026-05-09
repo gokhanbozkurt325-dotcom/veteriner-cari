@@ -291,6 +291,10 @@ let pinVal='', pinErr='';
 let nav='home', detailPid=null, txTab='all', filterType='all', search='';
 let filterMin='', filterMax='', filterPanelOpen=false;
 let navHistory=[];
+let announcements=[];
+let fabMenuOpen=false;
+// Kapatılan duyuru ID'leri — oturum boyunca hatırla
+const dismissedAnnouncements = new Set();
 
 function navigateTo(newNav, opts={}){
   if(newNav !== nav) navHistory.push(nav);
@@ -400,6 +404,7 @@ async function loadAll(){
   }
   try{ await loadReminders(); }catch(e){ console.error('Reminders error',e); }
   try{ if(typeof loadFarmData==='function') await loadFarmData(); }catch(e){ console.error('FarmData error',e); }
+  try{ announcements=await sbReq('GET','vc_announcements?order=created_at.desc&limit=10'); if(!Array.isArray(announcements)) announcements=[]; }catch(e){ announcements=[]; }
   dataLoading=false; render();
 }
 function saveLocal(){
@@ -457,10 +462,48 @@ document.addEventListener('click', function(e){
     render();
     return;
   }
-  // FAB butonu
+  // FAB butonu — menüyü aç/kapat
   if(e.target.closest('#quick-add-btn')){
+    fabMenuOpen = !fabMenuOpen;
+    render();
+    return;
+  }
+  // FAB overlay — menüyü kapat
+  if(e.target.closest('#fab-overlay')){
+    fabMenuOpen = false;
+    render();
+    return;
+  }
+  // FAB — Programı Geliştir
+  if(e.target.closest('#fab-gelistir-btn')){
+    fabMenuOpen = false;
     modal = 'gelistir';
     render();
+    return;
+  }
+  // FAB — Duyuru Gönder (admin)
+  if(e.target.closest('#fab-announce-btn') || e.target.closest('#admin-new-announce-btn')){
+    fabMenuOpen = false;
+    modal = 'announce';
+    render();
+    return;
+  }
+  // Duyuru kapat (✕)
+  if(e.target.closest('.dismiss-announcement-btn')){
+    const aid = e.target.closest('.dismiss-announcement-btn').dataset.aid;
+    dismissedAnnouncements.add(aid);
+    render();
+    return;
+  }
+  // Duyuru sil (admin)
+  if(e.target.closest('.del-announce-btn')){
+    const aid = e.target.closest('.del-announce-btn').dataset.aid;
+    if(confirm('Duyuru silinsin mi?')){
+      sbReq('DELETE','vc_announcements?id=eq.'+aid).then(()=>{
+        announcements = announcements.filter(a=>a.id!==aid);
+        render();
+      }).catch(()=>toast('❌ Silinemedi'));
+    }
     return;
   }
   // Geliştir gönder
@@ -469,6 +512,20 @@ document.addEventListener('click', function(e){
     if(!txt){ toast('⚠️ Lütfen bir şeyler yazın'); return; }
     toast('✅ Teşekkürler! Geri bildiriminiz alındı 🙏');
     closeModal();
+    return;
+  }
+  // Duyuru gönder
+  if(e.target.closest('#send-announce-btn')){
+    const title = document.getElementById('ann-title')?.value.trim();
+    const message = document.getElementById('ann-message')?.value.trim();
+    if(!title){ toast('⚠️ Başlık zorunlu'); return; }
+    const ann = {id:uid(), title, message:message||'', created_at:new Date().toISOString(), created_by:userId()};
+    sbReq('POST','vc_announcements',ann).then(res=>{
+      const saved = Array.isArray(res)?res[0]:res;
+      announcements = [saved||ann, ...announcements];
+      toast('📢 Duyuru gönderildi!');
+      closeModal();
+    }).catch(()=>{ toast('❌ Gönderilemedi'); });
     return;
   }
 });
@@ -786,6 +843,18 @@ function buildHome(){
   const cardStyle=cardBase+';border-radius:var(--radius)';
 
   return `
+  <!-- Duyuru Banner'ları -->
+  ${announcements.filter(a=>!dismissedAnnouncements.has(a.id)).map(a=>`
+  <div class="announcement-banner" data-aid="${a.id}" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px;display:flex;align-items:flex-start;gap:10px;box-shadow:0 3px 12px rgba(109,40,217,.3)">
+    <div style="font-size:20px;flex-shrink:0">📢</div>
+    <div style="flex:1;min-width:0">
+      <div style="color:rgba(255,255,255,.7);font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Duyuru · ${new Date(a.created_at).toLocaleDateString('tr-TR',{day:'2-digit',month:'short',year:'numeric'})}</div>
+      <div style="color:#fff;font-size:13px;font-weight:700;line-height:1.4">${a.title}</div>
+      ${a.message?`<div style="color:rgba(255,255,255,.8);font-size:12px;margin-top:4px;line-height:1.5">${a.message}</div>`:''}
+    </div>
+    <button class="dismiss-announcement-btn" data-aid="${a.id}" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:8px;width:28px;height:28px;font-size:14px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center">✕</button>
+  </div>`).join('')}
+
   <!-- Özet Kart -->
   <div style="background:linear-gradient(135deg,var(--blue) 0%,var(--blue2) 100%);border-radius:var(--radius);padding:16px;margin-bottom:14px;box-shadow:0 4px 18px rgba(12,68,124,.25)">
     <div style="color:rgba(255,255,255,.6);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">📊 Genel Özet</div>
@@ -884,7 +953,21 @@ function buildHome(){
       <div class="tx-amt ${isPos?'tx-pos':'tx-neg'}">${isPos?'+':'-'}${fmt(t.amount)}</div>
     </div>`;
   }).join(''):`<div class="empty"><div class="eicon">📋</div><p>Henüz işlem yok</p></div>`}
-  <button class="fab" id="quick-add-btn">+</button>`;
+  <!-- FAB Menüsü -->
+  ${fabMenuOpen?`
+  <div id="fab-overlay" style="position:fixed;inset:0;z-index:149;background:rgba(0,0,0,.35)" ></div>
+  <div style="position:fixed;right:20px;bottom:140px;z-index:151;display:flex;flex-direction:column;gap:10px;align-items:flex-end">
+    ${isAdmin()?`
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="background:#fff;border-radius:10px;padding:6px 12px;font-size:12px;font-weight:700;color:var(--blue);box-shadow:0 2px 10px rgba(0,0,0,.15)">📢 Duyuru Gönder</span>
+      <button id="fab-announce-btn" style="width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,#7c3aed,#6d28d9);border:none;color:#fff;font-size:22px;cursor:pointer;box-shadow:0 3px 12px rgba(109,40,217,.4)">📢</button>
+    </div>`:''}
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="background:#fff;border-radius:10px;padding:6px 12px;font-size:12px;font-weight:700;color:var(--blue);box-shadow:0 2px 10px rgba(0,0,0,.15)">💡 Programı Geliştir</span>
+      <button id="fab-gelistir-btn" style="width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,var(--blue),var(--blue2));border:none;color:#fff;font-size:22px;cursor:pointer;box-shadow:0 3px 12px rgba(12,68,124,.3)">💡</button>
+    </div>
+  </div>`:''}
+  <button class="fab" id="quick-add-btn" style="transform:${fabMenuOpen?'rotate(45deg)':'rotate(0deg)'};transition:transform .2s">+</button>`;
 }
 
 
@@ -1601,6 +1684,15 @@ function buildModal(){
       <p style="font-size:14px;color:var(--text2);margin-bottom:18px"><b>${p?p.name:''}</b> adlı kişiyi ve tüm işlem kayıtlarını silmek istiyor musunuz?<br><br>⚠️ Bu işlem <b>geri alınamaz.</b></p>
       <div class="btn-row"><button class="modal-cancel-btn btn-o" type="button" onclick="closeModal()">İptal</button><button class="btn-d" id="confirm-delete-btn">Evet, Sil</button></div>`); }
 
+  if(modal==='announce') return mWrap('📢 Duyuru Gönder',`
+    <p style="font-size:12px;color:var(--text2);margin-bottom:14px">Tüm aktif kullanıcıların ana sayfasında görünecek.</p>
+    <div class="fg"><label class="fl">Başlık *</label><input class="fi" id="ann-title" placeholder="Duyuru başlığı..."></div>
+    <div class="fg"><label class="fl">Mesaj (isteğe bağlı)</label><textarea class="fi" id="ann-message" placeholder="Detay mesaj..." style="min-height:80px"></textarea></div>
+    <div class="btn-row">
+      <button class="modal-cancel-btn btn-o" type="button" onclick="closeModal()">İptal</button>
+      <button class="btn-p" id="send-announce-btn">📢 Gönder</button>
+    </div>`);
+
   if(modal==='gelistir') return mWrap('🚀 Programı Geliştir',`
     <div style="text-align:center;padding:8px 0 16px">
       <div style="font-size:48px;margin-bottom:10px">🙏</div>
@@ -1673,11 +1765,25 @@ async function loadAllUsers(){
 function buildAdmin(){
   const pending=allUsers.filter(u=>!u.active&&u.role!=='admin');
   const active=allUsers.filter(u=>u.active||u.role==='admin');
+  const annList=Array.isArray(announcements)?announcements:[];
   return `
   <div style="display:flex;gap:8px;margin-bottom:14px">
     <button class="btn-p" id="add-user-btn" style="font-size:13px">+ Yeni Kullanıcı Ekle</button>
     <button class="btn-sm btn-sm-b" id="refresh-users-btn" style="padding:10px 14px">🔄</button>
   </div>
+
+  <!-- Duyurular -->
+  <div class="sec-title" style="color:#7c3aed">📢 Duyurular</div>
+  <button class="btn-p" id="admin-new-announce-btn" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);margin-bottom:12px;font-size:12px">+ Yeni Duyuru</button>
+  ${annList.length?annList.map(a=>`
+  <div style="background:#f5f3ff;border:1.5px solid #ede9fe;border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px">
+    <div style="flex:1">
+      <div style="font-size:12px;font-weight:800;color:#7c3aed">${a.title}</div>
+      ${a.message?`<div style="font-size:11px;color:var(--text2);margin-top:3px">${a.message}</div>`:''}
+      <div style="font-size:10px;color:var(--gray4);margin-top:4px">${new Date(a.created_at).toLocaleDateString('tr-TR',{day:'2-digit',month:'short',year:'numeric'})}</div>
+    </div>
+    <button class="del-announce-btn" data-aid="${a.id}" style="border:none;background:#fce7f3;color:#be185d;border-radius:8px;padding:5px 9px;font-size:11px;cursor:pointer">🗑</button>
+  </div>`).join(''):`<div style="color:var(--gray4);font-size:12px;margin-bottom:14px">Henüz duyuru yok.</div>`}
   ${pending.length?`
   <div class="sec-title" style="color:var(--amber)">⏳ Onay Bekleyenler (${pending.length})</div>
   ${pending.map(u=>`
