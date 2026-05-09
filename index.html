@@ -1061,7 +1061,7 @@ function buildPersons(){
           </span>
         </div>
         <div style="display:flex;gap:4px;background:var(--gray);border-radius:8px;padding:3px">
-          ${['7','30','365'].map(m=>`<button onclick="window._chartMode='${m}';window.buildPersonsChart()" style="border:none;border-radius:6px;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer;transition:.15s;background:${cm===m?'#fff':'transparent'};color:${cm===m?'var(--blue)':'var(--gray4)'};box-shadow:${cm===m?'0 1px 4px rgba(0,0,0,.1)':'none'}">${m==='365'?'1 Yıl':m==='30'?'30 Gün':'7 Gün'}</button>`).join('')}
+          ${['7','30','365'].map(m=>{const cm=window._chartMode||'7'; return `<button onclick="window._chartMode='${m}';window.buildPersonsChart()" style="border:none;border-radius:6px;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer;transition:.15s;background:${cm===m?'#fff':'transparent'};color:${cm===m?'var(--blue)':'var(--gray4)'};box-shadow:${cm===m?'0 1px 4px rgba(0,0,0,.1)':'none'}">${m==='365'?'1 Yıl':m==='30'?'30 Gün':'7 Gün'}</button>`;}).join('')}
         </div>
       </div>
       <!-- Tooltip alanı -->
