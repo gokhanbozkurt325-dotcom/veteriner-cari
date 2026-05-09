@@ -1792,7 +1792,7 @@ function sendWhatsApp(pid){
   const fullPhone=phone.startsWith('0')?'90'+phone.slice(1):phone.startsWith('90')?phone:'90'+phone;
   const tarih=new Date().toLocaleDateString('tr-TR',{day:'2-digit',month:'long',year:'numeric'});
   const msg=
-`🩺 *DR. CEMİL BAŞ VETERİNER HEKİMLİK*
+`🐄 *SÜRÜ TAKİP PROGRAMI*
 ━━━━━━━━━━━━━━━━━━━━━━
 📋 *CARİ HESAP BİLDİRİMİ*
 ━━━━━━━━━━━━━━━━━━━━━━
@@ -2131,115 +2131,148 @@ function bindEvents(){
 }
 
 // ─── REPORTS ──────────────────────────────────────────────────
+// Ortak: yeni pencerede aç ve print diyaloğunu tetikle
+function openPrintWindow(html){
+  const w=window.open('','_blank','width=900,height=700');
+  if(!w){ toast('Popup engellendi, lütfen izin verin'); return; }
+  w.document.open(); w.document.write(html); w.document.close();
+}
+
+const REPORT_CSS='body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:24px 30px;font-size:13px;color:#1a1a1a;background:#fff}'
+  +' h1{color:#0C447C;font-size:18px;margin:0 0 4px}'
+  +' .sub{color:#555;font-size:11px;margin-bottom:14px}'
+  +' .filter-tag{display:inline-block;background:#EAF2FB;color:#0C447C;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;margin-bottom:14px}'
+  +' .sum{display:flex;gap:0;background:#EAF2FB;border-radius:8px;margin-bottom:18px;overflow:hidden}'
+  +' .sb{flex:1;text-align:center;padding:12px 8px;border-right:1px solid #d0e4f7}'
+  +' .sb:last-child{border-right:none}'
+  +' .sl{font-size:9px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.3px}'
+  +' .sv{font-size:15px;font-weight:900;margin-top:3px;color:#1a1a1a}'
+  +' h2{color:#0C447C;font-size:13px;border-bottom:2px solid #EAF2FB;padding-bottom:4px;margin:18px 0 8px}'
+  +' table{width:100%;border-collapse:collapse;margin-bottom:18px;font-size:12px}'
+  +' th{background:#0C447C;color:#fff;padding:7px 8px;font-size:11px;text-align:left;font-weight:700}'
+  +' td{padding:6px 8px;border-bottom:1px solid #eee;vertical-align:top}'
+  +' tr:nth-child(even) td{background:#f7fafd}'
+  +' .dr{color:#C0392B;font-weight:700}'
+  +' .dp{color:#1A7A4A;font-weight:700}'
+  +' .dw{color:#D97706;font-weight:700}'
+  +' .pb{page-break-before:always}'
+  +' @media print{body{padding:0 20px}button{display:none!important}}';
+
 function dlFilteredReport(){
-  // Mevcut filtrelere göre liste oluştur
-  let list=[...persons];
-  if(search) list=list.filter(p=>p.name.toLowerCase().includes(search.toLowerCase())||(p.phone&&p.phone.includes(search)));
-  if(filterType==='debt') list=list.filter(p=>getBalance(p.id)>0);
-  if(filterType==='clean') list=list.filter(p=>getBalance(p.id)<=0);
-  if(filterType==='overdue') list=list.filter(p=>isOverdue(p.id));
-  if(filterMin!=='') list=list.filter(p=>getBalance(p.id)>=parseFloat(filterMin));
-  if(filterMax!=='') list=list.filter(p=>getBalance(p.id)<=parseFloat(filterMax));
-  list.sort((a,b)=>getBalance(b.id)-getBalance(a.id));
-
-  let td=0,tp=0;
-  list.forEach(p=>{ txs.filter(t=>t.person_id===p.id).forEach(t=>{ const a=parseFloat(t.amount||0); t.type==='payment'?tp+=a:td+=a; }); });
-
-  const filterDesc = [
+  var list=[].concat(persons);
+  if(search) list=list.filter(function(p){return p.name.toLowerCase().includes(search.toLowerCase())||(p.phone&&p.phone.includes(search));});
+  if(filterType==='debt') list=list.filter(function(p){return getBalance(p.id)>0;});
+  if(filterType==='clean') list=list.filter(function(p){return getBalance(p.id)<=0;});
+  if(filterType==='overdue') list=list.filter(function(p){return isOverdue(p.id);});
+  if(filterMin!=='') list=list.filter(function(p){return getBalance(p.id)>=parseFloat(filterMin);});
+  if(filterMax!=='') list=list.filter(function(p){return getBalance(p.id)<=parseFloat(filterMax);});
+  list.sort(function(a,b){return getBalance(b.id)-getBalance(a.id);});
+  var td=0,tp=0;
+  list.forEach(function(p){txs.filter(function(t){return t.person_id===p.id;}).forEach(function(t){var a=parseFloat(t.amount||0);t.type==='payment'?tp+=a:td+=a;});});
+  var filterDesc=[
     filterType!=='all'?{all:'Tümü',debt:'Borçlular',clean:'Temiz',overdue:'Gecikmiş'}[filterType]:'',
-    filterMin!==''?`Min ₺${filterMin}`:'',
-    filterMax!==''?`Max ₺${filterMax}`:'',
-    search?`Arama: "${search}"`:'',
-  ].filter(Boolean).join(' · ') || 'Tüm Cariler';
-
-  const html=`<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><title>Cari Rapor — ${filterDesc}</title>
-  <style>body{font-family:Arial,sans-serif;margin:30px;font-size:13px;color:#222}h1{color:#0C447C;font-size:19px}
-  .sub{color:#666;font-size:11px;margin-bottom:6px}.filter-tag{display:inline-block;background:#EAF2FB;color:#0C447C;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;margin-bottom:16px}
-  .sum{display:flex;gap:20px;background:#EAF2FB;padding:12px;border-radius:8px;margin-bottom:18px}
-  .sb{text-align:center}.sl{font-size:10px;font-weight:bold;color:#666;text-transform:uppercase}.sv{font-size:15px;font-weight:900;margin-top:2px}
-  table{width:100%;border-collapse:collapse;margin-bottom:22px}th{background:#0C447C;color:#fff;padding:8px;font-size:11px;text-align:left}
-  td{padding:7px 8px;border-bottom:1px solid #eee;font-size:12px}tr:nth-child(even) td{background:#f9f9f9}
-  .dr{color:#C0392B;font-weight:bold}.dp{color:#1A7A4A;font-weight:bold}.dw{color:#D97706;font-weight:bold}</style></head><body>
-  <h1>🩺 Cari Hesap Raporu</h1>
-  <div class="sub">${currentUser?currentUser.full_name:''} · ${new Date().toLocaleDateString('tr-TR',{day:'2-digit',month:'long',year:'numeric'})}</div>
-  <div class="filter-tag">🔍 Filtre: ${filterDesc} — ${list.length} kişi</div>
-  <div class="sum">
-    <div class="sb"><div class="sl">Toplam Borç</div><div class="sv" style="color:#C0392B">-${fmt(td)}</div></div>
-    <div class="sb"><div class="sl">Tahsil Edilen</div><div class="sv" style="color:#1A7A4A">+${fmt(tp)}</div></div>
-    <div class="sb"><div class="sl">Net Alacak</div><div class="sv">${fmt(td-tp)}</div></div>
-    <div class="sb"><div class="sl">Kişi Sayısı</div><div class="sv">${list.length}</div></div>
-  </div>
-  <table><tr><th>Ad Soyad</th><th>Telefon</th><th>Adres</th><th>Toplam Borç</th><th>Ödenen</th><th>Bakiye</th><th>Durum</th></tr>
-  ${list.map(p=>{let d=0,pd=0;txs.filter(t=>t.person_id===p.id).forEach(t=>{const a=parseFloat(t.amount||0);t.type==='payment'?pd+=a:d+=a;});const b=d-pd;const over=isOverdue(p.id);
-    return `<tr><td>${p.name}</td><td>${p.phone||'-'}</td><td>${p.address||'-'}</td><td class="dr">-${fmt(d)}</td><td class="dp">+${fmt(pd)}</td><td class="${b>0?'dr':'dp'}">${b>0?'-':'+'}${fmt(Math.abs(b))}</td><td>${over?'<span style="color:#C0392B;font-weight:700">⚠️ Gecikmiş</span>':b>0?'Borçlu':'✅ Temiz'}</td></tr>`;
-  }).join('')}</table>
-  <script>window.onload=()=>window.print()<\/script></body></html>`;
-  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([html],{type:'text/html'})); a.download=`cari-filtreli-rapor-${today()}.html`; a.click();
+    filterMin!==''?'Min '+filterMin+' TL':'',
+    filterMax!==''?'Max '+filterMax+' TL':'',
+    search?'Arama: '+search:'',
+  ].filter(Boolean).join(' - ')||'Tüm Cariler';
+  var tarih=new Date().toLocaleDateString('tr-TR',{day:'2-digit',month:'long',year:'numeric'});
+  var rows=list.map(function(p){
+    var d=0,pd=0;
+    txs.filter(function(t){return t.person_id===p.id;}).forEach(function(t){var a=parseFloat(t.amount||0);t.type==='payment'?pd+=a:d+=a;});
+    var b=d-pd; var over=isOverdue(p.id);
+    return '<tr><td>'+p.name+'</td><td>'+(p.phone||'-')+'</td><td>'+(p.address||'-')+'</td>'
+      +'<td class="dr">-'+fmt(d)+'</td><td class="dp">+'+fmt(pd)+'</td>'
+      +'<td class="'+(b>0?'dr':'dp')+'">'+(b>0?'-':'+')+fmt(Math.abs(b))+'</td>'
+      +'<td>'+(over?'<b style="color:#C0392B">Gecikmiş</b>':b>0?'Borçlu':'Temiz')+'</td></tr>';
+  }).join('');
+  var html='<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><title>Cari Rapor</title>'
+    +'<style>'+REPORT_CSS+'</style></head><body>'
+    +'<h1>Cari Hesap Raporu</h1>'
+    +'<div class="sub">'+(currentUser?currentUser.full_name:'')+' - '+tarih+'</div>'
+    +'<div class="filter-tag">Filtre: '+filterDesc+' - '+list.length+' kisi</div>'
+    +'<div class="sum">'
+      +'<div class="sb"><div class="sl">Toplam Borc</div><div class="sv" style="color:#C0392B">-'+fmt(td)+'</div></div>'
+      +'<div class="sb"><div class="sl">Tahsil Edilen</div><div class="sv" style="color:#1A7A4A">+'+fmt(tp)+'</div></div>'
+      +'<div class="sb"><div class="sl">Net Alacak</div><div class="sv">'+fmt(td-tp)+'</div></div>'
+      +'<div class="sb"><div class="sl">Kisi Sayisi</div><div class="sv">'+list.length+'</div></div>'
+    +'</div>'
+    +'<table><tr><th>Ad Soyad</th><th>Telefon</th><th>Adres</th><th>Toplam Borc</th><th>Odenen</th><th>Bakiye</th><th>Durum</th></tr>'+rows+'</table>'
+    +'<script>window.onload=function(){window.print();}<\/script>'
+    +'</body></html>';
+  openPrintWindow(html);
 }
 
 function dlFullReport(){
-  const sorted=[...persons].sort((a,b)=>a.name.localeCompare(b.name,'tr'));
-  let td=0,tp=0; txs.forEach(t=>{ const a=parseFloat(t.amount||0); t.type==='payment'?tp+=a:td+=a; });
-  const overdueList=getOverduePersons();
-  const html=`<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><title>Cari Rapor</title>
-  <style>body{font-family:Arial,sans-serif;margin:30px;font-size:13px;color:#222}h1{color:#0C447C;font-size:19px}
-  .sub{color:#666;font-size:11px;margin-bottom:18px}.sum{display:flex;gap:20px;background:#EAF2FB;padding:12px;border-radius:8px;margin-bottom:18px}
-  .sb{text-align:center}.sl{font-size:10px;font-weight:bold;color:#666;text-transform:uppercase}.sv{font-size:15px;font-weight:900;margin-top:2px}
-  table{width:100%;border-collapse:collapse;margin-bottom:22px}th{background:#0C447C;color:#fff;padding:8px;font-size:11px;text-align:left}
-  td{padding:7px 8px;border-bottom:1px solid #eee;font-size:12px}tr:nth-child(even) td{background:#f9f9f9}
-  .dr{color:#C0392B;font-weight:bold}.dp{color:#1A7A4A;font-weight:bold}.dw{color:#D97706;font-weight:bold}
-  h2{color:#0C447C;font-size:14px;border-bottom:2px solid #EAF2FB;padding-bottom:5px;margin:18px 0 10px}.pb{page-break-before:always}</style></head><body>
-  <h1>🩺 Veteriner Cari Hesap Raporu</h1>
-  <div class="sub">${currentUser?currentUser.full_name:''} · ${new Date().toLocaleDateString('tr-TR',{day:'2-digit',month:'long',year:'numeric'})}</div>
-  <div class="sum">
-    <div class="sb"><div class="sl">Toplam Borç</div><div class="sv" style="color:#C0392B">-${fmt(td)}</div></div>
-    <div class="sb"><div class="sl">Tahsil Edilen</div><div class="sv" style="color:#1A7A4A">+${fmt(tp)}</div></div>
-    <div class="sb"><div class="sl">Net Alacak</div><div class="sv">${fmt(td-tp)}</div></div>
-    <div class="sb"><div class="sl">Gecikmiş</div><div class="sv" style="color:#C0392B">${overdueList.length} kişi</div></div>
-  </div>
-  ${overdueList.length?`<h2>⚠️ Gecikmiş Ödemeler</h2>
-  <table><tr><th>Ad Soyad</th><th>Telefon</th><th>Bakiye</th><th>Gecikme</th></tr>
-  ${overdueList.map(p=>{ const due=getEarliestDue(p.id); const g=due?Math.abs(daysDiff(due.due_date)):0;
-    return `<tr><td>${p.name}</td><td>${p.phone||'-'}</td><td class="dr">-${fmt(getBalance(p.id))}</td><td class="dw">${g} gün</td></tr>`;
-  }).join('')}</table>`:''}
-  <h2>Cari Hesap Özeti</h2>
-  <table><tr><th>Ad Soyad</th><th>Telefon</th><th>Adres</th><th>Toplam Borç</th><th>Ödenen</th><th>Bakiye</th></tr>
-  ${sorted.map(p=>{let d=0,pd=0;txs.filter(t=>t.person_id===p.id).forEach(t=>{const a=parseFloat(t.amount||0);t.type==='payment'?pd+=a:d+=a;});const b=d-pd;
-    return `<tr><td>${p.name}</td><td>${p.phone||'-'}</td><td>${p.address||'-'}</td><td class="dr">-${fmt(d)}</td><td class="dp">+${fmt(pd)}</td><td class="${b>0?'dr':'dp'}">${b>0?'-':'+'}${fmt(Math.abs(b))}</td></tr>`;
-  }).join('')}</table>
-  <div class="pb"></div><h2>Tüm İşlemler</h2>
-  <table><tr><th>Tarih</th><th>Kişi</th><th>Tür</th><th>Açıklama</th><th>Vade</th><th>Tutar</th></tr>
-  ${[...txs].sort((a,b)=>new Date(b.date)-new Date(a.date)).map(t=>{const p=sorted.find(x=>x.id===t.person_id);const tp=TX_TYPES[t.type]||{icon:'',label:t.type};const isPos=t.type==='payment';
-    return `<tr><td>${fmtDate(t.date)}</td><td>${p?p.name:'-'}</td><td>${tp.icon} ${tp.label}</td><td>${t.desc||'-'}</td><td>${t.due_date?fmtDate(t.due_date):'-'}</td><td class="${isPos?'dp':'dr'}">${isPos?'+':'-'}${fmt(t.amount)}</td></tr>`;
-  }).join('')}</table>
-  <script>window.onload=()=>window.print()<\/script></body></html>`;
-  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([html],{type:'text/html'})); a.download=`cari-rapor-${today()}.html`; a.click();
+  var sorted=[].concat(persons).sort(function(a,b){return a.name.localeCompare(b.name,'tr');});
+  var td=0,tp=0;
+  txs.forEach(function(t){var a=parseFloat(t.amount||0);t.type==='payment'?tp+=a:td+=a;});
+  var overdueList=getOverduePersons();
+  var tarih=new Date().toLocaleDateString('tr-TR',{day:'2-digit',month:'long',year:'numeric'});
+  var overdueRows=overdueList.map(function(p){
+    var due=getEarliestDue(p.id); var g=due?Math.abs(daysDiff(due.due_date)):0;
+    return '<tr><td>'+p.name+'</td><td>'+(p.phone||'-')+'</td><td class="dr">-'+fmt(getBalance(p.id))+'</td><td class="dw">'+g+' gun</td></tr>';
+  }).join('');
+  var summaryRows=sorted.map(function(p){
+    var d=0,pd=0;
+    txs.filter(function(t){return t.person_id===p.id;}).forEach(function(t){var a=parseFloat(t.amount||0);t.type==='payment'?pd+=a:d+=a;});
+    var b=d-pd;
+    return '<tr><td>'+p.name+'</td><td>'+(p.phone||'-')+'</td><td>'+(p.address||'-')+'</td>'
+      +'<td class="dr">-'+fmt(d)+'</td><td class="dp">+'+fmt(pd)+'</td>'
+      +'<td class="'+(b>0?'dr':'dp')+'">'+(b>0?'-':'+')+fmt(Math.abs(b))+'</td></tr>';
+  }).join('');
+  var txRows=[].concat(txs).sort(function(a,b){return new Date(b.date)-new Date(a.date);}).map(function(t){
+    var p2=sorted.find(function(x){return x.id===t.person_id;}); var tp2=TX_TYPES[t.type]||{icon:'',label:t.type}; var isPos=t.type==='payment';
+    return '<tr><td>'+fmtDate(t.date)+'</td><td>'+(p2?p2.name:'-')+'</td><td>'+tp2.label+'</td>'
+      +'<td>'+(t.desc||'-')+'</td><td>'+(t.due_date?fmtDate(t.due_date):'-')+'</td>'
+      +'<td class="'+(isPos?'dp':'dr')+'">'+(isPos?'+':'-')+fmt(t.amount)+'</td></tr>';
+  }).join('');
+  var html='<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><title>Cari Rapor</title>'
+    +'<style>'+REPORT_CSS+'</style></head><body>'
+    +'<h1>Veteriner Cari Hesap Raporu</h1>'
+    +'<div class="sub">'+(currentUser?currentUser.full_name:'')+' - '+tarih+'</div>'
+    +'<div class="sum">'
+      +'<div class="sb"><div class="sl">Toplam Borc</div><div class="sv" style="color:#C0392B">-'+fmt(td)+'</div></div>'
+      +'<div class="sb"><div class="sl">Tahsil Edilen</div><div class="sv" style="color:#1A7A4A">+'+fmt(tp)+'</div></div>'
+      +'<div class="sb"><div class="sl">Net Alacak</div><div class="sv">'+fmt(td-tp)+'</div></div>'
+      +'<div class="sb"><div class="sl">Gecikmiş</div><div class="sv" style="color:#C0392B">'+overdueList.length+' kisi</div></div>'
+    +'</div>'
+    +(overdueList.length?'<h2>Gecikmiş Ödemeler</h2><table><tr><th>Ad Soyad</th><th>Telefon</th><th>Bakiye</th><th>Gecikme</th></tr>'+overdueRows+'</table>':'')
+    +'<h2>Cari Hesap Özeti</h2>'
+    +'<table><tr><th>Ad Soyad</th><th>Telefon</th><th>Adres</th><th>Toplam Borc</th><th>Odenen</th><th>Bakiye</th></tr>'+summaryRows+'</table>'
+    +'<div class="pb"></div>'
+    +'<h2>Tüm Islemler</h2>'
+    +'<table><tr><th>Tarih</th><th>Kisi</th><th>Tur</th><th>Aciklama</th><th>Vade</th><th>Tutar</th></tr>'+txRows+'</table>'
+    +'<script>window.onload=function(){window.print();}<\/script>'
+    +'</body></html>';
+  openPrintWindow(html);
 }
 
 function dlPersonReport(pid){
-  const p=persons.find(x=>x.id===pid); if(!p) return;
-  const ptxs=txs.filter(t=>t.person_id===pid).sort((a,b)=>new Date(a.date)-new Date(b.date));
-  let d=0,pd=0; ptxs.forEach(t=>{ const a=parseFloat(t.amount||0); t.type==='payment'?pd+=a:d+=a; }); const b=d-pd;
-  const html=`<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><title>${p.name} Hesap Raporu</title>
-  <style>body{font-family:Arial,sans-serif;margin:30px;font-size:13px;color:#222}h1{color:#0C447C;font-size:17px}
-  .sub{color:#666;font-size:11px;margin-bottom:14px}.sum{background:#EAF2FB;padding:12px;border-radius:8px;margin-bottom:14px;display:flex;gap:20px}
-  .sb{text-align:center}.sl{font-size:10px;font-weight:bold;color:#666;text-transform:uppercase}.sv{font-size:14px;font-weight:900;margin-top:2px}
-  table{width:100%;border-collapse:collapse}th{background:#0C447C;color:#fff;padding:8px;font-size:11px;text-align:left}
-  td{padding:7px 8px;border-bottom:1px solid #eee;font-size:12px}tr:nth-child(even) td{background:#f9f9f9}
-  .dr{color:#C0392B;font-weight:bold}.dp{color:#1A7A4A;font-weight:bold}</style></head><body>
-  <h1>🩺 ${p.name} — Cari Hesap Raporu</h1>
-  <div class="sub">${currentUser?currentUser.full_name:''} · ${p.phone||''} · ${new Date().toLocaleDateString('tr-TR',{day:'2-digit',month:'long',year:'numeric'})}</div>
-  <div class="sum">
-    <div class="sb"><div class="sl">Toplam Borç</div><div class="sv" style="color:#C0392B">-${fmt(d)}</div></div>
-    <div class="sb"><div class="sl">Ödenen</div><div class="sv" style="color:#1A7A4A">+${fmt(pd)}</div></div>
-    <div class="sb"><div class="sl">Bakiye</div><div class="sv" style="color:${b>0?'#C0392B':'#1A7A4A'}">${b>0?'-':'+'}${fmt(Math.abs(b))}</div></div>
-  </div>
-  <table><tr><th>Tarih</th><th>Tür</th><th>Açıklama</th><th>Vade</th><th>Not</th><th>Tutar</th></tr>
-  ${ptxs.map(t=>{const tp=TX_TYPES[t.type]||{icon:'',label:t.type};const isPos=t.type==='payment';
-    return `<tr><td>${fmtDate(t.date)}</td><td>${tp.icon} ${tp.label}</td><td>${t.desc||'-'}</td><td>${t.due_date?fmtDate(t.due_date):'-'}</td><td>${t.note||'-'}</td><td class="${isPos?'dp':'dr'}">${isPos?'+':'-'}${fmt(t.amount)}</td></tr>`;
-  }).join('')}</table>
-  <script>window.onload=()=>window.print()<\/script></body></html>`;
-  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([html],{type:'text/html'})); a.download=`${p.name.replace(/\s+/g,'-')}-hesap-${today()}.html`; a.click();
+  var p=persons.find(function(x){return x.id===pid;}); if(!p) return;
+  var ptxs=txs.filter(function(t){return t.person_id===pid;}).sort(function(a,b){return new Date(b.date)-new Date(a.date);});
+  var d=0,pd=0;
+  ptxs.forEach(function(t){var a=parseFloat(t.amount||0);t.type==='payment'?pd+=a:d+=a;});
+  var b=d-pd;
+  var tarih=new Date().toLocaleDateString('tr-TR',{day:'2-digit',month:'long',year:'numeric'});
+  var rows=ptxs.map(function(t){
+    var tp2=TX_TYPES[t.type]||{icon:'',label:t.type}; var isPos=t.type==='payment';
+    return '<tr><td>'+fmtDate(t.date)+'</td><td>'+tp2.label+'</td><td>'+(t.desc||'-')+'</td>'
+      +'<td>'+(t.due_date?fmtDate(t.due_date):'-')+'</td><td>'+(t.note||'-')+'</td>'
+      +'<td class="'+(isPos?'dp':'dr')+'">'+(isPos?'+':'-')+fmt(t.amount)+'</td></tr>';
+  }).join('');
+  var html='<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><title>'+p.name+' Hesap Raporu</title>'
+    +'<style>'+REPORT_CSS+'</style></head><body>'
+    +'<h1>'+p.name+' - Cari Hesap Raporu</h1>'
+    +'<div class="sub">'+(currentUser?currentUser.full_name:'')+' - '+(p.phone||'')+' - '+tarih+'</div>'
+    +'<div class="sum">'
+      +'<div class="sb"><div class="sl">Toplam Borc</div><div class="sv" style="color:#C0392B">-'+fmt(d)+'</div></div>'
+      +'<div class="sb"><div class="sl">Odenen</div><div class="sv" style="color:#1A7A4A">+'+fmt(pd)+'</div></div>'
+      +'<div class="sb"><div class="sl">Bakiye</div><div class="sv" style="color:'+(b>0?'#C0392B':'#1A7A4A')+'">'+(b>0?'-':'+')+fmt(Math.abs(b))+'</div></div>'
+    +'</div>'
+    +'<table><tr><th>Tarih</th><th>Tur</th><th>Aciklama</th><th>Vade</th><th>Not</th><th>Tutar</th></tr>'+rows+'</table>'
+    +'<script>window.onload=function(){window.print();}<\/script>'
+    +'</body></html>';
+  openPrintWindow(html);
 }
 
 // ─── INIT ─────────────────────────────────────────────────────
