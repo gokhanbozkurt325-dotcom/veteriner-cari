@@ -289,6 +289,7 @@ const daysDiff = (d)=>{ const ms=new Date(d)-new Date(today()); return Math.ceil
 let persons=[], txs=[], dataLoading=true;
 let pinVal='', pinErr='';
 let nav='home', detailPid=null, txTab='all', filterType='all', search='';
+let filterMin='', filterMax='', filterPanelOpen=false;
 let navHistory=[];
 
 function navigateTo(newNav, opts={}){
@@ -315,7 +316,6 @@ let calSelectedDay=null;
 let farms=[], animals=[], animalEvents=[];
 let farmNav='farms', selectedFarmId=null, selectedAnimalId=null;
 let animalSearch='', animalFilterBreed='all', animalFilterStatus='all', animalFilterAlert='all';
-let filterPanelOpen=false;
 let farmFilter='all', farmSearch='';
 let homeFarmOpen=false;
 let selectedAnimals=new Set(), bulkMode=false;
@@ -644,7 +644,7 @@ function buildCalendar(){
       <div class="cal-leg-item"><div class="cal-leg-dot cd-red"></div>Gecikmiş</div>
       <div class="cal-leg-item"><div class="cal-leg-dot cd-amber"></div>7 gün içinde</div>
       <div class="cal-leg-item"><div class="cal-leg-dot cd-green"></div>İleride vadeli</div>
-      <div class="cal-leg-item"><div class="cal-leg-dot cd-purple"></div>Raporlama</div>
+      <div class="cal-leg-item"><div class="cal-leg-dot cd-purple"></div>Hatırlatma</div>
     </div>
     <div class="cal-days-row">
       ${['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'].map((d,i)=>`<div class="cal-day-name ${i===6?'sun':i===5?'sat':''}">${d}</div>`).join('')}
@@ -868,6 +868,8 @@ function buildPersonsList(){
   if(filterType==='debt') list=list.filter(p=>getBalance(p.id)>0);
   if(filterType==='clean') list=list.filter(p=>getBalance(p.id)<=0);
   if(filterType==='overdue') list=list.filter(p=>isOverdue(p.id));
+  if(filterMin!=='') list=list.filter(p=>getBalance(p.id)>=parseFloat(filterMin));
+  if(filterMax!=='') list=list.filter(p=>getBalance(p.id)<=parseFloat(filterMax));
   list.sort((a,b)=>getBalance(b.id)-getBalance(a.id));
   return list.length?list.map(p=>{
     const bal=getBalance(p.id);
@@ -940,8 +942,9 @@ function buildPersons(){
     return `<span style="color:${col};font-size:10px;font-weight:700">${arr}${Math.abs(pct)}% (${fmt(absDiff)})</span>`;
   }
 
-  if(!window._chartMode) window._chartMode='7';
-  const cm=window._chartMode;
+  const activeFilterCount2 = (filterMin!==''?1:0)+(filterMax!==''?1:0)+(filterType!=='all'?1:0);
+  const overduePersons = persons.filter(p=>isOverdue(p.id));
+  const overdueTotal = overduePersons.reduce((s,p)=>s+getBalance(p.id),0);
 
   return `
   <div style="background:#fff;border-radius:var(--radius);border:1px solid var(--gray2);box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden">
@@ -1043,9 +1046,49 @@ function buildPersons(){
   </div>
 
   <div class="search-bar"><span class="search-icon">🔍</span><input class="fi" id="search-input" placeholder="İsim veya telefon ara..." value="${search}" autocomplete="off"></div>
-  <div class="chip-row">
-    ${[['all','Tümü'],['debt','Borçlu'],['overdue','Gecikmiş 🔴'],['clean','Temiz']].map(([k,l])=>`<div class="chip ${k==='overdue'?'red-chip':''} ${filterType===k?'active':''}" data-filter="${k}">${l}</div>`).join('')}
+
+  <!-- Chip + Filtre + Rapor satırı -->
+  <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
+    <div class="chip-row" style="flex:1;margin-bottom:0">
+      ${[['all','Tümü'],['debt','Borçlu'],['overdue','Gecikmiş 🔴'],['clean','Temiz']].map(([k,l])=>`<div class="chip ${k==='overdue'?'red-chip':''} ${filterType===k?'active':''}" data-filter="${k}">${l}</div>`).join('')}
+    </div>
+    <button id="filter-panel-btn" style="border:none;background:${filterPanelOpen||activeFilterCount2>0?'var(--blue)':'var(--gray)'};color:${filterPanelOpen||activeFilterCount2>0?'#fff':'var(--gray4)'};border-radius:9px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">
+      ⚙️ Filtre${activeFilterCount2>0?' ('+activeFilterCount2+')':''}
+    </button>
+    <button id="persons-report-btn" style="border:none;background:var(--blue);color:#fff;border-radius:9px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">📊 Rapor</button>
   </div>
+
+  <!-- Açılır Filtre Paneli -->
+  ${filterPanelOpen?`
+  <div style="background:#f8fafc;border:1.5px solid var(--blue);border-radius:12px;padding:12px 14px;margin-bottom:12px">
+    <div style="font-size:11px;font-weight:800;color:var(--blue);margin-bottom:10px;text-transform:uppercase;letter-spacing:.4px">💰 Miktara Göre Filtrele</div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+      <div style="flex:1">
+        <div style="font-size:10px;color:var(--gray4);font-weight:600;margin-bottom:4px">Min Bakiye (₺)</div>
+        <input class="fi" id="filter-min-input" type="number" inputmode="decimal" placeholder="0" value="${filterMin}" style="font-size:12px;padding:8px 10px">
+      </div>
+      <div style="color:var(--gray3);font-size:16px;padding-top:16px">—</div>
+      <div style="flex:1">
+        <div style="font-size:10px;color:var(--gray4);font-weight:600;margin-bottom:4px">Max Bakiye (₺)</div>
+        <input class="fi" id="filter-max-input" type="number" inputmode="decimal" placeholder="Sınırsız" value="${filterMax}" style="font-size:12px;padding:8px 10px">
+      </div>
+    </div>
+    <div style="display:flex;gap:7px">
+      <button id="apply-filter-btn" style="flex:1;border:none;background:var(--blue);color:#fff;border-radius:9px;padding:9px;font-size:12px;font-weight:700;cursor:pointer">Uygula</button>
+      <button id="clear-filter-btn" style="border:none;background:var(--gray2);color:var(--text2);border-radius:9px;padding:9px 14px;font-size:12px;font-weight:600;cursor:pointer">Sıfırla</button>
+    </div>
+  </div>`:''}
+
+  <!-- Gecikmiş özet uyarısı -->
+  ${overduePersons.length>0?`
+  <div style="background:var(--red-light);border:1.5px solid var(--red);border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
+    <div>
+      <div style="font-size:11px;font-weight:800;color:var(--red)">⚠️ ${overduePersons.length} kişide ödeme gecikmiş</div>
+      <div style="font-size:11px;color:var(--red);opacity:.8;margin-top:2px">Toplam: ${fmt(overdueTotal)}</div>
+    </div>
+    <button onclick="filterType='overdue';render()" style="border:none;background:var(--red);color:#fff;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer">Göster</button>
+  </div>`:''}
+
   <div id="persons-list">${buildPersonsList()}</div>`;
 }
 
@@ -1098,21 +1141,32 @@ window.buildPersonsChart = function(){
   const n=pts.length;
   if(!n) return;
 
-  const maxVal=Math.max(...pts.map(p=>Math.max(p.debt,p.paid)),1);
+  const maxDebt=Math.max(...pts.map(p=>p.debt),1);
+  const maxPaid=Math.max(...pts.map(p=>p.paid),1);
 
   const xOf=i=>PAD.left+((n===1?0.5:i/(n-1))*iW);
-  const yOf=v=>PAD.top+iH-(v/maxVal)*iH;
+  // Borç sol eksen (kırmızı), tahsil sağ eksen (yeşil)
+  const yDebt=v=>PAD.top+iH-(v/maxDebt)*iH;
+  const yPaid=v=>PAD.top+iH-(v/maxPaid)*iH;
 
-  // Y eksen etiketleri (3 seviye)
-  ctx.fillStyle='rgba(0,0,0,.25)';
+  // Sol Y ekseni (borç - kırmızı)
   ctx.font=`9px Nunito Sans,sans-serif`;
   ctx.textAlign='right';
   [0.5,1].forEach(r=>{
-    const val=maxVal*r;
-    const y=yOf(val);
+    const val=maxDebt*r;
+    const y=yDebt(val);
+    ctx.fillStyle='rgba(239,68,68,.5)';
     ctx.fillText(val>=1000?Math.round(val/1000)+'K':Math.round(val)+'', PAD.left-4, y+3);
-    ctx.beginPath(); ctx.strokeStyle='rgba(0,0,0,.06)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.strokeStyle='rgba(0,0,0,.05)'; ctx.lineWidth=1;
     ctx.moveTo(PAD.left,y); ctx.lineTo(W-PAD.right,y); ctx.stroke();
+  });
+  // Sağ Y ekseni (tahsil - yeşil)
+  ctx.textAlign='left';
+  [0.5,1].forEach(r=>{
+    const val=maxPaid*r;
+    const y=yPaid(val);
+    ctx.fillStyle='rgba(34,197,94,.6)';
+    ctx.fillText(val>=1000?Math.round(val/1000)+'K':Math.round(val)+'', W-PAD.right+3, y+3);
   });
 
   // Alan çizim yardımcısı
@@ -1133,18 +1187,18 @@ window.buildPersonsChart = function(){
     ctx.stroke();
   }
 
-  drawArea('rgb(239,68,68)', 0.12, p=>yOf(p.debt));
-  drawArea('rgb(34,197,94)', 0.12, p=>yOf(p.paid));
-  drawLine('#ef4444', p=>yOf(p.debt));
-  drawLine('#22c55e', p=>yOf(p.paid));
+  drawArea('rgb(239,68,68)', 0.12, p=>yDebt(p.debt));
+  drawArea('rgb(34,197,94)', 0.12, p=>yPaid(p.paid));
+  drawLine('#ef4444', p=>yDebt(p.debt));
+  drawLine('#22c55e', p=>yPaid(p.paid));
 
   // Noktalar
   pts.forEach((p,i)=>{
     if(p.isToday || cm==='365'){
-      [['#ef4444',p.debt],['#22c55e',p.paid]].forEach(([c,v])=>{
-        ctx.beginPath(); ctx.arc(xOf(i),yOf(v),3.5,0,Math.PI*2);
+      [[' #ef4444',p.debt,yDebt],['#22c55e',p.paid,yPaid]].forEach(([c,v,yFn])=>{
+        ctx.beginPath(); ctx.arc(xOf(i),yFn(v),3.5,0,Math.PI*2);
         ctx.fillStyle='#fff'; ctx.fill();
-        ctx.strokeStyle=c; ctx.lineWidth=2; ctx.stroke();
+        ctx.strokeStyle=c.trim(); ctx.lineWidth=2; ctx.stroke();
       });
     }
   });
@@ -1179,23 +1233,26 @@ window.buildPersonsChart = function(){
     // Nokta vurgula
     ctx.clearRect(0,0,W,H);
     // Yeniden çiz
-    drawArea('rgb(239,68,68)', 0.12, pt=>yOf(pt.debt));
-    drawArea('rgb(34,197,94)', 0.12, pt=>yOf(pt.paid));
-    drawLine('#ef4444', pt=>yOf(pt.debt));
-    drawLine('#22c55e', pt=>yOf(pt.paid));
+    drawArea('rgb(239,68,68)', 0.12, pt=>yDebt(pt.debt));
+    drawArea('rgb(34,197,94)', 0.12, pt=>yPaid(pt.paid));
+    drawLine('#ef4444', pt=>yDebt(pt.debt));
+    drawLine('#22c55e', pt=>yPaid(pt.paid));
     if(todayIdx>=0){ ctx.beginPath(); ctx.setLineDash([3,3]); ctx.strokeStyle='rgba(12,68,124,.3)'; ctx.lineWidth=1; ctx.moveTo(xOf(todayIdx),PAD.top); ctx.lineTo(xOf(todayIdx),PAD.top+iH); ctx.stroke(); ctx.setLineDash([]); }
     // Seçili çizgi
     ctx.beginPath(); ctx.strokeStyle='rgba(0,0,0,.12)'; ctx.lineWidth=1; ctx.setLineDash([]);
     ctx.moveTo(xOf(idx),PAD.top); ctx.lineTo(xOf(idx),PAD.top+iH); ctx.stroke();
     // Seçili noktalar
-    [['#ef4444',p.debt],['#22c55e',p.paid]].forEach(([c,v])=>{
-      ctx.beginPath(); ctx.arc(xOf(idx),yOf(v),5,0,Math.PI*2);
+    [['#ef4444',p.debt,yDebt],['#22c55e',p.paid,yPaid]].forEach(([c,v,yFn])=>{
+      ctx.beginPath(); ctx.arc(xOf(idx),yFn(v),5,0,Math.PI*2);
       ctx.fillStyle='#fff'; ctx.fill();
       ctx.strokeStyle=c; ctx.lineWidth=2.5; ctx.stroke();
     });
     // Y eksen yeniden
-    ctx.fillStyle='rgba(0,0,0,.25)'; ctx.font=`9px Nunito Sans,sans-serif`; ctx.textAlign='right';
-    [0.5,1].forEach(r=>{ ctx.fillText((maxVal*r)>=1000?Math.round((maxVal*r)/1000)+'K':Math.round(maxVal*r)+'', PAD.left-4, yOf(maxVal*r)+3); });
+    ctx.font=`9px Nunito Sans,sans-serif`;
+    ctx.textAlign='right';
+    [0.5,1].forEach(r=>{ const val=maxDebt*r; ctx.fillStyle='rgba(239,68,68,.5)'; ctx.fillText(val>=1000?Math.round(val/1000)+'K':Math.round(val)+'', PAD.left-4, yDebt(val)+3); });
+    ctx.textAlign='left';
+    [0.5,1].forEach(r=>{ const val=maxPaid*r; ctx.fillStyle='rgba(34,197,94,.6)'; ctx.fillText(val>=1000?Math.round(val/1000)+'K':Math.round(val)+'', W-PAD.right+3, yPaid(val)+3); });
   }
 
   function idxFromX(clientX){
@@ -1226,6 +1283,8 @@ window.buildPersonsChart = function(){
 // ─── OVERDUE PAGE ─────────────────────────────────────────────
 function buildOverdue(){
   const list=getOverduePersons();
+  const totalOwed=list.reduce((s,p)=>s+getBalance(p.id),0);
+  const maxDelay=list.length?Math.max(...list.map(p=>{ const due=getEarliestDue(p.id); return due?Math.abs(daysDiff(due.due_date)):0; })):0;
   return `
   <div class="overdue-banner"><div class="ob-icon">⚠️</div><div class="ob-text">${list.length} kişide ödeme gecikmiş</div></div>
   ${list.length?list.map(p=>{
@@ -1233,7 +1292,9 @@ function buildOverdue(){
     const lastPay=getLastPayment(p.id);
     const bal=getBalance(p.id);
     const gün=due?Math.abs(daysDiff(due.due_date)):0;
-    return `<div class="list-item overdue" data-person="${p.id}">
+    const severity = gün>30?'var(--red)':gün>14?'var(--amber)':'var(--amber)';
+    const severityBg = gün>30?'var(--red-light)':'var(--amber-light)';
+    return `<div class="list-item overdue" data-person="${p.id}" style="padding-bottom:0;overflow:hidden">
       <div class="avatar overdue-av">${initials(p.name)}</div>
       <div class="ii">
         <div class="iname">${p.name}</div>
@@ -1245,8 +1306,31 @@ function buildOverdue(){
         <div class="amt amt-debt">-${fmt(bal)}</div>
         <button class="btn-sm btn-sm-wa wa-btn" data-pid="${p.id}" style="margin-top:6px;font-size:10px;padding:3px 7px" onclick="event.stopPropagation()">📱 WA</button>
       </div>
+      <div style="position:absolute;bottom:0;left:0;right:0;background:${severityBg};border-top:1px solid ${severity};padding:4px 14px;font-size:10px;font-weight:700;color:${severity}">
+        ${gün>30?'🔴 Kritik gecikme — '+gün+' gün':gün>14?'🟠 Uzun süreli — '+gün+' gün':'🟡 Yakın vadeli — '+gün+' gün'} · ${fmt(bal)}
+      </div>
     </div>`;
-  }).join(''):`<div class="empty"><div class="eicon">🎉</div><p>Gecikmiş ödeme yok!</p></div>`}`;
+  }).join(''):`<div class="empty"><div class="eicon">🎉</div><p>Gecikmiş ödeme yok!</p></div>`}
+
+  ${list.length?`
+  <div style="background:var(--red-light);border:1.5px solid var(--red);border-radius:12px;padding:14px;margin-top:14px">
+    <div style="font-size:11px;font-weight:800;color:var(--red);margin-bottom:10px;text-transform:uppercase;letter-spacing:.4px">📋 Gecikme Özeti</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <div style="background:#fff;border-radius:9px;padding:10px;text-align:center">
+        <div style="font-size:9px;color:var(--gray4);font-weight:700;text-transform:uppercase">Gecikmiş Kişi</div>
+        <div style="font-family:'Nunito',sans-serif;font-size:20px;font-weight:900;color:var(--red)">${list.length}</div>
+      </div>
+      <div style="background:#fff;border-radius:9px;padding:10px;text-align:center">
+        <div style="font-size:9px;color:var(--gray4);font-weight:700;text-transform:uppercase">Toplam Alacak</div>
+        <div style="font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;color:var(--red)">${fmt(totalOwed)}</div>
+      </div>
+      <div style="background:#fff;border-radius:9px;padding:10px;text-align:center">
+        <div style="font-size:9px;color:var(--gray4);font-weight:700;text-transform:uppercase">En Uzun</div>
+        <div style="font-family:'Nunito',sans-serif;font-size:20px;font-weight:900;color:var(--red)">${maxDelay}g</div>
+      </div>
+    </div>
+  </div>`:''}
+  `;
 }
 
 // ─── DETAIL ───────────────────────────────────────────────────
@@ -1781,6 +1865,19 @@ function bindEvents(){
     else render(); 
   });
   document.querySelectorAll('[data-filter]').forEach(c=>c.addEventListener('click',()=>{ filterType=c.dataset.filter; render(); }));
+
+  // Filtre paneli aç/kapat
+  document.getElementById('filter-panel-btn')?.addEventListener('click',()=>{ filterPanelOpen=!filterPanelOpen; render(); });
+  // Filtre uygula
+  document.getElementById('apply-filter-btn')?.addEventListener('click',()=>{
+    filterMin=document.getElementById('filter-min-input')?.value||'';
+    filterMax=document.getElementById('filter-max-input')?.value||'';
+    render();
+  });
+  // Filtre sıfırla
+  document.getElementById('clear-filter-btn')?.addEventListener('click',()=>{ filterMin=''; filterMax=''; filterType='all'; filterPanelOpen=false; render(); });
+  // Cariler rapor butonu
+  document.getElementById('persons-report-btn')?.addEventListener('click',()=>dlFilteredReport());
   document.querySelectorAll('[data-tab]').forEach(t=>t.addEventListener('click',()=>{ txTab=t.dataset.tab; render(); }));
   // Takvim navigasyon
   document.getElementById('cal-prev')?.addEventListener('click',()=>{
@@ -1997,6 +2094,52 @@ function bindEvents(){
 }
 
 // ─── REPORTS ──────────────────────────────────────────────────
+function dlFilteredReport(){
+  // Mevcut filtrelere göre liste oluştur
+  let list=[...persons];
+  if(search) list=list.filter(p=>p.name.toLowerCase().includes(search.toLowerCase())||(p.phone&&p.phone.includes(search)));
+  if(filterType==='debt') list=list.filter(p=>getBalance(p.id)>0);
+  if(filterType==='clean') list=list.filter(p=>getBalance(p.id)<=0);
+  if(filterType==='overdue') list=list.filter(p=>isOverdue(p.id));
+  if(filterMin!=='') list=list.filter(p=>getBalance(p.id)>=parseFloat(filterMin));
+  if(filterMax!=='') list=list.filter(p=>getBalance(p.id)<=parseFloat(filterMax));
+  list.sort((a,b)=>getBalance(b.id)-getBalance(a.id));
+
+  let td=0,tp=0;
+  list.forEach(p=>{ txs.filter(t=>t.person_id===p.id).forEach(t=>{ const a=parseFloat(t.amount||0); t.type==='payment'?tp+=a:td+=a; }); });
+
+  const filterDesc = [
+    filterType!=='all'?{all:'Tümü',debt:'Borçlular',clean:'Temiz',overdue:'Gecikmiş'}[filterType]:'',
+    filterMin!==''?`Min ₺${filterMin}`:'',
+    filterMax!==''?`Max ₺${filterMax}`:'',
+    search?`Arama: "${search}"`:'',
+  ].filter(Boolean).join(' · ') || 'Tüm Cariler';
+
+  const html=`<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><title>Cari Rapor — ${filterDesc}</title>
+  <style>body{font-family:Arial,sans-serif;margin:30px;font-size:13px;color:#222}h1{color:#0C447C;font-size:19px}
+  .sub{color:#666;font-size:11px;margin-bottom:6px}.filter-tag{display:inline-block;background:#EAF2FB;color:#0C447C;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;margin-bottom:16px}
+  .sum{display:flex;gap:20px;background:#EAF2FB;padding:12px;border-radius:8px;margin-bottom:18px}
+  .sb{text-align:center}.sl{font-size:10px;font-weight:bold;color:#666;text-transform:uppercase}.sv{font-size:15px;font-weight:900;margin-top:2px}
+  table{width:100%;border-collapse:collapse;margin-bottom:22px}th{background:#0C447C;color:#fff;padding:8px;font-size:11px;text-align:left}
+  td{padding:7px 8px;border-bottom:1px solid #eee;font-size:12px}tr:nth-child(even) td{background:#f9f9f9}
+  .dr{color:#C0392B;font-weight:bold}.dp{color:#1A7A4A;font-weight:bold}.dw{color:#D97706;font-weight:bold}</style></head><body>
+  <h1>🩺 Cari Hesap Raporu</h1>
+  <div class="sub">${currentUser?currentUser.full_name:''} · ${new Date().toLocaleDateString('tr-TR',{day:'2-digit',month:'long',year:'numeric'})}</div>
+  <div class="filter-tag">🔍 Filtre: ${filterDesc} — ${list.length} kişi</div>
+  <div class="sum">
+    <div class="sb"><div class="sl">Toplam Borç</div><div class="sv" style="color:#C0392B">-${fmt(td)}</div></div>
+    <div class="sb"><div class="sl">Tahsil Edilen</div><div class="sv" style="color:#1A7A4A">+${fmt(tp)}</div></div>
+    <div class="sb"><div class="sl">Net Alacak</div><div class="sv">${fmt(td-tp)}</div></div>
+    <div class="sb"><div class="sl">Kişi Sayısı</div><div class="sv">${list.length}</div></div>
+  </div>
+  <table><tr><th>Ad Soyad</th><th>Telefon</th><th>Adres</th><th>Toplam Borç</th><th>Ödenen</th><th>Bakiye</th><th>Durum</th></tr>
+  ${list.map(p=>{let d=0,pd=0;txs.filter(t=>t.person_id===p.id).forEach(t=>{const a=parseFloat(t.amount||0);t.type==='payment'?pd+=a:d+=a;});const b=d-pd;const over=isOverdue(p.id);
+    return `<tr><td>${p.name}</td><td>${p.phone||'-'}</td><td>${p.address||'-'}</td><td class="dr">-${fmt(d)}</td><td class="dp">+${fmt(pd)}</td><td class="${b>0?'dr':'dp'}">${b>0?'-':'+'}${fmt(Math.abs(b))}</td><td>${over?'<span style="color:#C0392B;font-weight:700">⚠️ Gecikmiş</span>':b>0?'Borçlu':'✅ Temiz'}</td></tr>`;
+  }).join('')}</table>
+  <script>window.onload=()=>window.print()<\/script></body></html>`;
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([html],{type:'text/html'})); a.download=`cari-filtreli-rapor-${today()}.html`; a.click();
+}
+
 function dlFullReport(){
   const sorted=[...persons].sort((a,b)=>a.name.localeCompare(b.name,'tr'));
   let td=0,tp=0; txs.forEach(t=>{ const a=parseFloat(t.amount||0); t.type==='payment'?tp+=a:td+=a; });
