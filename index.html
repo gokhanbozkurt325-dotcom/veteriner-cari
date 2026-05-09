@@ -445,6 +445,34 @@ window.closeModal = function(){
 };
 
 // ─── RENDER ───────────────────────────────────────────────────
+
+// Global event delegation — render() sonrası DOM değişse de çalışır
+document.addEventListener('click', function(e){
+  // Cari kart tıklama
+  const card = e.target.closest('#persons-list [data-person], #overdue-list [data-person]');
+  if(card && !e.target.closest('.wa-btn') && !e.target.closest('button')){
+    detailPid = card.dataset.person;
+    navigateTo('detail', {keepPid:true});
+    txTab = 'all';
+    render();
+    return;
+  }
+  // FAB butonu
+  if(e.target.closest('#quick-add-btn')){
+    modal = 'gelistir';
+    render();
+    return;
+  }
+  // Geliştir gönder
+  if(e.target.closest('#gelistir-send-btn')){
+    const txt = document.getElementById('gelistir-text')?.value.trim();
+    if(!txt){ toast('⚠️ Lütfen bir şeyler yazın'); return; }
+    toast('✅ Teşekkürler! Geri bildiriminiz alındı 🙏');
+    closeModal();
+    return;
+  }
+});
+
 function render(){
   if(nav==='farms'){
     const overdueCount = currentUser ? getOverduePersons().length : 0;
@@ -894,7 +922,7 @@ function buildPersonsList(){
 }
 
 function bindPersonListEvents(){
-  document.querySelectorAll('[data-person]').forEach(el=>el.addEventListener('click',()=>{ detailPid=el.dataset.person; navigateTo('detail',{keepPid:true}); txTab='all'; render(); }));
+  // WA butonları (global delegation kapsamıyor)
   document.querySelectorAll('.wa-btn').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); sendWhatsApp(b.dataset.pid); }));
 }
 
@@ -1978,19 +2006,6 @@ function bindEvents(){
   document.getElementById('home-persons-btn')?.addEventListener('click',()=>{ navigateTo('persons'); render(); });
   document.getElementById('home-overdue-btn')?.addEventListener('click',()=>{ navigateTo('overdue'); render(); });
   document.getElementById('home-report-btn')?.addEventListener('click',()=>{ navigateTo('report'); render(); });
-
-  // Ana sayfa FAB — "Programı Geliştir"
-  document.getElementById('quick-add-btn')?.addEventListener('click',()=>{ modal='gelistir'; render(); });
-
-  // Gönder butonu
-  document.getElementById('gelistir-send-btn')?.addEventListener('click',()=>{
-    const txt=document.getElementById('gelistir-text')?.value.trim();
-    const name=document.getElementById('gelistir-name')?.value.trim();
-    if(!txt){ toast('⚠️ Lütfen bir şeyler yazın'); return; }
-    // WhatsApp ile gönder (opsiyonel) veya sadece teşekkür
-    toast('✅ Teşekkürler! Geri bildiriminiz alındı 🙏');
-    closeModal();
-  });
   document.getElementById('goto-farms-btn')?.addEventListener('click',async()=>{
     navigateTo('farms'); farmNav='farms'; homeFarmOpen=false; render(); await loadFarmData(); renderFarm();
   });
