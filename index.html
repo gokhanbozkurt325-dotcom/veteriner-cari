@@ -750,6 +750,8 @@ async function bindKvkkEvents(){
     try{ await sbReq('PATCH',`vc_users?id=eq.${currentUser.id}`,{kvkk_accepted_at:now}); }catch(e){ console.error('KVKK kayıt hatası',e); }
     setCurrentUser({...currentUser, kvkk_accepted_at:now});
     showKvkk=false;
+    // İlk giriş → ayarlara yönlendir (telefon/email girsin)
+    nav='settings';
     await loadAll();
   });
   document.getElementById('kvkk-reject-btn')?.addEventListener('click',()=>{
