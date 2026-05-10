@@ -21,6 +21,40 @@
 html,body{height:100%;background:var(--gray);font-family:'Nunito Sans',sans-serif;color:var(--text);overscroll-behavior:none}
 #app{max-width:480px;margin:0 auto;min-height:100vh;background:#fff;position:relative}
 
+/* TEMALAR */
+body.theme-default{}
+body.theme-forest{
+  --blue:#1B5E20;--blue2:#2E7D32;--blue-light:#E8F5E9;
+  --green:#1A7A4A;--green-light:#E6F4ED;
+  --gray:#F1F8F1;--gray2:#DCE8DC;
+}
+body.theme-sunset{
+  --blue:#B5451B;--blue2:#D4622A;--blue-light:#FBE9E7;
+  --green:#558B2F;--green-light:#F1F8E9;
+  --amber:#E65100;--amber-light:#FFF3E0;
+  --gray:#FDF5F0;--gray2:#F5E0D5;
+}
+body.theme-ocean{
+  --blue:#01579B;--blue2:#0277BD;--blue-light:#E1F5FE;
+  --green:#00695C;--green-light:#E0F2F1;
+  --purple:#4527A0;--purple-light:#EDE7F6;
+  --gray:#F0F7FF;--gray2:#D9EEF9;
+}
+body.theme-night{
+  --blue:#7C4DFF;--blue2:#651FFF;--blue-light:#F3EEFF;
+  --green:#00BFA5;--green-light:#E0F7F4;
+  --red:#FF5252;--red-light:#FFEBEE;
+  --amber:#FFD740;--amber-light:#FFFDE7;
+  --gray:#F5F0FF;--gray2:#E8E0FF;
+  --text:#1A0F33;--text2:#4A3F6B;
+}
+body.theme-rose{
+  --blue:#880E4F;--blue2:#AD1457;--blue-light:#FCE4EC;
+  --green:#2E7D32;--green-light:#E8F5E9;
+  --amber:#F57F17;--amber-light:#FFF8E1;
+  --gray:#FFF0F5;--gray2:#F8D7E8;
+}
+
 /* LOGIN */
 .login-wrap{min-height:100vh;background:linear-gradient(145deg,#0a3a6e 0%,#1565C0 55%,#0d47a1 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 20px;overflow:hidden;position:relative}
 .login-wrap::before{content:'';position:absolute;top:-60px;right:-60px;width:220px;height:220px;background:rgba(255,255,255,.04);border-radius:50%}
@@ -292,10 +326,18 @@ let nav='home', detailPid=null, txTab='all', filterType='all', search='';
 let filterMin='', filterMax='', filterPanelOpen=false;
 let navHistory=[];
 let announcements=[];
-let userMessages=[]; // kullanıcıya gelen admin yanıtları
-let adminMessages=[]; // admin paneli için gelen sorular
-let showKvkk=false; // KVKK onay ekranı
+let userMessages=[];
+let adminMessages=[];
+let showKvkk=false;
 let fabMenuOpen=false;
+let currentTheme=localStorage.getItem('vc_theme')||'default';
+
+function applyTheme(t){
+  currentTheme=t;
+  localStorage.setItem('vc_theme',t);
+  document.body.className='theme-'+t;
+}
+applyTheme(currentTheme);
 // Kapatılan duyuru ID'leri — oturum boyunca hatırla
 const dismissedAnnouncements = new Set();
 
@@ -1739,7 +1781,7 @@ function buildReport(){
 function canManageUsers(){ return isAdmin() || currentUser?.username==='cemilbas'; }
 
 function buildSettings(){
-  const card=(t,c)=>`<div style="background:#fff;border-radius:var(--radius);padding:16px;border:1px solid var(--gray2);box-shadow:var(--shadow);margin-bottom:10px"><div style="font-family:'Nunito',sans-serif;font-weight:800;font-size:14px;margin-bottom:12px">${t}</div>${c}</div>`;
+  const card=(t,c,accent)=>`<div style="background:#fff;border-radius:var(--radius);padding:16px;border:1px solid var(--gray2);box-shadow:var(--shadow);margin-bottom:10px${accent?';border-top:3px solid '+accent:''}"><div style="font-family:'Nunito',sans-serif;font-weight:800;font-size:14px;margin-bottom:12px">${t}</div>${c}</div>`;
 
   const failHistory=getLoginFailHistory();
   const now=Date.now();
@@ -1799,6 +1841,47 @@ function buildSettings(){
     <button class="btn-p" id="settings-add-user-btn" style="font-size:13px;margin-bottom:12px">+ Yeni Kullanıcı Ekle</button>
     <div id="settings-user-list"><div style="font-size:12px;color:var(--gray4)">Yükleniyor...</div></div>`):'';
 
+  // Tema kartı
+  const themes=[
+    {id:'default', label:'🔵 Klasik Mavi',   colors:['#0C447C','#185FA5','#EAF2FB']},
+    {id:'forest',  label:'🌲 Orman Yeşili',   colors:['#1B5E20','#2E7D32','#E8F5E9']},
+    {id:'sunset',  label:'🌅 Gün Batımı',     colors:['#B5451B','#D4622A','#FBE9E7']},
+    {id:'ocean',   label:'🌊 Derin Okyanus',  colors:['#01579B','#0277BD','#E1F5FE']},
+    {id:'night',   label:'🌙 Gece Moru',      colors:['#7C4DFF','#651FFF','#F3EEFF']},
+    {id:'rose',    label:'🌹 Gül Kırmızısı',  colors:['#880E4F','#AD1457','#FCE4EC']},
+  ];
+  const themeCard=card('🎨 Arayüz Teması',`
+    <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6">Uygulamanın renk temasını kişiselleştirin. Seçiminiz bu cihazda hatırlanır.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      ${themes.map(th=>`
+        <button onclick="applyTheme('${th.id}');document.querySelectorAll('.theme-btn').forEach(b=>b.classList.remove('theme-sel'));this.classList.add('theme-sel');render()" class="theme-btn${currentTheme===th.id?' theme-sel':''}"
+          style="border:2px solid ${currentTheme===th.id?'var(--blue)':'var(--gray2)'};border-radius:10px;padding:10px 8px;cursor:pointer;background:${th.colors[2]};display:flex;align-items:center;gap:8px;transition:.15s">
+          <div style="display:flex;gap:3px;flex-shrink:0">
+            ${th.colors.slice(0,2).map(c=>`<div style="width:12px;height:28px;border-radius:4px;background:${c}"></div>`).join('')}
+          </div>
+          <div style="text-align:left">
+            <div style="font-size:11px;font-weight:800;color:${th.colors[0]};line-height:1.3">${th.label}</div>
+            ${currentTheme===th.id?`<div style="font-size:9px;color:${th.colors[0]};opacity:.7;font-weight:700">✓ Aktif</div>`:''}
+          </div>
+        </button>`).join('')}
+    </div>`,'var(--purple)');
+
+  // Veri sıfırlama & üyelik sonlandırma
+  const dangerCard=card('⚠️ Tehlikeli Bölge',`
+    <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6">Bu işlemler geri alınamaz. Lütfen dikkatli olun.</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="border:1.5px solid var(--amber);border-radius:var(--radius-sm);padding:12px">
+        <div style="font-size:12px;font-weight:800;color:var(--amber);margin-bottom:6px">🗑 Tüm Verileri Sıfırla</div>
+        <div style="font-size:11px;color:var(--text2);margin-bottom:10px;line-height:1.6">Tüm cari kayıtlar, işlemler ve hatırlatmalar silinir. Hesabınız açık kalır. Bu işlem geri alınamaz.</div>
+        <button id="reset-data-btn" style="width:100%;border:none;background:var(--amber-light);color:var(--amber);border-radius:var(--radius-sm);padding:10px;font-family:'Nunito',sans-serif;font-weight:800;font-size:13px;cursor:pointer">🗑 Verilerimi Sıfırla</button>
+      </div>
+      <div style="border:1.5px solid var(--red);border-radius:var(--radius-sm);padding:12px">
+        <div style="font-size:12px;font-weight:800;color:var(--red);margin-bottom:6px">🚫 Üyeliği Sonlandır</div>
+        <div style="font-size:11px;color:var(--text2);margin-bottom:10px;line-height:1.6">Hesabınız kalıcı olarak kapatılır, tüm verileriniz silinir. Admin bilgilendirilir. Bu işlem geri alınamaz.</div>
+        <button id="terminate-account-btn" style="width:100%;border:none;background:var(--red-light);color:var(--red);border-radius:var(--radius-sm);padding:10px;font-family:'Nunito',sans-serif;font-weight:800;font-size:13px;cursor:pointer">🚫 Üyeliğimi Sonlandır</button>
+      </div>
+    </div>`,'#ef4444');
+
   return card('👤 Hesap Bilgisi',`
     <div style="font-size:13px;color:var(--text2);line-height:1.9;margin-bottom:14px">
       <div><b>Ad Soyad:</b> ${currentUser?.full_name||''}</div>
@@ -1806,6 +1889,7 @@ function buildSettings(){
       <div><b>Rol:</b> ${isAdmin()?'👑 Admin':'👤 Kullanıcı'}</div>
       <div><b>Versiyon:</b> 1.3</div>
       <div><b>Kayıtlı Kişi:</b> ${persons.length} · <b>İşlem:</b> ${txs.length}</div>
+      ${currentUser?.kvkk_accepted_at?`<div style="color:var(--green);font-size:11px;font-weight:700">✅ KVKK: ${fmtDate(currentUser.kvkk_accepted_at)}</div>`:''}
     </div>
     <div style="border-top:1px solid var(--gray2);padding-top:12px">
       <div style="font-size:11px;font-weight:800;color:var(--gray4);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px">📱 İletişim Bilgileri (Yedekleme için)</div>
@@ -1814,6 +1898,7 @@ function buildSettings(){
       <button class="btn-p" id="save-contact-btn" style="font-size:13px">💾 Kaydet</button>
       <p id="contact-msg" style="font-size:12px;margin-top:8px;min-height:16px"></p>
     </div>`)
+  +themeCard
   +failCard
   +backupCard
   +userCard
@@ -1823,6 +1908,7 @@ function buildSettings(){
     <div class="fg"><label class="fl">Yeni Şifre (Tekrar)</label><input class="fi" type="password" id="new-pin2" placeholder="Yeni şifre tekrar"></div>
     <p id="pin-msg" style="font-size:12px;margin-bottom:10px;min-height:16px"></p>
     <button class="btn-p" id="change-pin-btn">Şifreyi Güncelle</button>`)
+  +dangerCard
   +`<button class="btn-d" id="logout-btn" style="margin-top:6px">🚪 Çıkış Yap</button>`;
 }
 
@@ -2108,6 +2194,7 @@ function buildAdmin(){
       <div class="au-info">
         <div class="au-name">${u.full_name}
           ${u.role==='admin'?'<span class="au-badge admin">👑 Admin</span>':'<span class="au-badge active">Aktif</span>'}
+          ${u.terminated_at?'<span class="au-badge inactive">🚫 Sonlandırıldı</span>':''}
         </div>
         <div class="au-meta">@${u.username}</div>
         <div class="au-meta" style="margin-top:2px">
@@ -2115,6 +2202,7 @@ function buildAdmin(){
             ? `<span style="color:var(--green);font-size:10px;font-weight:700">✅ KVKK: ${new Date(u.kvkk_accepted_at).toLocaleDateString('tr-TR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</span>`
             : `<span style="color:var(--amber);font-size:10px;font-weight:700">⏳ KVKK henüz onaylanmadı</span>`}
         </div>
+        ${u.terminated_at?`<div class="au-meta" style="margin-top:2px"><span style="color:var(--red);font-size:10px;font-weight:700">🚫 Sonlandırma: ${new Date(u.terminated_at).toLocaleDateString('tr-TR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</span></div>`:''}
       </div>
       ${u.role!=='admin'?`<button class="btn-sm btn-sm-r deactivate-user-btn" data-uid="${u.id}" style="padding:6px 10px">🚫</button>`:''}
     </div>`).join('')}`;
@@ -2674,6 +2762,50 @@ function bindEvents(){
     modal=null; toast('✅ Güncellendi'); render();
   });
   document.getElementById('logout-btn')?.addEventListener('click',()=>{ clearCurrentUser(); persons=[]; txs=[]; reminders=[]; render(); });
+
+  // ── Verileri Sıfırla ──
+  document.getElementById('reset-data-btn')?.addEventListener('click',async()=>{
+    const onay=confirm(`⚠️ TÜM VERİLERİNİZ SİLİNECEK!\n\nCari kayıtlar, işlemler ve hatırlatmalar silinir.\nHesabınız açık kalır.\n\nEmin misiniz?`);
+    if(!onay) return;
+    const onay2=prompt(`Onaylamak için kullanıcı adınızı yazın: "${currentUser.username}"`);
+    if(onay2?.trim().toLowerCase()!==currentUser.username){ toast('❌ Kullanıcı adı eşleşmedi, işlem iptal.'); return; }
+    try{
+      await sbReq('DELETE',`vc_txs?user_id=eq.${userId()}`);
+      await sbReq('DELETE',`vc_persons?user_id=eq.${userId()}`);
+      await sbReq('DELETE',`vc_reminders?user_id=eq.${userId()}`);
+      persons=[]; txs=[]; reminders=[];
+      localStorage.removeItem('vc_persons_'+userId());
+      localStorage.removeItem('vc_txs_'+userId());
+      localStorage.removeItem('vc_reminders_'+userId());
+      // Admin'e bildir
+      await sbReq('POST','vc_messages',{id:uid(),from_user_id:userId(),from_name:currentUser.full_name,question:`🗑 VERİ SIFIRLAMA: ${currentUser.full_name} (@${currentUser.username}) tüm verilerini sıfırladı. Tarih: ${new Date().toLocaleString('tr-TR')}`,answer:null,answered_at:null,created_at:new Date().toISOString()});
+      toast('✅ Tüm veriler silindi');
+      render();
+    }catch(e){ toast('❌ Hata oluştu'); }
+  });
+
+  // ── Üyeliği Sonlandır ──
+  document.getElementById('terminate-account-btn')?.addEventListener('click',async()=>{
+    const onay=confirm(`🚫 ÜYELİĞİNİZ SONLANDIRILACAK!\n\nTüm verileriniz silinir ve hesabınız kapatılır.\nBu işlem GERİ ALINAMAZ.\n\nEmin misiniz?`);
+    if(!onay) return;
+    const onay2=prompt(`Onaylamak için şifrenizi girin:`);
+    if(onay2!==currentUser.password){ toast('❌ Şifre hatalı, işlem iptal.'); return; }
+    try{
+      // Verileri sil
+      await sbReq('DELETE',`vc_txs?user_id=eq.${userId()}`);
+      await sbReq('DELETE',`vc_persons?user_id=eq.${userId()}`);
+      await sbReq('DELETE',`vc_reminders?user_id=eq.${userId()}`);
+      // Hesabı pasife al + sonlandırıldı işareti
+      await sbReq('PATCH',`vc_users?id=eq.${userId()}`,{active:false, terminated_at:new Date().toISOString()});
+      // Admin'e bildir
+      await sbReq('POST','vc_messages',{id:uid(),from_user_id:userId(),from_name:currentUser.full_name,question:`🚫 ÜYELİK SONLANDIRILDI: ${currentUser.full_name} (@${currentUser.username}) üyeliğini sonlandırdı. Tarih: ${new Date().toLocaleString('tr-TR')}`,answer:null,answered_at:null,created_at:new Date().toISOString()});
+      clearCurrentUser();
+      persons=[]; txs=[]; reminders=[];
+      localStorage.clear();
+      alert('Üyeliğiniz sonlandırıldı. İyi günler.');
+      render();
+    }catch(e){ toast('❌ Hata oluştu'); }
+  });
 
   // Ayarlar — Kullanıcı Yönetimi (sadece cemilbas)
   document.getElementById('settings-add-user-btn')?.addEventListener('click',()=>{ modal='add-user'; render(); });
