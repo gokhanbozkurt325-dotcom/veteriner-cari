@@ -551,7 +551,7 @@ document.addEventListener('click', function(e){
     if(!soru){ toast('⚠️ Lütfen sorunuzu yazın'); return; }
     const msg = {id:uid(), from_user_id:userId(), from_name:ad, question:soru, answer:null, answered_at:null, created_at:new Date().toISOString()};
     sbReq('POST','vc_messages',msg).then(()=>{
-      toast('✅ Sorunuz Gökhan\'a iletildi!');
+      toast('✅ Sorunuz iletildi!');
       closeModal();
     }).catch(()=>toast('❌ Gönderilemedi'));
     return;
@@ -1015,7 +1015,7 @@ function buildHome(){
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <div style="display:flex;align-items:center;gap:6px">
           <span style="font-size:16px">👑</span>
-          <span style="font-size:11px;font-weight:800;color:var(--green)">Gökhan'dan Yanıt</span>
+          <span style="font-size:11px;font-weight:800;color:var(--green)">👑 Admin Yanıtı</span>
         </div>
         <button class="dismiss-user-msg-btn" data-mid="${m.id}" style="border:none;background:rgba(0,0,0,.06);border-radius:6px;width:22px;height:22px;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--gray4)">✕</button>
       </div>
