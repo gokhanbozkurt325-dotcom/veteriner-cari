@@ -314,8 +314,8 @@ function goBack(){
 }
 let modal=null, editTxId=null, editReminderId=null;
 let bulkWaList=[], bulkWaIndex=0, bulkWaLimit=0;
-let backupTarget='wa'; // 'wa' | 'email'
-let newUserPhone='', newUserName='', newUserUsername='', newUserPassword='';
+let backupTarget='wa'; // 'wa'|'email'
+let backupScope='cari'; // 'cari'|'suru'|'all'|'farm'
 let calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
 let calSelectedDay=null;
 // Farm state - buildHome'dan erişilebilsin diye burada
@@ -1598,15 +1598,14 @@ function buildReport(){
       <div class="ii"><div class="iname">${p.name}</div><div class="isub">${p.phone||''}</div></div>
       <div class="amt amt-debt">-${fmt(getBalance(p.id))}</div>
     </div>`).join('')||`<div class="empty"><p>Borçlu yok 🎉</p></div>`}
-  <button class="btn-p" id="download-report-btn" style="margin-top:10px">📤 Raporu Yedekle / İndir</button>
-  <button class="btn-wa" id="bulk-wa-btn" style="margin-top:8px">📱 Toplu WhatsApp Gönder</button>`;
+  <button class="btn-p" id="download-report-btn" style="margin-top:10px">📤 Cari Raporu Yedekle / İndir</button>
+  <button class="btn-wa" id="bulk-wa-btn" style="margin-top:8px">📱 Cari Kişiye Mesaj Gönder</button>`;
 }
 
 // ─── SETTINGS ─────────────────────────────────────────────────
 function buildSettings(){
   const card=(t,c)=>`<div style="background:#fff;border-radius:var(--radius);padding:16px;border:1px solid var(--gray2);box-shadow:var(--shadow);margin-bottom:10px"><div style="font-family:'Nunito',sans-serif;font-weight:800;font-size:14px;margin-bottom:12px">${t}</div>${c}</div>`;
 
-  // Hatalı giriş istatistikleri
   const failHistory = getLoginFailHistory();
   const now = Date.now();
   const failToday = failHistory.filter(t=>t > now-24*60*60*1000).length;
@@ -1632,15 +1631,60 @@ function buildSettings(){
     ${failToday>0?`<div style="background:var(--red-light);border-radius:8px;padding:8px 10px;margin-top:8px;font-size:11px;color:var(--red);font-weight:700">⚠️ Bugün ${failToday} kez hatalı giriş yapıldı. Şüpheli durum varsa şifrenizi değiştirin.</div>`:''}
   `) : '';
 
-  return card('👤 Hesap Bilgisi',`<div style="font-size:13px;color:var(--text2);line-height:1.9">
-    <div><b>Ad Soyad:</b> ${currentUser?.full_name||''}</div>
-    <div><b>Kullanıcı Adı:</b> ${currentUser?.username||''}</div>
-    <div><b>Rol:</b> ${isAdmin()?'👑 Admin':'👤 Kullanıcı'}</div>
-    <div><b>Versiyon:</b> 1.3</div>
-    <div><b>Kayıtlı Kişi:</b> ${persons.length} · <b>İşlem:</b> ${txs.length}</div>
-  </div>`)
+  const hasPhone = !!(currentUser?.phone);
+  const hasEmail = !!(currentUser?.email);
+
+  const backupCard = card('📦 Veri Yedekleme',`
+    <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6">
+      Tüm verilerinizi WhatsApp, e-posta veya PDF olarak yedekleyin. Yedekleme bilgilerinizin (telefon/e-posta) kayıtlı olması gerekir.
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="border:1.5px solid var(--gray2);border-radius:var(--radius-sm);overflow:hidden">
+        <div style="background:var(--blue-light);padding:8px 12px;font-size:11px;font-weight:800;color:var(--blue);text-transform:uppercase;letter-spacing:.4px">💰 Cari Hesap Yedeği</div>
+        <div style="padding:10px 12px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn-wa backup-btn" data-scope="cari" data-type="wa" style="flex:1;font-size:12px;padding:9px;min-width:80px">📱 WhatsApp</button>
+          <button class="backup-btn" data-scope="cari" data-type="email" style="flex:1;background:linear-gradient(135deg,#059669,#047857);color:#fff;border:none;border-radius:var(--radius-sm);padding:9px;font-family:'Nunito',sans-serif;font-weight:800;font-size:12px;cursor:pointer;min-width:80px">📧 E-posta</button>
+          <button class="btn-p backup-btn" data-scope="cari" data-type="pdf" style="flex:1;font-size:12px;padding:9px;min-width:80px">⬇️ PDF</button>
+        </div>
+      </div>
+      <div style="border:1.5px solid var(--gray2);border-radius:var(--radius-sm);overflow:hidden">
+        <div style="background:var(--green-light);padding:8px 12px;font-size:11px;font-weight:800;color:var(--green);text-transform:uppercase;letter-spacing:.4px">🐄 Sürü / İşletme Yedeği</div>
+        <div style="padding:10px 12px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn-wa backup-btn" data-scope="suru" data-type="wa" style="flex:1;font-size:12px;padding:9px;min-width:80px">📱 WhatsApp</button>
+          <button class="backup-btn" data-scope="suru" data-type="email" style="flex:1;background:linear-gradient(135deg,#059669,#047857);color:#fff;border:none;border-radius:var(--radius-sm);padding:9px;font-family:'Nunito',sans-serif;font-weight:800;font-size:12px;cursor:pointer;min-width:80px">📧 E-posta</button>
+          <button class="btn-p backup-btn" data-scope="suru" data-type="pdf" style="flex:1;font-size:12px;padding:9px;min-width:80px">⬇️ PDF</button>
+        </div>
+      </div>
+      <div style="border:1.5px solid var(--amber);border-radius:var(--radius-sm);overflow:hidden">
+        <div style="background:var(--amber-light);padding:8px 12px;font-size:11px;font-weight:800;color:var(--amber);text-transform:uppercase;letter-spacing:.4px">📦 Tümünü Yedekle (Cari + Sürü)</div>
+        <div style="padding:10px 12px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn-wa backup-btn" data-scope="all" data-type="wa" style="flex:1;font-size:12px;padding:9px;min-width:80px">📱 WhatsApp</button>
+          <button class="backup-btn" data-scope="all" data-type="email" style="flex:1;background:linear-gradient(135deg,#059669,#047857);color:#fff;border:none;border-radius:var(--radius-sm);padding:9px;font-family:'Nunito',sans-serif;font-weight:800;font-size:12px;cursor:pointer;min-width:80px">📧 E-posta</button>
+          <button class="btn-p backup-btn" data-scope="all" data-type="pdf" style="flex:1;font-size:12px;padding:9px;min-width:80px">⬇️ PDF</button>
+        </div>
+      </div>
+    </div>
+    ${!hasPhone&&!hasEmail?`<div style="margin-top:12px;background:var(--amber-light);border-radius:9px;padding:10px;font-size:11px;color:var(--amber);font-weight:700">⚠️ WhatsApp ve e-posta yedekleme için aşağıdan telefon ve e-posta kaydedin.</div>`:''}
+  `);
+
+  return card('👤 Hesap Bilgisi',`
+    <div style="font-size:13px;color:var(--text2);line-height:1.9;margin-bottom:14px">
+      <div><b>Ad Soyad:</b> ${currentUser?.full_name||''}</div>
+      <div><b>Kullanıcı Adı:</b> ${currentUser?.username||''}</div>
+      <div><b>Rol:</b> ${isAdmin()?'👑 Admin':'👤 Kullanıcı'}</div>
+      <div><b>Versiyon:</b> 1.3</div>
+      <div><b>Kayıtlı Kişi:</b> ${persons.length} · <b>İşlem:</b> ${txs.length}</div>
+    </div>
+    <div style="border-top:1px solid var(--gray2);padding-top:12px">
+      <div style="font-size:11px;font-weight:800;color:var(--gray4);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px">📱 İletişim Bilgileri (Yedekleme için)</div>
+      <div class="fg"><label class="fl">Telefon (WhatsApp)</label><input class="fi" id="s-phone" type="tel" inputmode="numeric" value="${currentUser?.phone||''}" placeholder="05XX XXX XX XX"></div>
+      <div class="fg"><label class="fl">E-posta</label><input class="fi" id="s-email" type="email" inputmode="email" value="${currentUser?.email||''}" placeholder="ornek@mail.com"></div>
+      <button class="btn-p" id="save-contact-btn" style="font-size:13px">💾 Kaydet</button>
+      <p id="contact-msg" style="font-size:12px;margin-top:8px;min-height:16px"></p>
+    </div>`)
   + failCard
-  + (currentUser?.username==='cemilbas' ? card('👥 Kullanıcı Yönetimi',`
+  + backupCard
+  + (currentUser?.username==='cemilbas' || isAdmin() ? card('👥 Kullanıcı Yönetimi',`
     <div style="font-size:12px;color:var(--text2);margin-bottom:12px">Sisteme yeni kullanıcı ekleyebilir veya mevcut kullanıcıları yönetebilirsiniz.</div>
     <button class="btn-p" id="settings-add-user-btn" style="font-size:13px;margin-bottom:10px">+ Yeni Kullanıcı Ekle</button>
     <div id="settings-user-list"></div>`) : '')
@@ -1684,7 +1728,7 @@ function buildModal(){
   if(modal==='add-person') return mWrap('Yeni Cari Hesap',`
     <div class="fg"><label class="fl">Ad Soyad *</label><input class="fi" id="f-name" placeholder="Ahmet Yılmaz"></div>
     <div class="fg"><label class="fl">Telefon</label><input class="fi" id="f-phone" type="tel" inputmode="numeric" placeholder="05XX XXX XX XX"></div>
-    <div class="fg"><label class="fl">E-posta <span style="font-size:10px;color:var(--gray3);font-weight:400">(opsiyonel — yedekleme için)</span></label><input class="fi" id="f-email" type="email" inputmode="email" placeholder="ornek@mail.com"></div>
+    <div class="fg"><label class="fl">E-posta <span style="font-size:10px;color:var(--gray3);font-weight:400">(opsiyonel)</span></label><input class="fi" id="f-email" type="email" inputmode="email" placeholder="ornek@mail.com"></div>
     <div class="fg"><label class="fl">Adres / Köy</label><input class="fi" id="f-address" placeholder="Burdur / Yeşilova..."></div>
     <div class="fg"><label class="fl">Not</label><textarea class="fi" id="f-note" placeholder="Ek bilgiler..."></textarea></div>
     <div class="btn-row"><button class="modal-cancel-btn btn-o" type="button" onclick="closeModal()">İptal</button><button class="btn-p" id="save-person-btn">Kaydet</button></div>`);
@@ -1692,7 +1736,7 @@ function buildModal(){
   if(modal==='edit-person'){ const p=persons.find(x=>x.id===detailPid)||{}; return mWrap('Kişiyi Düzenle',`
     <div class="fg"><label class="fl">Ad Soyad *</label><input class="fi" id="f-name" value="${p.name||''}"></div>
     <div class="fg"><label class="fl">Telefon</label><input class="fi" id="f-phone" type="tel" inputmode="numeric" value="${p.phone||''}"></div>
-    <div class="fg"><label class="fl">E-posta <span style="font-size:10px;color:var(--gray3);font-weight:400">(opsiyonel — yedekleme için)</span></label><input class="fi" id="f-email" type="email" inputmode="email" value="${p.email||''}" placeholder="ornek@mail.com"></div>
+    <div class="fg"><label class="fl">E-posta <span style="font-size:10px;color:var(--gray3);font-weight:400">(opsiyonel)</span></label><input class="fi" id="f-email" type="email" inputmode="email" value="${p.email||''}" placeholder="ornek@mail.com"></div>
     <div class="fg"><label class="fl">Adres / Köy</label><input class="fi" id="f-address" value="${p.address||''}"></div>
     <div class="fg"><label class="fl">Not</label><textarea class="fi" id="f-note">${p.note||''}</textarea></div>
     <div class="btn-row"><button class="modal-cancel-btn btn-o" type="button" onclick="closeModal()">İptal</button><button class="btn-p" id="update-person-btn">Güncelle</button></div>`); }
@@ -1719,7 +1763,7 @@ function buildModal(){
   if(modal==='person-report'){ const p=persons.find(x=>x.id===detailPid); if(!p) return '';
     const ptxs=txs.filter(t=>t.person_id===p.id).sort((a,b)=>new Date(a.date)-new Date(b.date));
     let d=0,pd=0; ptxs.forEach(t=>{ const a=parseFloat(t.amount||0); t.type==='payment'?pd+=a:d+=a; }); const b=d-pd;
-    const hasPhone=!!p.phone; const hasEmail=!!p.email;
+    const vetPhone=currentUser?.phone||''; const vetEmail=currentUser?.email||'';
     return mWrap(`📊 ${p.name}`,`
     <div style="background:var(--blue-light);border-radius:10px;padding:12px;margin-bottom:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">
       <div><div style="font-size:10px;color:var(--gray4);font-weight:700">BORÇ</div><div style="font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;color:var(--red)">-${fmt(d)}</div></div>
@@ -1736,18 +1780,19 @@ function buildModal(){
       }).join('')||'<div class="empty"><p>İşlem yok</p></div>'}
     </div>
     <div style="border-top:1px solid var(--gray2);padding-top:14px">
-      <div style="font-size:10px;font-weight:800;color:var(--gray4);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">📤 Raporu Yedekle / Gönder</div>
+      <div style="font-size:10px;font-weight:800;color:var(--gray4);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">📤 Raporu Kendine Gönder / İndir</div>
+      <div style="font-size:11px;color:var(--gray4);margin-bottom:10px">Rapor, sistemde kayıtlı veteriner hekime (size) gönderilir.</div>
       <div style="display:flex;flex-direction:column;gap:8px">
-        <button class="btn-wa" id="rpt-wa-btn" style="font-size:13px;padding:11px;display:flex;align-items:center;gap:10px;${!hasPhone?'opacity:.6':''}">
+        <button class="btn-wa" id="rpt-wa-btn" style="font-size:13px;padding:11px;display:flex;align-items:center;gap:10px">
           <span style="font-size:18px">📱</span>
-          <span style="text-align:left"><b>WhatsApp'a Gönder</b>${hasPhone?`<br><span style="font-size:10px;opacity:.8">${p.phone}</span>`:'<br><span style="font-size:10px;opacity:.8">Numara kayıtlı değil — tıklayarak ekleyin</span>'}</span>
+          <span style="text-align:left"><b>WhatsApp'a Gönder</b><br><span style="font-size:10px;opacity:.85">${vetPhone?vetPhone:'⚠️ Ayarlar\'dan telefon ekleyin'}</span></span>
         </button>
-        <button id="rpt-email-btn" style="background:linear-gradient(135deg,#059669,#047857);color:#fff;border:none;border-radius:var(--radius-sm);padding:11px;font-family:'Nunito',sans-serif;font-weight:800;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:10px;${!hasEmail?'opacity:.6':''}">
+        <button id="rpt-email-btn" style="background:linear-gradient(135deg,#059669,#047857);color:#fff;border:none;border-radius:var(--radius-sm);padding:11px;font-family:'Nunito',sans-serif;font-weight:800;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:10px">
           <span style="font-size:18px">📧</span>
-          <span style="text-align:left"><b>E-posta Gönder</b>${hasEmail?`<br><span style="font-size:10px;opacity:.8">${p.email}</span>`:'<br><span style="font-size:10px;opacity:.8">E-posta kayıtlı değil — tıklayarak ekleyin</span>'}</span>
+          <span style="text-align:left"><b>E-posta Gönder</b><br><span style="font-size:10px;opacity:.85">${vetEmail?vetEmail:'⚠️ Ayarlar\'dan e-posta ekleyin'}</span></span>
         </button>
         <button class="btn-p" id="rpt-dl-btn" style="font-size:13px;padding:11px;display:flex;align-items:center;gap:10px">
-          <span style="font-size:18px">⬇️</span><span style="text-align:left"><b>Bilgisayara İndir</b><br><span style="font-size:10px;opacity:.8">PDF olarak kaydet / yazdır</span></span>
+          <span style="font-size:18px">⬇️</span><span style="text-align:left"><b>Bilgisayara İndir</b><br><span style="font-size:10px;opacity:.85">HTML/PDF olarak kaydet</span></span>
         </button>
       </div>
     </div>
@@ -1809,67 +1854,22 @@ function buildModal(){
       <button class="btn-p" id="gelistir-send-btn">📤 Gönder</button>
     </div>`);
 
-  // ── Tam rapor yedekleme seçenekleri ──
-  if(modal==='full-report-backup'){
-    return mWrap('📤 Raporu Yedekle / İndir',`
-      <div style="text-align:center;padding:6px 0 14px">
-        <div style="font-size:44px;margin-bottom:8px">📊</div>
-        <div style="font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;color:var(--blue);margin-bottom:4px">Tüm Cari Raporu</div>
-        <p style="font-size:12px;color:var(--text2)">Aşağıdaki seçeneklerden biriyle yedekleyin.</p>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:10px">
-        <button class="btn-wa" id="full-wa-btn" style="font-size:13px;padding:13px;display:flex;align-items:center;gap:10px">
-          <span style="font-size:22px">📱</span>
-          <span style="text-align:left"><b>WhatsApp'a Gönder</b><br><span style="font-size:10px;opacity:.85">Kendi numaranıza özet rapor mesajı</span></span>
-        </button>
-        <button id="full-email-btn" style="background:linear-gradient(135deg,#059669,#047857);color:#fff;border:none;border-radius:var(--radius-sm);padding:13px;font-family:'Nunito',sans-serif;font-weight:800;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:10px">
-          <span style="font-size:22px">📧</span>
-          <span style="text-align:left"><b>E-posta Gönder</b><br><span style="font-size:10px;opacity:.85">Kendi mail adresinize gönder</span></span>
-        </button>
-        <button class="btn-p" id="full-dl-btn" style="font-size:13px;padding:13px;display:flex;align-items:center;gap:10px">
-          <span style="font-size:22px">⬇️</span>
-          <span style="text-align:left"><b>Bilgisayara İndir</b><br><span style="font-size:10px;opacity:.85">PDF olarak kaydet / yazdır</span></span>
-        </button>
-      </div>
-      <button class="modal-cancel-btn btn-o" type="button" onclick="closeModal()" style="margin-top:12px;width:100%">İptal</button>`);
-  }
-
-  // ── Kendine gönder — numara/mail gir ──
-  if(modal==='full-backup-self'){
-    const isWa = backupTarget==='wa';
-    return mWrap(isWa?'📱 Kendi Numaranıza Gönder':'📧 Kendi Mailinize Gönder',`
-      <div style="text-align:center;padding:6px 0 14px">
-        <div style="font-size:40px;margin-bottom:8px">${isWa?'📱':'📧'}</div>
-        <p style="font-size:13px;color:var(--text2);line-height:1.6">Tüm cari raporun özetini kendi<br><b>${isWa?'WhatsApp numaranıza':'e-posta adresinize'}</b> gönderin.</p>
-      </div>
-      <div class="fg">
-        <label class="fl">${isWa?'Telefon Numaranız':'E-posta Adresiniz'}</label>
-        <input class="fi" id="self-contact-input" type="${isWa?'tel':'email'}" inputmode="${isWa?'numeric':'email'}" placeholder="${isWa?'05XX XXX XX XX':'ornek@mail.com'}">
-      </div>
-      <div class="btn-row">
-        <button class="modal-cancel-btn btn-o" type="button" onclick="closeModal()">İptal</button>
-        <button class="${isWa?'btn-wa':'btn-p'}" id="self-send-btn" style="${isWa?'':'background:linear-gradient(135deg,#059669,#047857)'}">📤 Gönder</button>
-      </div>`);
-  }
-
-  // ── Kişi raporu — eksik bilgi ekle ──
-  if(modal==='rpt-add-contact'){
-    const isWa = backupTarget==='wa';
-    const p = persons.find(x=>x.id===detailPid)||{};
-    return mWrap(isWa?'📱 Telefon Numarası Ekle':'📧 E-posta Adresi Ekle',`
-      <div style="text-align:center;padding:6px 0 14px">
-        <div style="font-size:40px;margin-bottom:8px">${isWa?'📱':'📧'}</div>
-        <p style="font-size:13px;color:var(--text2);line-height:1.6"><b>${p.name||''}</b> için ${isWa?'telefon numarası':'e-posta adresi'} kayıtlı değil.<br>Girerek hem kaydedebilir hem raporu gönderebilirsiniz.</p>
-      </div>
-      <div class="fg">
-        <label class="fl">${isWa?'Telefon Numarası':'E-posta Adresi'}</label>
-        <input class="fi" id="rpt-contact-input" type="${isWa?'tel':'email'}" inputmode="${isWa?'numeric':'email'}" placeholder="${isWa?'05XX XXX XX XX':'ornek@mail.com'}">
-      </div>
-      <div class="btn-row">
-        <button class="modal-cancel-btn btn-o" type="button" onclick="closeModal()">İptal</button>
-        <button class="${isWa?'btn-wa':'btn-p'}" id="rpt-save-contact-btn" style="${isWa?'':'background:linear-gradient(135deg,#059669,#047857)'}">Kaydet & Gönder</button>
-      </div>`);
-  }
+  if(modal==='full-report-backup') return mWrap('📤 Cari Raporu Yedekle',`
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button class="btn-wa" id="frb-wa-btn" style="font-size:13px;padding:13px;display:flex;align-items:center;gap:10px">
+        <span style="font-size:22px">📱</span>
+        <span style="text-align:left"><b>WhatsApp'a Gönder</b><br><span style="font-size:10px;opacity:.85">Kendi numaranıza özet rapor</span></span>
+      </button>
+      <button id="frb-email-btn" style="background:linear-gradient(135deg,#059669,#047857);color:#fff;border:none;border-radius:var(--radius-sm);padding:13px;font-family:'Nunito',sans-serif;font-weight:800;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:10px">
+        <span style="font-size:22px">📧</span>
+        <span style="text-align:left"><b>E-posta Gönder</b><br><span style="font-size:10px;opacity:.85">Kendi mailinize tam detaylı yedek</span></span>
+      </button>
+      <button class="btn-p" id="frb-pdf-btn" style="font-size:13px;padding:13px;display:flex;align-items:center;gap:10px">
+        <span style="font-size:22px">⬇️</span>
+        <span style="text-align:left"><b>PDF İndir</b><br><span style="font-size:10px;opacity:.85">Bilgisayara kaydet</span></span>
+      </button>
+    </div>
+    <button class="modal-cancel-btn btn-o" type="button" onclick="closeModal()" style="margin-top:12px;width:100%">İptal</button>`);
 
   return '';
 }
@@ -1968,103 +1968,21 @@ function buildAdmin(){
 }
 function buildAddUserModal(){
   return mWrap('👤 Yeni Kullanıcı Ekle',`
-    <div class="tabs" style="margin-bottom:16px">
-      <button class="tab-btn active" id="utab-info" onclick="switchUserTab('info')">Hesap Bilgileri</button>
-      <button class="tab-btn" id="utab-contact" onclick="switchUserTab('contact')">📱 İletişim & Hoş Geldiniz</button>
+    <div class="fg"><label class="fl">Ad Soyad *</label><input class="fi" id="u-fullname" placeholder="Ahmet Yılmaz"></div>
+    <div class="fg"><label class="fl">Kullanıcı Adı *</label><input class="fi" id="u-username" placeholder="ahmetyilmaz" autocapitalize="none"></div>
+    <div class="fg"><label class="fl">Şifre *</label><input class="fi" id="u-password" type="password" placeholder="Şifre belirleyin"></div>
+    <div class="fg">
+      <label class="fl">Durum</label>
+      <select class="fi" id="u-active">
+        <option value="true">Aktif (hemen giriş yapabilir)</option>
+        <option value="false">Beklemede (onay gerekli)</option>
+      </select>
     </div>
-    <div id="utab-info-panel">
-      <div class="fg"><label class="fl">Ad Soyad *</label><input class="fi" id="u-fullname" placeholder="Ahmet Yılmaz"></div>
-      <div class="fg"><label class="fl">Kullanıcı Adı *</label><input class="fi" id="u-username" placeholder="ahmetyilmaz" autocapitalize="none"></div>
-      <div class="fg"><label class="fl">Şifre *</label><input class="fi" id="u-password" type="password" placeholder="Şifre belirleyin"></div>
-      <div class="fg">
-        <label class="fl">Durum</label>
-        <select class="fi" id="u-active">
-          <option value="true">Aktif (hemen giriş yapabilir)</option>
-          <option value="false">Beklemede (onay gerekli)</option>
-        </select>
-      </div>
-    </div>
-    <div id="utab-contact-panel" style="display:none">
-      <div style="background:var(--green-light);border-radius:10px;padding:12px;margin-bottom:14px;font-size:12px;color:var(--green);font-weight:600;line-height:1.6">
-        📱 Kullanıcıya programa davet ve giriş bilgilerini içeren resmi bir WhatsApp mesajı gönderilebilir. Telefon numarası girilmezse mesaj gönderilmez, yalnızca kayıt yapılır.
-      </div>
-      <div class="fg">
-        <label class="fl">Telefon Numarası <span style="font-size:10px;color:var(--gray3);font-weight:400">(opsiyonel)</span></label>
-        <div style="display:flex;gap:8px">
-          <input class="fi" id="u-phone" type="tel" inputmode="numeric" placeholder="05XX XXX XX XX" style="flex:1">
-          <button type="button" id="u-contact-picker-btn" style="background:var(--blue-light);color:var(--blue);border:none;border-radius:var(--radius-sm);padding:0 14px;font-size:18px;cursor:pointer;flex-shrink:0" title="Rehberden seç">👥</button>
-        </div>
-        <div style="font-size:10px;color:var(--gray4);margin-top:4px">👥 simgesine tıklayarak rehberden numara seçebilirsiniz</div>
-      </div>
-      <div style="background:var(--blue-light);border-radius:10px;padding:12px;margin-bottom:4px">
-        <div style="font-size:10px;font-weight:800;color:var(--blue);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">📋 Gönderilecek Mesaj Önizlemesi</div>
-        <div style="font-size:11px;color:var(--text2);line-height:1.7;white-space:pre-line">🐄 *Veteriner Cari Hesap & Sürü Takip*
-━━━━━━━━━━━━━━━━━━━━━━
-Sayın *[Ad Soyad]*,
-
-Sisteme kaydınız tamamlanmıştır. Aşağıdaki bilgilerle giriş yapabilirsiniz.
-
-🔗 *Programa Giriş İçin Tıklayın*
-https://gokhanbozkurt325-dotcom.github.io/veteriner-cari
-
-👤 Kullanıcı Adınız: *[kullanıcı adı]*
-🔑 Şifreniz: *[şifre]*
-
-⚠️ Güvenliğiniz için ilk girişinizde şifrenizi değiştirmeniz gerekmektedir.
-_(Ayarlar → Şifre Değiştir)_
-━━━━━━━━━━━━━━━━━━━━━━
-📋 *Program Hakkında*
-
-Bu program; müşterilerinizin cari hesaplarını, borç ve ödeme geçmişlerini dijital ortamda yönetmenizi sağlar. Vade tarihleri yaklaşan ödemeler için otomatik uyarı alabilir, müşterilerinize WhatsApp üzerinden borç bildirimi gönderebilirsiniz.
-
-Sürü modülü ile hayvanlarınızın doğum, tohumlama, gebelik ve sağlık süreçlerini kayıt altına alabilir; takvim üzerinden yaklaşan olayları takip edebilirsiniz.
-
-Raporlarınızı PDF olarak indirebilir, WhatsApp veya e-posta yoluyla kendinize yedek olarak gönderebilirsiniz. *Verilerinizi düzenli yedeklemeyi unutmayınız.*
-
-💬 *İletişim & Destek*
-Sorularınız için program içindeki "Admine Sor" butonunu kullanabilirsiniz. Yöneticiniz ile doğrudan iletişimde olacaksınız.
-━━━━━━━━━━━━━━━━━━━━━━
-_Veteriner Cari Hesap & Sürü Takip_</div>
-      </div>
-    </div>
-    <div class="btn-row" style="margin-top:16px">
+    <div class="btn-row">
       <button class="modal-cancel-btn btn-o" type="button" onclick="closeModal()">İptal</button>
       <button class="btn-p" id="save-user-btn">Kaydet</button>
-      <button class="btn-wa" id="save-user-wa-btn" style="display:none">💾 Kaydet & WA Gönder</button>
     </div>`);
 }
-
-window.switchUserTab = function(tab){
-  document.getElementById('utab-info-panel').style.display = tab==='info'?'':'none';
-  document.getElementById('utab-contact-panel').style.display = tab==='contact'?'':'none';
-  document.getElementById('utab-info').classList.toggle('active', tab==='info');
-  document.getElementById('utab-contact').classList.toggle('active', tab==='contact');
-  const waBtn = document.getElementById('save-user-wa-btn');
-  const saveBtn = document.getElementById('save-user-btn');
-  if(waBtn && saveBtn){
-    waBtn.style.display = tab==='contact'?'':'none';
-    saveBtn.textContent = tab==='contact'?'Kaydet (WA olmadan)':'Kaydet';
-  }
-  // Contact picker bind
-  if(tab==='contact'){
-    document.getElementById('u-contact-picker-btn')?.addEventListener('click', async()=>{
-      if(!('contacts' in navigator && 'ContactsManager' in window)){
-        toast('⚠️ Bu cihaz rehber erişimini desteklemiyor, numarayı manuel girin');
-        return;
-      }
-      try{
-        const contacts = await navigator.contacts.select(['name','tel'],{multiple:false});
-        if(contacts && contacts.length>0){
-          const tel = contacts[0].tel?.[0]||'';
-          const name = contacts[0].name?.[0]||'';
-          if(tel) document.getElementById('u-phone').value = tel;
-          if(name && !document.getElementById('u-fullname').value) document.getElementById('u-fullname').value = name;
-          toast('✅ Rehberden seçildi');
-        }
-      } catch(e){ toast('Rehber erişimi iptal edildi'); }
-    });
-  }
-};
 
 function buildBulkWaModal(){
   const debtors=persons.filter(p=>getBalance(p.id)>0).sort((a,b)=>getBalance(b.id)-getBalance(a.id));
@@ -2178,9 +2096,7 @@ ${lastPay?`💵 *Son Ödeme:* ${fmtDate(lastPay.date)} — +${fmt(lastPay.amount
 ${bal>0?'⚠️ Lütfen en kısa sürede ödemenizi gerçekleştiriniz.\n\nBu mesaj otomatik olarak sistem tarafından iletilmiştir.':'✅ Hesabınız günceldir. Teşekkür ederiz.'}
 
 _Veteriner Cari & Sürü Takip_`;
-
-  const url=`https://wa.me/${fullPhone}?text=${encodeURIComponent(msg)}`;
-  window.open(url,'_blank');
+  window.open(`https://wa.me/${fullPhone}?text=${encodeURIComponent(msg)}`,'_blank');
 }
 
 // ─── HOŞ GELDİNİZ WA MESAJI ──────────────────────────────────
@@ -2218,79 +2134,147 @@ _Veteriner Cari Hesap & Sürü Takip_`;
   window.open(`https://wa.me/${fullPhone}?text=${encodeURIComponent(msg)}`,'_blank');
 }
 
-// ─── KİŞİ RAPORU — WA / MAİL ─────────────────────────────────
-function sendPersonReportWA(pid){
-  const p=persons.find(x=>x.id===pid); if(!p||!p.phone) return;
+// ─── KİŞİ RAPORU — VETERİNERE GÖNDER ────────────────────────
+function sendPersonReportToVetWA(pid){
+  const phone=currentUser?.phone; if(!phone){ toast('⚠️ Ayarlar\'dan telefon numaranızı ekleyin'); return; }
+  const p=persons.find(x=>x.id===pid); if(!p) return;
   const ptxs=txs.filter(t=>t.person_id===pid).sort((a,b)=>new Date(b.date)-new Date(a.date));
   let d=0,pd=0; ptxs.forEach(t=>{ const a=parseFloat(t.amount||0); t.type==='payment'?pd+=a:d+=a; });
-  const b=d-pd;
-  const tarih=new Date().toLocaleDateString('tr-TR',{day:'2-digit',month:'long',year:'numeric'});
+  const b=d-pd; const tarih=new Date().toLocaleDateString('tr-TR',{day:'2-digit',month:'long',year:'numeric'});
   const son5=ptxs.slice(0,5).map(t=>{ const tp2=TX_TYPES[t.type]||{icon:'📌',label:t.type}; const isPos=t.type==='payment'; return `  ${tp2.icon} ${fmtDate(t.date)} — ${isPos?'+':'-'}${fmt(t.amount)} (${t.desc||tp2.label})`; }).join('\n');
-  const raw=p.phone.replace(/\D/g,'');
-  const fullPhone=raw.startsWith('0')?'90'+raw.slice(1):raw.startsWith('90')?raw:'90'+raw;
-  const msg=
-`📊 *CARİ HESAP RAPORU*
-━━━━━━━━━━━━━━━━━━━━━━
-👤 *${p.name}*
-📅 ${tarih}
-━━━━━━━━━━━━━━━━━━━━━━
-💰 Toplam Borç: *-${fmt(d)}*
-✅ Ödenen: *+${fmt(pd)}*
-📌 Bakiye: *${b>0?'-':''}${fmt(Math.abs(b))}* ${b>0?'(Borçlu)':b===0?'(Dengede)':'(Alacaklı)'}
-━━━━━━━━━━━━━━━━━━━━━━
-📋 *Son İşlemler:*
-${son5||'  — İşlem yok —'}
-━━━━━━━━━━━━━━━━━━━━━━
-_Veteriner Cari Hesap & Sürü Takip_`;
+  const raw=phone.replace(/\D/g,''); const fullPhone=raw.startsWith('0')?'90'+raw.slice(1):raw.startsWith('90')?raw:'90'+raw;
+  const msg=`📊 *CARİ HESAP RAPORU*\n━━━━━━━━━━━━━━━━━━━━━━\n👤 *${p.name}*\n📅 ${tarih}\n━━━━━━━━━━━━━━━━━━━━━━\n💰 Toplam Borç: *-${fmt(d)}*\n✅ Ödenen: *+${fmt(pd)}*\n📌 Bakiye: *${b>0?'-':''}${fmt(Math.abs(b))}* ${b>0?'(Borçlu)':b===0?'(Dengede)':'(Alacaklı)'}\n━━━━━━━━━━━━━━━━━━━━━━\n📋 *Son İşlemler:*\n${son5||'  — İşlem yok —'}\n━━━━━━━━━━━━━━━━━━━━━━\n_Veteriner Cari Hesap & Sürü Takip_`;
   window.open(`https://wa.me/${fullPhone}?text=${encodeURIComponent(msg)}`,'_blank');
 }
 
-function sendPersonReportEmail(pid){
-  const p=persons.find(x=>x.id===pid); if(!p||!p.email) return;
+function sendPersonReportToVetEmail(pid){
+  const email=currentUser?.email; if(!email){ toast('⚠️ Ayarlar\'dan e-posta adresinizi ekleyin'); return; }
+  const p=persons.find(x=>x.id===pid); if(!p) return;
   const ptxs=txs.filter(t=>t.person_id===pid).sort((a,b)=>new Date(b.date)-new Date(a.date));
   let d=0,pd=0; ptxs.forEach(t=>{ const a=parseFloat(t.amount||0); t.type==='payment'?pd+=a:d+=a; });
-  const b=d-pd;
-  const tarih=new Date().toLocaleDateString('tr-TR',{day:'2-digit',month:'long',year:'numeric'});
-  const satirlar=ptxs.map(t=>{ const tp2=TX_TYPES[t.type]||{icon:'',label:t.type}; const isPos=t.type==='payment'; return `${fmtDate(t.date)} | ${tp2.label} | ${t.desc||'-'} | ${isPos?'+':'-'}${fmt(t.amount)}`; }).join('\n');
+  const b=d-pd; const tarih=new Date().toLocaleDateString('tr-TR',{day:'2-digit',month:'long',year:'numeric'});
+  const satirlar=ptxs.map(t=>{ const tp2=TX_TYPES[t.type]||{label:t.type}; const isPos=t.type==='payment'; return `${fmtDate(t.date)} | ${tp2.label} | ${t.desc||'-'} | ${isPos?'+':'-'}${fmt(t.amount)} | Vade:${t.due_date?fmtDate(t.due_date):'-'}`; }).join('\n');
   const subject=encodeURIComponent(`Cari Hesap Raporu — ${p.name} — ${tarih}`);
-  const body=encodeURIComponent(`${p.name} — Cari Hesap Raporu\nTarih: ${tarih}\n\nÖZET\n----\nToplam Borç : -${fmt(d)}\nÖdenen      : +${fmt(pd)}\nBakiye      : ${b>0?'-':''}${fmt(Math.abs(b))} ${b>0?'(Borçlu)':b===0?'(Dengede)':'(Alacaklı)'}\n\nTÜM İŞLEMLER\n-------------\nTarih | Tür | Açıklama | Tutar\n${satirlar||'— İşlem yok —'}\n\n---\nVeteriner Cari Hesap & Sürü Takip`);
-  window.open(`mailto:${p.email}?subject=${subject}&body=${body}`,'_blank');
+  const body=encodeURIComponent(`${p.name} — Cari Hesap Raporu\nTarih: ${tarih}\n\nÖZET\n----\nToplam Borç : -${fmt(d)}\nÖdenen      : +${fmt(pd)}\nBakiye      : ${b>0?'-':''}${fmt(Math.abs(b))} ${b>0?'(Borçlu)':b===0?'(Dengede)':'(Alacaklı)'}\n\nTÜM İŞLEMLER\n-------------\nTarih | Tür | Açıklama | Tutar | Vade\n${satirlar||'— İşlem yok —'}\n\n---\nVeteriner Cari Hesap & Sürü Takip`);
+  window.open(`mailto:${email}?subject=${subject}&body=${body}`,'_blank');
 }
 
-// ─── TAM RAPOR — WA / MAİL ────────────────────────────────────
-function sendFullReportWA(selfPhone){
-  const raw=selfPhone.replace(/\D/g,'');
-  const fullPhone=raw.startsWith('0')?'90'+raw.slice(1):raw.startsWith('90')?raw:'90'+raw;
+// ─── AYARLAR YEDEKLEMESİ ──────────────────────────────────────
+function doBackup(scope, type){
+  const phone=currentUser?.phone||''; const email=currentUser?.email||'';
   const tarih=new Date().toLocaleDateString('tr-TR',{day:'2-digit',month:'long',year:'numeric'});
-  let td=0,tp=0; txs.forEach(t=>{ const a=parseFloat(t.amount||0); t.type==='payment'?tp+=a:td+=a; });
-  const overdueList=getOverduePersons();
-  const debtors=persons.filter(p=>getBalance(p.id)>0).sort((a,b)=>getBalance(b.id)-getBalance(a.id));
-  const top5=debtors.slice(0,5).map(p=>`  • ${p.name}: -${fmt(getBalance(p.id))}`).join('\n');
-  const msg=
-`📊 *VETERİNER CARİ — TAM RAPOR*
-━━━━━━━━━━━━━━━━━━━━━━
-📅 *Tarih:* ${tarih}
-👥 *Toplam Kişi:* ${persons.length}
-💰 *Toplam Borç:* -${fmt(td)}
-✅ *Tahsil Edilen:* +${fmt(tp)}
-📌 *Net Alacak:* ${fmt(td-tp)}
-⚠️ *Gecikmiş:* ${overdueList.length} kişi
-━━━━━━━━━━━━━━━━━━━━━━
-🔴 *En Yüksek Borçlular:*
-${top5||'  — Borçlu yok —'}
-━━━━━━━━━━━━━━━━━━━━━━
-_Veteriner Cari Hesap & Sürü Takip_`;
-  window.open(`https://wa.me/${fullPhone}?text=${encodeURIComponent(msg)}`,'_blank');
+
+  if(type==='wa' && !phone){ toast('⚠️ Ayarlar\'dan telefon numaranızı ekleyin'); return; }
+  if(type==='email' && !email){ toast('⚠️ Ayarlar\'dan e-posta adresinizi ekleyin'); return; }
+
+  // ── CARİ YEDEK ──
+  if(scope==='cari'){
+    if(type==='pdf'){ dlFullReport(); return; }
+    let td=0,tp=0; txs.forEach(t=>{ const a=parseFloat(t.amount||0); t.type==='payment'?tp+=a:td+=a; });
+    const overdueList=getOverduePersons();
+    const debtors=persons.filter(p=>getBalance(p.id)>0).sort((a,b)=>getBalance(b.id)-getBalance(a.id));
+    if(type==='wa'){
+      const top5=debtors.slice(0,5).map(p=>`  • ${p.name}: -${fmt(getBalance(p.id))}`).join('\n');
+      const msg=`📊 *CARİ HESAP YEDEĞİ*\n━━━━━━━━━━━━━━━━━━━━━━\n📅 ${tarih}\n👥 Toplam Kişi: ${persons.length}\n💰 Toplam Borç: -${fmt(td)}\n✅ Tahsil: +${fmt(tp)}\n📌 Net Alacak: ${fmt(td-tp)}\n⚠️ Gecikmiş: ${overdueList.length} kişi\n━━━━━━━━━━━━━━━━━━━━━━\n🔴 En Yüksek Borçlular:\n${top5||'  — Borçlu yok —'}\n━━━━━━━━━━━━━━━━━━━━━━\n_Veteriner Cari Hesap & Sürü Takip_`;
+      const raw=phone.replace(/\D/g,''); const fp=raw.startsWith('0')?'90'+raw.slice(1):raw.startsWith('90')?raw:'90'+raw;
+      window.open(`https://wa.me/${fp}?text=${encodeURIComponent(msg)}`,'_blank');
+    } else {
+      const kisiSatir=persons.map(p=>{ let d=0,pd=0; txs.filter(t=>t.person_id===p.id).forEach(t=>{ const a=parseFloat(t.amount||0); t.type==='payment'?pd+=a:d+=a; }); const b=d-pd; return `${p.name} | ${p.phone||'-'} | ${p.address||'-'} | -${fmt(d)} | +${fmt(pd)} | ${b>0?'-':''}${fmt(Math.abs(b))} | ${isOverdue(p.id)?'GECİKMİŞ':b>0?'Borçlu':'Temiz'}`; }).join('\n');
+      const txSatir=txs.sort((a,b)=>new Date(b.date)-new Date(a.date)).map(t=>{ const p2=persons.find(x=>x.id===t.person_id); const tp2=TX_TYPES[t.type]||{label:t.type}; const isPos=t.type==='payment'; return `${fmtDate(t.date)} | ${p2?.name||'-'} | ${tp2.label} | ${t.desc||'-'} | ${isPos?'+':'-'}${fmt(t.amount)} | Vade:${t.due_date?fmtDate(t.due_date):'-'}`; }).join('\n');
+      const subject=encodeURIComponent(`Veteriner Cari Yedek — ${tarih}`);
+      const body=encodeURIComponent(`VETERİNER CARİ HESAP — TAM YEDEK\nTarih: ${tarih}\n\nÖZET\n----\nToplam Kişi   : ${persons.length}\nToplam Borç   : -${fmt(td)}\nTahsil Edilen : +${fmt(tp)}\nNet Alacak    : ${fmt(td-tp)}\nGecikmiş      : ${overdueList.length} kişi\n\nTÜM CARİ KİŞİLER\n-----------------\nAd | Telefon | Adres | Borç | Ödenen | Bakiye | Durum\n${kisiSatir}\n\nTÜM İŞLEMLER\n-------------\nTarih | Kişi | Tür | Açıklama | Tutar | Vade\n${txSatir}\n\n---\nVeteriner Cari Hesap & Sürü Takip`);
+      window.open(`mailto:${email}?subject=${subject}&body=${body}`,'_blank');
+    }
+  }
+
+  // ── SÜRÜ YEDEK ──
+  else if(scope==='suru'){
+    if(type==='pdf'){ dlFarmReport(null); return; }
+    const fa=animals.filter(a=>!['sold','dead'].includes(a.status));
+    if(type==='wa'){
+      const farmLines=farms.map(f=>{ const fc=animals.filter(a=>a.farm_id===f.id&&!['sold','dead'].includes(a.status)); return `  🏭 ${f.owner_name||'İsimsiz'}: ${fc.length} aktif hayvan`; }).join('\n');
+      const alertCount=animals.reduce((s,a)=>s+getAnimalAlerts(a).length,0);
+      const msg=`🐄 *SÜRÜ MODÜLÜ YEDEĞİ*\n━━━━━━━━━━━━━━━━━━━━━━\n📅 ${tarih}\n🏭 Toplam İşletme: ${farms.length}\n🐄 Aktif Hayvan: ${fa.length}\n⚠️ Uyarılı Hayvan: ${alertCount}\n━━━━━━━━━━━━━━━━━━━━━━\n📋 İşletmeler:\n${farmLines||'  — İşletme yok —'}\n━━━━━━━━━━━━━━━━━━━━━━\n_Veteriner Cari Hesap & Sürü Takip_`;
+      const raw=phone.replace(/\D/g,''); const fp=raw.startsWith('0')?'90'+raw.slice(1):raw.startsWith('90')?raw:'90'+raw;
+      window.open(`https://wa.me/${fp}?text=${encodeURIComponent(msg)}`,'_blank');
+    } else {
+      const animalSatir=animals.map(a=>{ const f=farms.find(x=>x.id===a.farm_id); const st=ANIMAL_STATUS[a.status]||{label:a.status}; const evs=animalEvents.filter(e=>e.animal_id===a.id); const lastI=evs.find(e=>e.event_type==='insemination'); const lastB=evs.find(e=>e.event_type==='birth'); return `${a.ear_tag} | ${f?.owner_name||'-'} | ${BREEDS[a.breed]||a.breed} | Lak:${a.lactation_no||0} | ${st.label} | T:${lastI?fmtDate(lastI.event_date):'-'} | D:${lastB?fmtDate(lastB.event_date):'-'} | Doğum Beklenti:${a.expected_birth_date?fmtDate(a.expected_birth_date):'-'}`; }).join('\n');
+      const subject=encodeURIComponent(`Veteriner Sürü Yedek — ${tarih}`);
+      const body=encodeURIComponent(`VETERİNER SÜRÜ MODÜLÜ — TAM YEDEK\nTarih: ${tarih}\n\nÖZET\n----\nToplam İşletme : ${farms.length}\nToplam Hayvan  : ${animals.length}\nAktif Hayvan   : ${fa.length}\n\nTÜM HAYVANLAR\n-------------\nKüpe No | İşletme | Irk | Laktasyon | Durum | Son Tohumlama | Son Doğum | Beklenen Doğum\n${animalSatir||'— Hayvan yok —'}\n\n---\nVeteriner Cari Hesap & Sürü Takip`);
+      window.open(`mailto:${email}?subject=${subject}&body=${body}`,'_blank');
+    }
+  }
+
+  // ── TÜMÜNÜ YEDEKLE ──
+  else if(scope==='all'){
+    if(type==='pdf'){ dlFullReport(); setTimeout(()=>dlFarmReport(null),500); return; }
+    if(type==='wa'){
+      // Önce cari WA, 2 sn sonra sürü WA
+      doBackup('cari','wa');
+      setTimeout(()=>doBackup('suru','wa'),2000);
+    } else {
+      // E-posta: tek mailde her şey
+      let td=0,tp=0; txs.forEach(t=>{ const a=parseFloat(t.amount||0); t.type==='payment'?tp+=a:td+=a; });
+      const overdueList=getOverduePersons();
+      const fa=animals.filter(a=>!['sold','dead'].includes(a.status));
+      const kisiSatir=persons.map(p=>{ let d=0,pd=0; txs.filter(t=>t.person_id===p.id).forEach(t=>{ const a=parseFloat(t.amount||0); t.type==='payment'?pd+=a:d+=a; }); const b=d-pd; return `${p.name} | ${p.phone||'-'} | -${fmt(d)} | +${fmt(pd)} | ${b>0?'-':''}${fmt(Math.abs(b))} | ${isOverdue(p.id)?'GECİKMİŞ':b>0?'Borçlu':'Temiz'}`; }).join('\n');
+      const animalSatir=animals.map(a=>{ const f=farms.find(x=>x.id===a.farm_id); const st=ANIMAL_STATUS[a.status]||{label:a.status}; return `${a.ear_tag} | ${f?.owner_name||'-'} | ${BREEDS[a.breed]||a.breed} | ${st.label} | Beklenen:${a.expected_birth_date?fmtDate(a.expected_birth_date):'-'}`; }).join('\n');
+      const subject=encodeURIComponent(`Veteriner Tam Yedek — ${tarih}`);
+      const body=encodeURIComponent(`VETERİNER CARİ & SÜRÜ — TAM YEDEK\nTarih: ${tarih}\n\n== CARİ HESAP ÖZETİ ==\nToplam Kişi   : ${persons.length}\nToplam Borç   : -${fmt(td)}\nTahsil Edilen : +${fmt(tp)}\nNet Alacak    : ${fmt(td-tp)}\nGecikmiş      : ${overdueList.length} kişi\n\nTÜM CARİ KİŞİLER\n-----------------\nAd | Telefon | Borç | Ödenen | Bakiye | Durum\n${kisiSatir||'— Kayıt yok —'}\n\n== SÜRÜ MODÜLİ ÖZETİ ==\nToplam İşletme : ${farms.length}\nToplam Hayvan  : ${animals.length}\nAktif Hayvan   : ${fa.length}\n\nTÜM HAYVANLAR\n-------------\nKüpe No | İşletme | Irk | Durum | Beklenen Doğum\n${animalSatir||'— Kayıt yok —'}\n\n---\nVeteriner Cari Hesap & Sürü Takip`);
+      window.open(`mailto:${email}?subject=${subject}&body=${body}`,'_blank');
+    }
+  }
 }
 
-function sendFullReportEmail(selfEmail){
+// ─── İŞLETME PDF RAPORU ───────────────────────────────────────
+function dlFarmReport(farmId){
+  const flist = farmId ? farms.filter(f=>f.id===farmId) : farms;
   const tarih=new Date().toLocaleDateString('tr-TR',{day:'2-digit',month:'long',year:'numeric'});
-  let td=0,tp=0; txs.forEach(t=>{ const a=parseFloat(t.amount||0); t.type==='payment'?tp+=a:td+=a; });
-  const overdueList=getOverduePersons();
-  const debtors=persons.filter(p=>getBalance(p.id)>0).sort((a,b)=>getBalance(b.id)-getBalance(a.id));
-  const subject=encodeURIComponent(`Veteriner Cari Raporu — ${tarih}`);
-  const body=encodeURIComponent(`VETERİNER CARİ HESAP — TAM RAPOR\nTarih: ${tarih}\n\nÖZET\n----\nToplam Kişi    : ${persons.length}\nToplam Borç    : -${fmt(td)}\nTahsil Edilen  : +${fmt(tp)}\nNet Alacak     : ${fmt(td-tp)}\nGecikmiş Kişi  : ${overdueList.length}\n\nEN YÜKSEK BORÇLULAR\n-------------------\n${debtors.slice(0,10).map(p=>`${p.name} | ${p.phone||'-'} | -${fmt(getBalance(p.id))}`).join('\n')||'— Borçlu yok —'}\n\n---\nVeteriner Cari Hesap & Sürü Takip`);
-  window.open(`mailto:${selfEmail}?subject=${subject}&body=${body}`,'_blank');
+  let rows='';
+  flist.forEach(f=>{
+    const fa=animals.filter(a=>a.farm_id===f.id);
+    rows+=`<h2>🏭 ${f.owner_name||'İsimsiz'} ${f.farm_no?'(No:'+f.farm_no+')':''}</h2>`;
+    rows+=`<div style="font-size:11px;color:#555;margin-bottom:8px">${f.address||''} · Toplam: ${fa.length} hayvan</div>`;
+    if(fa.length){
+      rows+='<table><tr><th>Küpe No</th><th>Irk</th><th>Lak</th><th>Durum</th><th>Son Tohumlama</th><th>Beklenen Doğum</th><th>Uyarı</th></tr>';
+      fa.forEach(a=>{
+        const st=ANIMAL_STATUS[a.status]||{label:a.status};
+        const evs=animalEvents.filter(e=>e.animal_id===a.id);
+        const lastI=evs.find(e=>e.event_type==='insemination');
+        const alerts=getAnimalAlerts(a);
+        rows+=`<tr><td>${a.ear_tag}</td><td>${BREEDS[a.breed]||a.breed}</td><td>${a.lactation_no||0}</td><td>${st.label}</td><td>${lastI?fmtDate(lastI.event_date):'-'}</td><td>${a.expected_birth_date?fmtDate(a.expected_birth_date):'-'}</td><td>${alerts.length?alerts[0].icon+' '+alerts[0].title:'-'}</td></tr>`;
+      });
+      rows+='</table>';
+    } else { rows+='<p style="color:#999;font-size:12px">Kayıtlı hayvan yok</p>'; }
+  });
+  const fname = farmId ? (farms.find(f=>f.id===farmId)?.owner_name||'isletme') : 'tum-isletmeler';
+  const html=`<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><title>Sürü Raporu</title><style>${REPORT_CSS}</style></head><body><h1>Sürü Takip Raporu</h1><div class="sub">${currentUser?.full_name||''} - ${tarih}</div>${rows}</body></html>`;
+  downloadHtmlAsPdf(html, 'suru-'+fname+'-'+new Date().toISOString().slice(0,10)+'.html');
+}
+
+// ─── İŞLETME WA YEDEK ────────────────────────────────────────
+function sendFarmBackupWA(farmId){
+  const phone=currentUser?.phone; if(!phone){ toast('⚠️ Ayarlar\'dan telefon numaranızı ekleyin'); return; }
+  const farm=farms.find(f=>f.id===farmId); if(!farm) return;
+  const fa=animals.filter(a=>a.farm_id===farmId);
+  const active=fa.filter(a=>!['sold','dead'].includes(a.status));
+  const alertCount=fa.reduce((s,a)=>s+getAnimalAlerts(a).length,0);
+  const tarih=new Date().toLocaleDateString('tr-TR',{day:'2-digit',month:'long',year:'numeric'});
+  const statusLines=Object.keys(ANIMAL_STATUS).map(k=>{ const c=fa.filter(a=>a.status===k).length; return c>0?`  ${ANIMAL_STATUS[k].icon} ${ANIMAL_STATUS[k].label}: ${c}`:null; }).filter(Boolean).join('\n');
+  const raw=phone.replace(/\D/g,''); const fp=raw.startsWith('0')?'90'+raw.slice(1):raw.startsWith('90')?raw:'90'+raw;
+  const msg=`🏭 *${farm.owner_name||'İsimsiz'} — İşletme Yedeği*\n━━━━━━━━━━━━━━━━━━━━━━\n📅 ${tarih}\n🐄 Toplam Hayvan: ${fa.length}\n✅ Aktif: ${active.length}\n⚠️ Uyarılı: ${alertCount}\n━━━━━━━━━━━━━━━━━━━━━━\n📋 Durum Dağılımı:\n${statusLines||'  — Kayıt yok —'}\n━━━━━━━━━━━━━━━━━━━━━━\n_Veteriner Cari Hesap & Sürü Takip_`;
+  window.open(`https://wa.me/${fp}?text=${encodeURIComponent(msg)}`,'_blank');
+}
+
+function sendFarmBackupEmail(farmId){
+  const email=currentUser?.email; if(!email){ toast('⚠️ Ayarlar\'dan e-posta adresinizi ekleyin'); return; }
+  const farm=farms.find(f=>f.id===farmId); if(!farm) return;
+  const fa=animals.filter(a=>a.farm_id===farmId);
+  const tarih=new Date().toLocaleDateString('tr-TR',{day:'2-digit',month:'long',year:'numeric'});
+  const animalSatir=fa.map(a=>{ const st=ANIMAL_STATUS[a.status]||{label:a.status}; const evs=animalEvents.filter(e=>e.animal_id===a.id); const lastI=evs.find(e=>e.event_type==='insemination'); const lastB=evs.find(e=>e.event_type==='birth'); const alerts=getAnimalAlerts(a); return `${a.ear_tag} | ${BREEDS[a.breed]||a.breed} | Lak:${a.lactation_no||0} | ${st.label} | T:${lastI?fmtDate(lastI.event_date):'-'} | D:${lastB?fmtDate(lastB.event_date):'-'} | Beklenen:${a.expected_birth_date?fmtDate(a.expected_birth_date):'-'} | ${alerts.length?alerts[0].title:'-'}`; }).join('\n');
+  const subject=encodeURIComponent(`İşletme Yedeği — ${farm.owner_name||'İsimsiz'} — ${tarih}`);
+  const body=encodeURIComponent(`İŞLETME YEDEĞİ: ${farm.owner_name||'İsimsiz'}\nİşletme No: ${farm.farm_no||'-'}\nAdres: ${farm.address||'-'}\nTarih: ${tarih}\n\nToplam Hayvan : ${fa.length}\nAktif         : ${fa.filter(a=>!['sold','dead'].includes(a.status)).length}\n\nTÜM HAYVANLAR\n-------------\nKüpe No | Irk | Laktasyon | Durum | Son Tohumlama | Son Doğum | Beklenen Doğum | Uyarı\n${animalSatir||'— Hayvan yok —'}\n\n---\nVeteriner Cari Hesap & Sürü Takip`);
+  window.open(`mailto:${email}?subject=${subject}&body=${body}`,'_blank');
 }
 
 // ─── TOGGLE DUE DATE ──────────────────────────────────────────
@@ -2509,6 +2493,7 @@ function bindEvents(){
   document.querySelectorAll('.modal-cancel-btn').forEach(b=>b.addEventListener('click',()=>{ modal=null; render(); }));
   document.querySelectorAll('.edit-tx-btn').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); editTxId=b.dataset.txid; modal='edit-tx'; render(); }));
   document.querySelectorAll('.wa-btn').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); sendWhatsApp(b.dataset.pid); }));
+  document.getElementById('download-report-btn')?.addEventListener('click',()=>dlFullReport());
   document.getElementById('download-person-report-btn')?.addEventListener('click',()=>dlPersonReport(detailPid));
 
   document.getElementById('save-person-btn')?.addEventListener('click',async()=>{
@@ -2596,64 +2581,48 @@ function bindEvents(){
   // Admin işlemleri
   document.getElementById('add-user-btn')?.addEventListener('click',()=>{ modal='add-user'; render(); });
   document.getElementById('refresh-users-btn')?.addEventListener('click',async()=>{ await loadAllUsers(); render(); });
-
-  // Ortak kullanıcı kaydet fonksiyonu
-  async function doSaveUser(sendWA){
-    const fullname=document.getElementById('u-fullname')?.value.trim();
-    const username=document.getElementById('u-username')?.value.trim().toLowerCase();
-    const password=document.getElementById('u-password')?.value;
-    const active=document.getElementById('u-active')?.value==='true';
-    const phone=document.getElementById('u-phone')?.value.trim()||'';
-    if(!fullname||!username||!password){ alert('Ad Soyad, Kullanıcı Adı ve Şifre zorunludur!'); return; }
+  document.getElementById('save-user-btn')?.addEventListener('click',async()=>{
+    const fullname=document.getElementById('u-fullname').value.trim();
+    const username=document.getElementById('u-username').value.trim().toLowerCase();
+    const password=document.getElementById('u-password').value;
+    const active=document.getElementById('u-active').value==='true';
+    if(!fullname||!username||!password){ alert('Tüm alanlar zorunludur!'); return; }
     try{
       await sbReq('POST','vc_users',{id:uid(),username,full_name:fullname,password,role:'user',active,created_at:new Date().toISOString()});
       await loadAllUsers();
       modal=null; toast('✅ Kullanıcı eklendi'); render();
-      if(sendWA && phone){
-        setTimeout(()=>sendWelcomeWhatsApp(phone,fullname,username,password), 300);
-      } else if(sendWA && !phone){
-        toast('⚠️ Telefon numarası girilmediği için WA gönderilemedi');
-      }
     }catch(e){ alert('Hata: Kullanıcı adı zaten mevcut olabilir.'); }
-  }
+  });
 
-  document.getElementById('save-user-btn')?.addEventListener('click',()=>doSaveUser(false));
-  document.getElementById('save-user-wa-btn')?.addEventListener('click',()=>doSaveUser(true));
+  // Ayarlar — telefon/email kaydet
+  document.getElementById('save-contact-btn')?.addEventListener('click',async()=>{
+    const phone=document.getElementById('s-phone')?.value.trim()||'';
+    const email=document.getElementById('s-email')?.value.trim()||'';
+    const msg=document.getElementById('contact-msg');
+    try{
+      await sbReq('PATCH',`vc_users?id=eq.${currentUser.id}`,{phone,email});
+      setCurrentUser({...currentUser,phone,email});
+      if(msg){ msg.style.color='var(--green)'; msg.textContent='✅ Kaydedildi!'; }
+    }catch{ if(msg){ msg.style.color='var(--red)'; msg.textContent='Hata oluştu!'; } }
+  });
 
-  // Rapor sayfası — yedekle/indir butonu
+  // Ayarlar — yedekleme butonları
+  document.querySelectorAll('.backup-btn').forEach(b=>b.addEventListener('click',()=>{
+    doBackup(b.dataset.scope, b.dataset.type);
+  }));
+
+  // Rapor sayfası — yedekle butonu
   document.getElementById('download-report-btn')?.addEventListener('click',()=>{ modal='full-report-backup'; render(); });
+  // full-report-backup modal butonları
+  document.getElementById('frb-wa-btn')?.addEventListener('click',()=>{ modal=null; doBackup('cari','wa'); });
+  document.getElementById('frb-email-btn')?.addEventListener('click',()=>{ modal=null; doBackup('cari','email'); });
+  document.getElementById('frb-pdf-btn')?.addEventListener('click',()=>{ modal=null; dlFullReport(); });
 
-  // Kişi raporu butonları
+  // Kişi raporu butonları — veterinere gider
   document.getElementById('rpt-dl-btn')?.addEventListener('click',()=>dlPersonReport(detailPid));
-  document.getElementById('rpt-wa-btn')?.addEventListener('click',()=>{
-    const p=persons.find(x=>x.id===detailPid); if(!p) return;
-    if(!p.phone){ backupTarget='wa'; modal='rpt-add-contact'; render(); return; }
-    sendPersonReportWA(detailPid);
-  });
-  document.getElementById('rpt-email-btn')?.addEventListener('click',()=>{
-    const p=persons.find(x=>x.id===detailPid); if(!p) return;
-    if(!p.email){ backupTarget='email'; modal='rpt-add-contact'; render(); return; }
-    sendPersonReportEmail(detailPid);
-  });
-  document.getElementById('rpt-save-contact-btn')?.addEventListener('click',async()=>{
-    const val=document.getElementById('rpt-contact-input')?.value.trim();
-    if(!val){ toast('⚠️ Lütfen bilgi girin'); return; }
-    if(backupTarget==='wa'){ await updatePerson(detailPid,{phone:val}); modal='person-report'; render(); setTimeout(()=>sendPersonReportWA(detailPid),200); }
-    else { await updatePerson(detailPid,{email:val}); modal='person-report'; render(); setTimeout(()=>sendPersonReportEmail(detailPid),200); }
-    toast('✅ Bilgi kaydedildi');
-  });
-
-  // Tam rapor yedekleme
-  document.getElementById('full-dl-btn')?.addEventListener('click',()=>{ modal=null; dlFullReport(); });
-  document.getElementById('full-wa-btn')?.addEventListener('click',()=>{ backupTarget='wa'; modal='full-backup-self'; render(); });
-  document.getElementById('full-email-btn')?.addEventListener('click',()=>{ backupTarget='email'; modal='full-backup-self'; render(); });
-  document.getElementById('self-send-btn')?.addEventListener('click',()=>{
-    const val=document.getElementById('self-contact-input')?.value.trim();
-    if(!val){ toast('⚠️ Lütfen bilgi girin'); return; }
-    modal=null;
-    if(backupTarget==='wa') sendFullReportWA(val);
-    else sendFullReportEmail(val);
-  });
+  document.getElementById('rpt-wa-btn')?.addEventListener('click',()=>sendPersonReportToVetWA(detailPid));
+  document.getElementById('rpt-email-btn')?.addEventListener('click',()=>sendPersonReportToVetEmail(detailPid));
+  document.getElementById('download-person-report-btn')?.addEventListener('click',()=>dlPersonReport(detailPid));
   document.querySelectorAll('.approve-user-btn').forEach(b=>b.addEventListener('click',async()=>{
     await sbReq('PATCH',`vc_users?id=eq.${b.dataset.uid}`,{active:true});
     await loadAllUsers(); toast('✅ Kullanıcı onaylandı'); render();
@@ -2671,11 +2640,17 @@ function bindEvents(){
 }
 
 // ─── REPORTS ──────────────────────────────────────────────────
-// Ortak: yeni pencerede aç ve print diyaloğunu tetikle
+function downloadHtmlAsPdf(html, filename){
+  // Blob ile direkt indir — tarayıcı PDF olarak kaydeder
+  const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+}
+// Geriye uyumluluk için
 function openPrintWindow(html){
-  const w=window.open('','_blank','width=900,height=700');
-  if(!w){ toast('Popup engellendi, lütfen izin verin'); return; }
-  w.document.open(); w.document.write(html); w.document.close();
+  downloadHtmlAsPdf(html, 'rapor.html');
 }
 
 const REPORT_CSS='body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:24px 30px;font-size:13px;color:#1a1a1a;background:#fff}'
@@ -2739,7 +2714,7 @@ function dlFilteredReport(){
     +'<table><tr><th>Ad Soyad</th><th>Telefon</th><th>Adres</th><th>Toplam Borc</th><th>Odenen</th><th>Bakiye</th><th>Durum</th></tr>'+rows+'</table>'
     /* print kaldırıldı */
     +'</body></html>';
-  openPrintWindow(html);
+  downloadHtmlAsPdf(html, 'cari-rapor-'+new Date().toISOString().slice(0,10)+'.html');
 }
 
 function dlFullReport(){
@@ -2784,7 +2759,7 @@ function dlFullReport(){
     +'<table><tr><th>Tarih</th><th>Kisi</th><th>Tur</th><th>Aciklama</th><th>Vade</th><th>Tutar</th></tr>'+txRows+'</table>'
     /* print kaldırıldı */
     +'</body></html>';
-  openPrintWindow(html);
+  downloadHtmlAsPdf(html, 'tam-cari-rapor-'+new Date().toISOString().slice(0,10)+'.html');
 }
 
 function dlPersonReport(pid){
@@ -2812,7 +2787,8 @@ function dlPersonReport(pid){
     +'<table><tr><th>Tarih</th><th>Tur</th><th>Aciklama</th><th>Vade</th><th>Not</th><th>Tutar</th></tr>'+rows+'</table>'
     /* print kaldırıldı */
     +'</body></html>';
-  openPrintWindow(html);
+  var pname = p.name.replace(/\s+/g,'-').toLowerCase();
+  downloadHtmlAsPdf(html, 'cari-'+pname+'-'+new Date().toISOString().slice(0,10)+'.html');
 }
 
 // ─── INIT ─────────────────────────────────────────────────────
@@ -3551,6 +3527,11 @@ function buildFarmDetail() {
     <button class="btn-sm btn-sm-b" id="excel-import-btn" style="padding:9px 12px;font-size:11px">📋 Toplu Giriş</button>
     <button class="btn-sm" id="bulk-select-btn" style="padding:9px 12px;font-size:11px;background:${bulkMode?'var(--amber-light)':'var(--gray)'};color:${bulkMode?'var(--amber)':'var(--text2)'};border:none;border-radius:var(--radius-sm);cursor:pointer">☑️ Seç</button>
     <button class="btn-sm btn-sm-r" id="delete-farm-btn" style="padding:9px 10px;font-size:11px">🗑</button>
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:12px">
+    <button class="btn-wa" id="farm-backup-wa-btn" style="flex:1;font-size:11px;padding:8px">📱 WA Yedek</button>
+    <button id="farm-backup-email-btn" style="flex:1;background:linear-gradient(135deg,#059669,#047857);color:#fff;border:none;border-radius:var(--radius-sm);padding:8px;font-family:'Nunito',sans-serif;font-weight:800;font-size:11px;cursor:pointer">📧 Mail Yedek</button>
+    <button class="btn-p" id="farm-backup-pdf-btn" style="flex:1;font-size:11px;padding:8px">⬇️ PDF İndir</button>
   </div>
 
   ${bulkMode ? `
@@ -4427,6 +4408,11 @@ function bindFarmEvents() {
     farmNav = 'farms'; selectedFarmId = null;
     toast('🗑 İşletme silindi'); render(); renderFarm();
   });
+
+  // İşletme yedekleme butonları
+  document.getElementById('farm-backup-wa-btn')?.addEventListener('click',()=>sendFarmBackupWA(selectedFarmId));
+  document.getElementById('farm-backup-email-btn')?.addEventListener('click',()=>sendFarmBackupEmail(selectedFarmId));
+  document.getElementById('farm-backup-pdf-btn')?.addEventListener('click',()=>dlFarmReport(selectedFarmId));
 
   document.getElementById('delete-animal-btn')?.addEventListener('click', async (e) => {
     e.stopPropagation();
