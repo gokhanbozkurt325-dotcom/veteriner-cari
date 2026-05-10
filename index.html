@@ -2041,9 +2041,36 @@ function buildAddUserModal(){
         <input class="fi" id="u-phone" type="tel" inputmode="numeric" placeholder="05XX XXX XX XX" style="flex:1">
         <button type="button" id="u-contact-picker-btn" style="background:var(--blue-light);color:var(--blue);border:none;border-radius:var(--radius-sm);padding:0 14px;font-size:18px;cursor:pointer;flex-shrink:0" title="Rehberden seç">👥</button>
       </div>
-      <div style="font-size:10px;color:var(--green);margin-top:4px;font-weight:600">📱 Kaydet & WA butonuyla kullanıcıya giriş bilgileri WhatsApp'tan gönderilir</div>
     </div>
-    <div class="btn-row" style="margin-top:16px">
+    <div style="background:var(--blue-light);border-radius:10px;padding:12px;margin-bottom:4px">
+      <div style="font-size:10px;font-weight:800;color:var(--blue);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">📋 Gönderilecek Mesaj Önizlemesi</div>
+      <div style="font-size:11px;color:var(--text2);line-height:1.7;white-space:pre-line">🐄 *Veteriner Cari Hesap & Sürü Takip*
+━━━━━━━━━━━━━━━━━━━━━━
+Sayın *[Ad Soyad]*,
+
+Sisteme kaydınız tamamlanmıştır.
+
+🔗 *Programa Giriş İçin Tıklayın*
+https://gokhanbozkurt325-dotcom.github.io/veteriner-cari
+
+👤 Kullanıcı Adınız: *[kullanıcı adı]*
+🔑 Şifreniz: *[şifre]*
+
+⚠️ İlk girişinizde şifrenizi değiştirmeniz gerekmektedir.
+_(Ayarlar → Şifre Değiştir)_
+━━━━━━━━━━━━━━━━━━━━━━
+📋 *Program Hakkında*
+
+Bu program; cari hesapları, borç/ödeme geçmişini dijital ortamda yönetmenizi sağlar. Vade uyarıları alabilir, WhatsApp ile borç bildirimi gönderebilirsiniz.
+
+Sürü modülü ile hayvan doğum, tohumlama ve gebelik süreçlerini takip edebilirsiniz.
+
+💬 *İletişim & Destek*
+Sorularınız için "Admine Sor" butonunu kullanın.
+━━━━━━━━━━━━━━━━━━━━━━
+_Veteriner Cari Hesap & Sürü Takip_</div>
+    </div>
+    <div class="btn-row" style="margin-top:12px">
       <button class="modal-cancel-btn btn-o" type="button" onclick="closeModal()">İptal</button>
       <button class="btn-p" id="save-user-btn">💾 Kaydet</button>
       <button class="btn-wa" id="save-user-wa-btn">📱 Kaydet & WA</button>
@@ -2658,8 +2685,20 @@ function bindEvents(){
     try{
       await sbReq('POST','vc_users',{id:uid(),username,full_name:fullname,password,role:'user',active,created_at:new Date().toISOString()});
       await loadAllUsers();
-      modal=null; toast('✅ Kullanıcı eklendi'); render();
-      if(sendWA&&phone) setTimeout(()=>sendWelcomeWhatsApp(phone,fullname,username,password),400);
+      modal=null; render();
+      if(sendWA&&phone){
+        // Popup blocker'ı aşmak için doğrudan anchor tıklama
+        const raw=phone.replace(/\D/g,'');
+        const fp=raw.startsWith('0')?'90'+raw.slice(1):raw.startsWith('90')?raw:'90'+raw;
+        const msg=`🐄 *Veteriner Cari Hesap & Sürü Takip*\n━━━━━━━━━━━━━━━━━━━━━━\nSayın *${fullname}*,\n\nSisteme kaydınız tamamlanmıştır. Aşağıdaki bilgilerle giriş yapabilirsiniz.\n\n🔗 *Programa Giriş İçin Tıklayın*\nhttps://gokhanbozkurt325-dotcom.github.io/veteriner-cari\n\n👤 Kullanıcı Adınız: *${username}*\n🔑 Şifreniz: *${password}*\n\n⚠️ Güvenliğiniz için ilk girişinizde şifrenizi değiştirmeniz gerekmektedir.\n_(Ayarlar → Şifre Değiştir)_\n━━━━━━━━━━━━━━━━━━━━━━\n📋 *Program Hakkında*\n\nBu program; müşterilerinizin cari hesaplarını, borç ve ödeme geçmişlerini dijital ortamda yönetmenizi sağlar. Vade tarihleri yaklaşan ödemeler için otomatik uyarı alabilir, müşterilerinize WhatsApp üzerinden borç bildirimi gönderebilirsiniz.\n\nSürü modülü ile hayvanlarınızın doğum, tohumlama, gebelik ve sağlık süreçlerini kayıt altına alabilir; takvim üzerinden yaklaşan olayları takip edebilirsiniz.\n\nRaporlarınızı PDF olarak indirebilir, WhatsApp veya e-posta yoluyla kendinize yedek olarak gönderebilirsiniz. *Verilerinizi düzenli yedeklemeyi unutmayınız.*\n\n💬 *İletişim & Destek*\nSorularınız için program içindeki "Admine Sor" butonunu kullanabilirsiniz.\n━━━━━━━━━━━━━━━━━━━━━━\n_Veteriner Cari Hesap & Sürü Takip_`;
+        const waUrl=`https://wa.me/${fp}?text=${encodeURIComponent(msg)}`;
+        const a=document.createElement('a');
+        a.href=waUrl; a.target='_blank'; a.rel='noopener';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        toast('✅ Kullanıcı eklendi, WhatsApp açılıyor...');
+      } else {
+        toast('✅ Kullanıcı eklendi');
+      }
     }catch(e){ alert('Hata: Kullanıcı adı zaten mevcut olabilir.'); }
   }
   document.getElementById('save-user-btn')?.addEventListener('click',()=>doSaveUser(false));
