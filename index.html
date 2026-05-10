@@ -2025,53 +2025,23 @@ function buildAdmin(){
 }
 function buildAddUserModal(){
   return mWrap('👤 Yeni Kullanıcı Ekle',`
-    <div class="tabs" style="margin-bottom:16px">
-      <button class="tab-btn active" id="utab-info" onclick="switchUserTab('info')">Hesap Bilgileri</button>
-      <button class="tab-btn" id="utab-contact" onclick="switchUserTab('contact')">📱 İletişim & Hoş Geldiniz</button>
+    <div class="fg"><label class="fl">Ad Soyad *</label><input class="fi" id="u-fullname" placeholder="Ahmet Yılmaz"></div>
+    <div class="fg"><label class="fl">Kullanıcı Adı *</label><input class="fi" id="u-username" placeholder="ahmetyilmaz" autocapitalize="none"></div>
+    <div class="fg"><label class="fl">Şifre *</label><input class="fi" id="u-password" type="password" placeholder="Şifre belirleyin"></div>
+    <div class="fg">
+      <label class="fl">Durum</label>
+      <select class="fi" id="u-active">
+        <option value="true">Aktif (hemen giriş yapabilir)</option>
+        <option value="false">Beklemede (onay gerekli)</option>
+      </select>
     </div>
-    <div id="utab-info-panel">
-      <div class="fg"><label class="fl">Ad Soyad *</label><input class="fi" id="u-fullname" placeholder="Ahmet Yılmaz"></div>
-      <div class="fg"><label class="fl">Kullanıcı Adı *</label><input class="fi" id="u-username" placeholder="ahmetyilmaz" autocapitalize="none"></div>
-      <div class="fg"><label class="fl">Şifre *</label><input class="fi" id="u-password" type="password" placeholder="Şifre belirleyin"></div>
-      <div class="fg">
-        <label class="fl">Durum</label>
-        <select class="fi" id="u-active">
-          <option value="true">Aktif (hemen giriş yapabilir)</option>
-          <option value="false">Beklemede (onay gerekli)</option>
-        </select>
+    <div class="fg">
+      <label class="fl">Telefon <span style="font-size:10px;color:var(--gray3);font-weight:400">(WA göndermek için)</span></label>
+      <div style="display:flex;gap:8px">
+        <input class="fi" id="u-phone" type="tel" inputmode="numeric" placeholder="05XX XXX XX XX" style="flex:1">
+        <button type="button" id="u-contact-picker-btn" style="background:var(--blue-light);color:var(--blue);border:none;border-radius:var(--radius-sm);padding:0 14px;font-size:18px;cursor:pointer;flex-shrink:0" title="Rehberden seç">👥</button>
       </div>
-    </div>
-    <div id="utab-contact-panel" style="display:none">
-      <div style="background:var(--green-light);border-radius:10px;padding:12px;margin-bottom:14px;font-size:12px;color:var(--green);font-weight:600;line-height:1.6">
-        📱 Telefon girilirse kullanıcıya program bilgilerini içeren resmi bir WhatsApp mesajı gönderilir.
-      </div>
-      <div class="fg">
-        <label class="fl">Telefon <span style="font-size:10px;color:var(--gray3);font-weight:400">(opsiyonel)</span></label>
-        <div style="display:flex;gap:8px">
-          <input class="fi" id="u-phone" type="tel" inputmode="numeric" placeholder="05XX XXX XX XX" style="flex:1">
-          <button type="button" id="u-contact-picker-btn" style="background:var(--blue-light);color:var(--blue);border:none;border-radius:var(--radius-sm);padding:0 14px;font-size:18px;cursor:pointer;flex-shrink:0" title="Rehberden seç">👥</button>
-        </div>
-        <div style="font-size:10px;color:var(--gray4);margin-top:4px">👥 simgesine tıklayarak rehberden numara seçebilirsiniz</div>
-      </div>
-      <div style="background:var(--blue-light);border-radius:10px;padding:12px">
-        <div style="font-size:10px;font-weight:800;color:var(--blue);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">📋 Gönderilecek Mesaj Önizlemesi</div>
-        <div style="font-size:11px;color:var(--text2);line-height:1.7;white-space:pre-line">🐄 *Veteriner Cari Hesap & Sürü Takip*
-━━━━━━━━━━━━━━━━━━━━━━
-Sayın *[Ad Soyad]*,
-
-Sisteme kaydınız tamamlanmıştır.
-
-🔗 *Programa Giriş İçin Tıklayın*
-https://gokhanbozkurt325-dotcom.github.io/veteriner-cari
-
-👤 Kullanıcı Adınız: *[kullanıcı adı]*
-🔑 Şifreniz: *[şifre]*
-
-⚠️ İlk girişinizde şifrenizi değiştirmeniz gerekmektedir.
-_(Ayarlar → Şifre Değiştir)_
-━━━━━━━━━━━━━━━━━━━━━━
-_Veteriner Cari Hesap & Sürü Takip_</div>
-      </div>
+      <div style="font-size:10px;color:var(--green);margin-top:4px;font-weight:600">📱 Kaydet & WA butonuyla kullanıcıya giriş bilgileri WhatsApp'tan gönderilir</div>
     </div>
     <div class="btn-row" style="margin-top:16px">
       <button class="modal-cancel-btn btn-o" type="button" onclick="closeModal()">İptal</button>
@@ -2631,6 +2601,23 @@ function bindEvents(){
   document.getElementById('add-user-btn')?.addEventListener('click',()=>{ modal='add-user'; render(); });
   document.getElementById('refresh-users-btn')?.addEventListener('click',async()=>{ await loadAllUsers(); render(); });
 
+  // ── Rehberden numara seç ──
+  document.getElementById('u-contact-picker-btn')?.addEventListener('click',async()=>{
+    if(!('contacts' in navigator&&'ContactsManager' in window)){
+      toast('⚠️ Bu cihaz rehber erişimini desteklemiyor'); return;
+    }
+    try{
+      const contacts=await navigator.contacts.select(['name','tel'],{multiple:false});
+      if(contacts&&contacts.length>0){
+        const tel=contacts[0].tel?.[0]||'';
+        const name=contacts[0].name?.[0]||'';
+        if(tel) document.getElementById('u-phone').value=tel;
+        if(name&&!document.getElementById('u-fullname').value) document.getElementById('u-fullname').value=name;
+        toast('✅ Rehberden seçildi');
+      }
+    }catch(e){ toast('Rehber erişimi iptal edildi'); }
+  });
+
   // ── Admin: Gelen soruları yanıtla ──
   document.querySelectorAll('.admin-reply-btn').forEach(btn=>{
     btn.addEventListener('click',async()=>{
@@ -2659,7 +2646,7 @@ function bindEvents(){
     });
   });
 
-  // ── Kullanıcı kaydet (tab'a göre WA gönder veya sadece kaydet) ──
+  // ── Kullanıcı kaydet ──
   async function doSaveUser(sendWA){
     const fullname=document.getElementById('u-fullname')?.value.trim();
     const username=document.getElementById('u-username')?.value.trim().toLowerCase();
@@ -2667,12 +2654,12 @@ function bindEvents(){
     const active=document.getElementById('u-active')?.value==='true';
     const phone=document.getElementById('u-phone')?.value.trim()||'';
     if(!fullname||!username||!password){ alert('Ad Soyad, Kullanıcı Adı ve Şifre zorunludur!'); return; }
+    if(sendWA&&!phone){ toast('⚠️ WhatsApp göndermek için telefon numarası girin!'); return; }
     try{
       await sbReq('POST','vc_users',{id:uid(),username,full_name:fullname,password,role:'user',active,created_at:new Date().toISOString()});
       await loadAllUsers();
       modal=null; toast('✅ Kullanıcı eklendi'); render();
-      if(sendWA&&phone) setTimeout(()=>sendWelcomeWhatsApp(phone,fullname,username,password),300);
-      else if(sendWA&&!phone) toast('⚠️ Telefon girilmediği için WA gönderilemedi');
+      if(sendWA&&phone) setTimeout(()=>sendWelcomeWhatsApp(phone,fullname,username,password),400);
     }catch(e){ alert('Hata: Kullanıcı adı zaten mevcut olabilir.'); }
   }
   document.getElementById('save-user-btn')?.addEventListener('click',()=>doSaveUser(false));
