@@ -292,6 +292,8 @@ let nav='home', detailPid=null, txTab='all', filterType='all', search='';
 let filterMin='', filterMax='', filterPanelOpen=false;
 let navHistory=[];
 let announcements=[];
+let userMessages=[]; // kullanıcıya gelen admin yanıtları
+let adminMessages=[]; // admin paneli için gelen sorular
 let fabMenuOpen=false;
 // Kapatılan duyuru ID'leri — oturum boyunca hatırla
 const dismissedAnnouncements = new Set();
@@ -406,6 +408,16 @@ async function loadAll(){
   try{ await loadReminders(); }catch(e){ console.error('Reminders error',e); }
   try{ if(typeof loadFarmData==='function') await loadFarmData(); }catch(e){ console.error('FarmData error',e); }
   try{ announcements=await sbReq('GET','vc_announcements?order=created_at.desc&limit=10'); if(!Array.isArray(announcements)) announcements=[]; }catch(e){ announcements=[]; }
+  // Kullanıcıya gelen yanıtları yükle
+  try{
+    if(isAdmin()){
+      adminMessages=await sbReq('GET','vc_messages?order=created_at.desc');
+      if(!Array.isArray(adminMessages)) adminMessages=[];
+    } else {
+      userMessages=await sbReq('GET',`vc_messages?from_user_id=eq.${userId()}&order=created_at.desc`);
+      if(!Array.isArray(userMessages)) userMessages=[];
+    }
+  }catch(e){ userMessages=[]; adminMessages=[]; }
   dataLoading=false; render();
 }
 function saveLocal(){
@@ -503,6 +515,15 @@ document.addEventListener('click', function(e){
     render();
     return;
   }
+  // Kullanıcı mesaj bildirimi kapat (✕)
+  if(e.target.closest('.dismiss-user-msg-btn')){
+    const mid = e.target.closest('.dismiss-user-msg-btn').dataset.mid;
+    // Mesajı sil (Supabase'den)
+    sbReq('DELETE','vc_messages?id=eq.'+mid).catch(()=>{});
+    userMessages = userMessages.filter(m=>m.id!==mid);
+    render();
+    return;
+  }
   // Duyuru sil (admin)
   if(e.target.closest('.del-announce-btn')){
     const aid = e.target.closest('.del-announce-btn').dataset.aid;
@@ -525,11 +546,11 @@ document.addEventListener('click', function(e){
   // Admine Sor gönder
   if(e.target.closest('#send-ask-btn')){
     const soru = document.getElementById('ask-question')?.value.trim();
-    const ad = document.getElementById('ask-name')?.value.trim();
+    const ad = document.getElementById('ask-name')?.value.trim() || currentUser?.full_name || 'Bilinmeyen';
     if(!soru){ toast('⚠️ Lütfen sorunuzu yazın'); return; }
-    const ann = {id:uid(), title:(ad?ad+': ':'')+soru, message:'', created_at:new Date().toISOString(), created_by:userId()};
-    sbReq('POST','vc_announcements',ann).then(()=>{
-      toast('✅ Sorunuz iletildi!');
+    const msg = {id:uid(), from_user_id:userId(), from_name:ad, question:soru, answer:null, answered_at:null, created_at:new Date().toISOString()};
+    sbReq('POST','vc_messages',msg).then(()=>{
+      toast('✅ Sorunuz Gökhan\'a iletildi!');
       closeModal();
     }).catch(()=>toast('❌ Gönderilemedi'));
     return;
@@ -897,6 +918,24 @@ function buildHome(){
   const cardStyle=cardBase+';border-radius:var(--radius)';
 
   return `
+  <!-- Admin Yanıtları (kullanıcıya özel) -->
+  ${!isAdmin()&&userMessages.filter(m=>m.answer).length?`
+  <div style="margin-bottom:12px">
+    ${userMessages.filter(m=>m.answer).map(m=>`
+    <div style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1.5px solid #86efac;border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;position:relative">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:16px">👑</span>
+          <span style="font-size:11px;font-weight:800;color:var(--green)">Gökhan'dan Yanıt</span>
+        </div>
+        <button class="dismiss-user-msg-btn" data-mid="${m.id}" style="border:none;background:rgba(0,0,0,.06);border-radius:6px;width:22px;height:22px;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--gray4)">✕</button>
+      </div>
+      <div style="font-size:11px;color:var(--gray4);margin-bottom:5px;font-style:italic">Sorunuz: ${m.question}</div>
+      <div style="font-size:13px;font-weight:700;color:var(--text);padding:9px 11px;background:#fff;border-radius:9px;border-left:3px solid var(--green)">${m.answer}</div>
+      <div style="font-size:10px;color:var(--gray4);margin-top:5px;text-align:right">${m.answered_at?fmtDate(m.answered_at):''}</div>
+    </div>`).join('')}
+  </div>`:''}
+
   <!-- Duyuru Banner'ları -->
   ${announcements.filter(a=>!dismissedAnnouncements.has(a.id)).map(a=>`
   <div class="announcement-banner" data-aid="${a.id}" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px;display:flex;align-items:flex-start;gap:10px;box-shadow:0 3px 12px rgba(109,40,217,.3)">
@@ -1217,14 +1256,18 @@ function buildPersons(){
   <div class="search-bar"><span class="search-icon">🔍</span><input class="fi" id="search-input" placeholder="İsim veya telefon ara..." value="${search}" autocomplete="off"></div>
 
   <!-- Chip + Filtre + Rapor satırı -->
-  <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
-    <div class="chip-row" style="flex:1;margin-bottom:0">
-      ${[['all','Tümü'],['debt','Borçlu'],['overdue','Gecikmiş 🔴'],['clean','Temiz']].map(([k,l])=>`<div class="chip ${k==='overdue'?'red-chip':''} ${filterType===k?'active':''}" data-filter="${k}">${l}</div>`).join('')}
+  <div style="margin-bottom:10px">
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+      <div class="chip-row" style="flex:1;margin-bottom:0;overflow-x:auto">
+        ${[['all','Tümü'],['debt','Borçlu'],['overdue','Gecikmiş 🔴'],['clean','Temiz']].map(([k,l])=>`<div class="chip ${k==='overdue'?'red-chip':''} ${filterType===k?'active':''}" data-filter="${k}">${l}</div>`).join('')}
+      </div>
     </div>
-    <button id="filter-panel-btn" style="border:none;background:${filterPanelOpen||activeFilterCount2>0?'var(--blue)':'var(--gray)'};color:${filterPanelOpen||activeFilterCount2>0?'#fff':'var(--gray4)'};border-radius:9px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">
-      ⚙️ Filtre${activeFilterCount2>0?' ('+activeFilterCount2+')':''}
-    </button>
-    <button id="persons-report-btn" style="border:none;background:var(--blue);color:#fff;border-radius:9px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">📊 Rapor</button>
+    <div style="display:flex;gap:6px">
+      <button id="filter-panel-btn" style="flex:1;border:none;background:${filterPanelOpen||activeFilterCount2>0?'var(--blue)':'var(--gray2)'};color:${filterPanelOpen||activeFilterCount2>0?'#fff':'var(--gray4)'};border-radius:9px;padding:8px 10px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">
+        ⚙️ Filtre${activeFilterCount2>0?' ('+activeFilterCount2+')':''}
+      </button>
+      <button id="persons-report-btn" style="flex:1;border:none;background:var(--blue);color:#fff;border-radius:9px;padding:8px 10px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">📊 Rapor</button>
+    </div>
   </div>
 
   <!-- Açılır Filtre Paneli -->
@@ -1934,6 +1977,25 @@ function buildAdmin(){
     </div>
     <button class="del-announce-btn" data-aid="${a.id}" style="border:none;background:#fce7f3;color:#be185d;border-radius:8px;padding:5px 9px;font-size:11px;cursor:pointer">🗑</button>
   </div>`).join(''):`<div style="color:var(--gray4);font-size:12px;margin-bottom:14px">Henüz duyuru yok.</div>`}
+
+  <!-- Kullanıcı Soruları -->
+  <div class="sec-title" style="color:var(--blue);margin-top:16px">💬 Gelen Sorular (${adminMessages.filter(m=>!m.answer).length} yanıtsız)</div>
+  ${adminMessages.length ? adminMessages.map(m=>`
+  <div style="background:${m.answer?'#f0fdf4':'#fff7ed'};border:1.5px solid ${m.answer?'#bbf7d0':'#fed7aa'};border-radius:10px;padding:11px 13px;margin-bottom:8px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px">
+      <div>
+        <div style="font-size:12px;font-weight:800;color:var(--text)">${m.from_name||'Bilinmeyen'}</div>
+        <div style="font-size:10px;color:var(--gray4)">${new Date(m.created_at).toLocaleDateString('tr-TR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</div>
+      </div>
+      <button class="del-admin-msg-btn" data-mid="${m.id}" style="border:none;background:var(--red-light);color:var(--red);border-radius:7px;padding:4px 8px;font-size:10px;cursor:pointer">🗑</button>
+    </div>
+    <div style="font-size:13px;color:var(--text);font-weight:600;margin-bottom:8px;padding:8px;background:rgba(255,255,255,.7);border-radius:8px">💬 ${m.question}</div>
+    ${m.answer?`<div style="font-size:12px;color:var(--green);font-weight:700;padding:8px;background:#f0fdf4;border-radius:8px;border-left:3px solid var(--green)">✅ Yanıt: ${m.answer}</div>`:`
+    <div style="display:flex;gap:6px">
+      <input id="admin-reply-${m.id}" placeholder="Yanıtınızı yazın..." style="flex:1;padding:8px 10px;border-radius:8px;border:1.5px solid var(--gray2);font-size:12px;font-family:'Nunito Sans',sans-serif;outline:none" onfocus="this.style.borderColor='var(--blue)'" onblur="this.style.borderColor='var(--gray2)'">
+      <button class="admin-reply-btn" data-mid="${m.id}" data-fuid="${m.from_user_id}" style="border:none;background:var(--blue);color:#fff;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">Yanıtla</button>
+    </div>`}
+  </div>`).join('') : `<div style="color:var(--gray4);font-size:12px;margin-bottom:14px">Henüz soru gelmedi.</div>`}
   ${pending.length?`
   <div class="sec-title" style="color:var(--amber)">⏳ Onay Bekleyenler (${pending.length})</div>
   ${pending.map(u=>`
@@ -2013,8 +2075,8 @@ _Veteriner Cari Hesap & Sürü Takip_</div>
     </div>
     <div class="btn-row" style="margin-top:16px">
       <button class="modal-cancel-btn btn-o" type="button" onclick="closeModal()">İptal</button>
-      <button class="btn-p" id="save-user-btn">Kaydet</button>
-      <button class="btn-wa" id="save-user-wa-btn" style="display:none">💾 Kaydet & WA</button>
+      <button class="btn-p" id="save-user-btn">💾 Kaydet</button>
+      <button class="btn-wa" id="save-user-wa-btn">📱 Kaydet & WA</button>
     </div>`);
 }
 
@@ -2023,12 +2085,6 @@ window.switchUserTab=function(tab){
   document.getElementById('utab-contact-panel').style.display=tab==='contact'?'':'none';
   document.getElementById('utab-info').classList.toggle('active',tab==='info');
   document.getElementById('utab-contact').classList.toggle('active',tab==='contact');
-  const waBtn=document.getElementById('save-user-wa-btn');
-  const saveBtn=document.getElementById('save-user-btn');
-  if(waBtn&&saveBtn){
-    waBtn.style.display=tab==='contact'?'':'none';
-    saveBtn.style.display=tab==='contact'?'none':'';
-  }
   if(tab==='contact'){
     document.getElementById('u-contact-picker-btn')?.addEventListener('click',async()=>{
       if(!('contacts' in navigator&&'ContactsManager' in window)){
@@ -2574,6 +2630,34 @@ function bindEvents(){
   // Admin işlemleri
   document.getElementById('add-user-btn')?.addEventListener('click',()=>{ modal='add-user'; render(); });
   document.getElementById('refresh-users-btn')?.addEventListener('click',async()=>{ await loadAllUsers(); render(); });
+
+  // ── Admin: Gelen soruları yanıtla ──
+  document.querySelectorAll('.admin-reply-btn').forEach(btn=>{
+    btn.addEventListener('click',async()=>{
+      const mid=btn.dataset.mid;
+      const fuid=btn.dataset.fuid;
+      const inp=document.getElementById('admin-reply-'+mid);
+      const answer=inp?.value.trim();
+      if(!answer){ toast('⚠️ Yanıt yazın'); return; }
+      try{
+        await sbReq('PATCH','vc_messages?id=eq.'+mid,{answer, answered_at:new Date().toISOString()});
+        adminMessages=adminMessages.map(m=>m.id===mid?{...m,answer,answered_at:new Date().toISOString()}:m);
+        toast('✅ Yanıt gönderildi');
+        render();
+      }catch(){ toast('❌ Gönderilemedi'); }
+    });
+  });
+
+  // ── Admin: Soruyu sil ──
+  document.querySelectorAll('.del-admin-msg-btn').forEach(btn=>{
+    btn.addEventListener('click',async()=>{
+      if(!confirm('Bu mesaj silinsin mi?')) return;
+      await sbReq('DELETE','vc_messages?id=eq.'+btn.dataset.mid).catch(()=>{});
+      adminMessages=adminMessages.filter(m=>m.id!==btn.dataset.mid);
+      toast('🗑 Mesaj silindi');
+      render();
+    });
+  });
 
   // ── Kullanıcı kaydet (tab'a göre WA gönder veya sadece kaydet) ──
   async function doSaveUser(sendWA){
