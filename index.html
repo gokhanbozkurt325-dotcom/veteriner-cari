@@ -2644,7 +2644,7 @@ function bindEvents(){
         adminMessages=adminMessages.map(m=>m.id===mid?{...m,answer,answered_at:new Date().toISOString()}:m);
         toast('✅ Yanıt gönderildi');
         render();
-      }catch(){ toast('❌ Gönderilemedi'); }
+      }catch(e){ toast('❌ Gönderilemedi'); }
     });
   });
 
