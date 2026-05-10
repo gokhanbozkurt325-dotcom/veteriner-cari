@@ -294,6 +294,7 @@ let navHistory=[];
 let announcements=[];
 let userMessages=[]; // kullanıcıya gelen admin yanıtları
 let adminMessages=[]; // admin paneli için gelen sorular
+let showKvkk=false; // KVKK onay ekranı
 let fabMenuOpen=false;
 // Kapatılan duyuru ID'leri — oturum boyunca hatırla
 const dismissedAnnouncements = new Set();
@@ -596,11 +597,13 @@ function render(){
     return;
   }
   document.getElementById('app').innerHTML = buildHTML();
+  if(showKvkk){ bindKvkkEvents(); return; }
   bindEvents();
 }
 
 function buildHTML(){
   if(!currentUser) return buildLogin();
+  if(showKvkk) return buildKvkk();
   const overdueCount=getOverduePersons().length;
   return buildHeader(overdueCount)+`<div class="content">`+(dataLoading?`<div class="loading"><div class="spinner"></div><p>Yükleniyor...</p></div>`:buildPage())+`</div>`+buildNav(overdueCount)+(modal?buildModal():'');
 }
@@ -675,6 +678,85 @@ function buildLogin(){
 
   </div>`;
 }
+
+// ─── KVKK ONAY EKRANI ────────────────────────────────────────
+function buildKvkk(){
+  const tarih = new Date().toLocaleDateString('tr-TR',{day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  return `<div style="max-width:480px;margin:0 auto;min-height:100vh;background:#fff;display:flex;flex-direction:column">
+    <div style="background:linear-gradient(135deg,#0a3a6e,#1565C0);padding:20px 18px 16px;flex-shrink:0">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:28px">⚖️</span>
+        <div>
+          <div style="color:#fff;font-family:'Nunito',sans-serif;font-weight:900;font-size:16px">Gizlilik & KVKK Bildirimi</div>
+          <div style="color:rgba(255,255,255,.6);font-size:11px;margin-top:2px">Lütfen okuyup onaylayın</div>
+        </div>
+      </div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:18px 16px">
+      <div style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:12px;color:#92400e;font-weight:600;line-height:1.6">
+        ⚠️ Bu ekranı geçmeden sistemi kullanamazsınız. Aşağıdaki metni okuyarak onaylamanız gerekmektedir.
+      </div>
+      <div style="font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;color:var(--blue);margin-bottom:4px">VETERİNER CARİ HESAP & SÜRÜ TAKİP</div>
+      <div style="font-size:12px;font-weight:700;color:var(--gray4);margin-bottom:16px">Kişisel Verilerin Korunması Kanunu (KVKK) Kapsamında Aydınlatma Metni</div>
+
+      <div style="font-size:13px;font-weight:800;color:var(--text);margin:14px 0 6px">1. Veri Sorumlusu</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.8">Bu uygulamayı kullanan her veteriner hekim, kendi müşterilerine ait verilerin <b>veri sorumlusudur</b>. Uygulama altyapısı Supabase bulut sisteminde barındırılmakta olup sistem yöneticisi Gökhan Bozkurt tarafından işletilmektedir.</div>
+
+      <div style="font-size:13px;font-weight:800;color:var(--text);margin:14px 0 6px">2. İşlenen Kişisel Veriler</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.8">Sistem aracılığıyla aşağıdaki kişisel veriler işlenmektedir:<br>• <b>Kimlik:</b> Ad, soyad<br>• <b>İletişim:</b> Telefon numarası, e-posta, adres<br>• <b>Finansal:</b> Borç, ödeme, cari hesap bilgileri<br>• <b>Sağlık (hayvan):</b> Hayvan sağlık kayıtları, tedavi geçmişi</div>
+
+      <div style="font-size:13px;font-weight:800;color:var(--text);margin:14px 0 6px">3. İşleme Amacı</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.8">Kişisel veriler yalnızca <b>veteriner hekimlik hizmetlerine ilişkin cari hesap takibi, ödeme yönetimi ve hayvan sağlık kaydı</b> amacıyla işlenmektedir. Üçüncü kişilerle paylaşılmaz, ticari amaçla kullanılmaz.</div>
+
+      <div style="font-size:13px;font-weight:800;color:var(--text);margin:14px 0 6px">4. Veri Güvenliği</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.8">Veriler Supabase altyapısında şifreli (TLS/SSL) iletimle saklanmaktadır. Yetkisiz erişimi önlemek için kullanıcı bazlı erişim kısıtlaması uygulanmaktadır. İnternet ortamında tam güvenlik garanti edilemez; kullanıcılar bu riski kabul etmiş sayılır.</div>
+
+      <div style="font-size:13px;font-weight:800;color:var(--text);margin:14px 0 6px">5. Haklarınız (KVKK Madde 11)</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.8">6698 sayılı KVKK uyarınca aşağıdaki haklara sahipsiniz:<br>• Verilerinizin işlenip işlenmediğini öğrenme<br>• Verilerinize erişim ve düzeltme talep etme<br>• Verilerin silinmesini isteme<br>• İşlemeye itiraz etme<br><br>Bu hakları kullanmak için sistem yöneticisiyle iletişime geçebilirsiniz.</div>
+
+      <div style="font-size:13px;font-weight:800;color:var(--text);margin:14px 0 6px">6. Müşteri Verilerinin Sorumluluğu</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.8">Sisteme girdiğiniz müşteri verilerinin <b>yasal mevzuata uygun şekilde toplanması ve işlenmesinden bizzat sorumlusunuz</b>. Müşterilerinizden gerekli açık rızayı aldığınızı kabul etmiş sayılırsınız.</div>
+
+      <div style="font-size:13px;font-weight:800;color:var(--text);margin:14px 0 6px">7. Yerel Depolama</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.8">Uygulama, oturum bilgilerini cihazınızın yerel depolama alanında (localStorage) saklar. Bu veriler yalnızca uygulamanın çalışması için kullanılır.</div>
+
+      <div style="background:var(--blue-light);border-radius:10px;padding:12px 14px;margin-top:18px;margin-bottom:6px">
+        <div style="font-size:11px;color:var(--blue);font-weight:700;margin-bottom:6px">📅 Onay bilgileri kaydedilecek:</div>
+        <div style="font-size:12px;color:var(--text2)">Kullanıcı: <b>${currentUser?.full_name||''}</b></div>
+        <div style="font-size:12px;color:var(--text2)">Tarih/Saat: <b>${tarih}</b></div>
+        <div style="font-size:11px;color:var(--gray4);margin-top:4px">Bu bilgiler sistemde kayıt altına alınacaktır.</div>
+      </div>
+    </div>
+
+    <div style="padding:16px 16px 30px;border-top:1px solid var(--gray2);background:#fff;flex-shrink:0">
+      <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;margin-bottom:14px">
+        <input type="checkbox" id="kvkk-check" style="width:20px;height:20px;margin-top:1px;accent-color:var(--blue);flex-shrink:0">
+        <span style="font-size:12px;color:var(--text);line-height:1.6;font-weight:600">Yukarıdaki KVKK aydınlatma metnini <b>okudum, anladım ve kabul ediyorum.</b> Müşterilerime ait verilerin işlenmesinden yasal olarak sorumlu olduğumu kabul ediyorum.</span>
+      </label>
+      <div id="kvkk-err" style="color:var(--red);font-size:12px;font-weight:700;min-height:16px;margin-bottom:8px"></div>
+      <button id="kvkk-accept-btn" style="width:100%;background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff;border:none;border-radius:var(--radius-sm);padding:14px;font-family:'Nunito',sans-serif;font-weight:800;font-size:15px;cursor:pointer">✅ Okudum, Kabul Ediyorum — Sisteme Gir</button>
+      <button id="kvkk-reject-btn" style="width:100%;background:none;color:var(--gray4);border:none;padding:10px;font-size:12px;cursor:pointer;margin-top:4px">Kabul etmiyorum — Çıkış yap</button>
+    </div>
+  </div>`;
+}
+
+async function bindKvkkEvents(){
+  document.getElementById('kvkk-accept-btn')?.addEventListener('click',async()=>{
+    const check=document.getElementById('kvkk-check');
+    const err=document.getElementById('kvkk-err');
+    if(!check?.checked){ err.textContent='⚠️ Devam etmek için onay kutusunu işaretlemeniz gerekiyor.'; return; }
+    err.textContent='';
+    const now=new Date().toISOString();
+    try{ await sbReq('PATCH',`vc_users?id=eq.${currentUser.id}`,{kvkk_accepted_at:now}); }catch(e){ console.error('KVKK kayıt hatası',e); }
+    setCurrentUser({...currentUser, kvkk_accepted_at:now});
+    showKvkk=false;
+    await loadAll();
+  });
+  document.getElementById('kvkk-reject-btn')?.addEventListener('click',()=>{
+    clearCurrentUser(); showKvkk=false; render();
+  });
+}
+
 function bindLoginEvents(){
   const doLogin=async()=>{
     const err=document.getElementById('login-err');
@@ -706,7 +788,14 @@ function bindLoginEvents(){
       // Başarılı giriş — sayacı sıfırla
       loginAttempts.count=0; loginAttempts.lockedUntil=0;
       setCurrentUser(user);
-      await loadAll();
+      // KVKK kontrolü — daha önce kabul etmemişse önce KVKK ekranı
+      if(!user.kvkk_accepted_at){
+        showKvkk=true;
+        render();
+      } else {
+        showKvkk=false;
+        await loadAll();
+      }
     }catch(e){ err.textContent='Bağlantı hatası, tekrar deneyin.'; err.className='login-err'; }
   };
   document.getElementById('login-btn')?.addEventListener('click',doLogin);
@@ -2019,6 +2108,11 @@ function buildAdmin(){
           ${u.role==='admin'?'<span class="au-badge admin">👑 Admin</span>':'<span class="au-badge active">Aktif</span>'}
         </div>
         <div class="au-meta">@${u.username}</div>
+        <div class="au-meta" style="margin-top:2px">
+          ${u.kvkk_accepted_at
+            ? `<span style="color:var(--green);font-size:10px;font-weight:700">✅ KVKK: ${new Date(u.kvkk_accepted_at).toLocaleDateString('tr-TR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</span>`
+            : `<span style="color:var(--amber);font-size:10px;font-weight:700">⏳ KVKK henüz onaylanmadı</span>`}
+        </div>
       </div>
       ${u.role!=='admin'?`<button class="btn-sm btn-sm-r deactivate-user-btn" data-uid="${u.id}" style="padding:6px 10px">🚫</button>`:''}
     </div>`).join('')}`;
