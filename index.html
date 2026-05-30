@@ -4877,18 +4877,51 @@ function renderFarm() {
       if(!fullname||!phone||!username||!password){ alert('Ad soyad, telefon, kullanıcı adı ve şifre zorunludur!'); return; }
       const farm=farms.find(f=>f.id===selectedFarmId);
       const existing=window._allUsers?.find(u=>u.farm_id===selectedFarmId&&u.role==='breeder');
+
+      // WA mesajını hazırla
+      const raw=phone.replace(/\D/g,'');
+      const fp=raw.startsWith('0')?'90'+raw.slice(1):raw.startsWith('90')?raw:'90'+raw;
+      const msg=
+`🐄 *Veteriner Cari Hesap & Sürü Takip*
+━━━━━━━━━━━━━━━━━━━━━━
+Sayın *${fullname}*,
+
+*${farm?.owner_name||'İşletmeniz'}* için sisteme erişiminiz tanımlanmıştır. Aşağıdaki bilgilerle giriş yapabilirsiniz.
+
+🔗 *Giriş için tıklayın:*
+https://gokhanbozkurt325-dotcom.github.io/veteriner-cari
+
+👤 Kullanıcı Adı: *${username}*
+🔑 Şifre: *${password}*
+
+⚠️ İlk girişinizde şifrenizi değiştirmeniz önerilir.
+_(Ayarlar → Şifre Değiştir)_
+━━━━━━━━━━━━━━━━━━━━━━
+📋 *Sistemde yapabilecekleriniz:*
+
+• Kendi işletmenize ait hayvanları görüntüleyebilir, yeni hayvan ekleyebilirsiniz
+• Kızgınlık, tohumlama ve doğum kayıtlarını girebilirsiniz
+• Gebelik takibi ve doğum beklenti tarihlerini görebilirsiniz
+• Yaklaşan olaylar için otomatik uyarılar alabilirsiniz
+• Hayvan sağlık ve olay geçmişini takip edebilirsiniz
+
+💬 Sorularınız için veteriner hekiminizle iletişime geçin.
+━━━━━━━━━━━━━━━━━━━━━━
+_Veteriner Cari Hesap & Sürü Takip_`;
+
+      // Önce WA'yı aç (kullanıcı etkileşimi anında — await öncesi)
+      const waWindow = window.open(`https://wa.me/${fp}?text=${encodeURIComponent(msg)}`,'_blank');
+      if(!waWindow) toast('⚠️ Popup engellendi, tarayıcı izin ayarlarını kontrol edin');
+
+      // Sonra kaydet
       try{
         if(existing){
           await sbReq('PATCH',`vc_users?id=eq.${existing.id}`,{full_name:fullname,username,password,active:true,farm_id:selectedFarmId,phone});
         } else {
           await sbReq('POST','vc_users',{id:uid(),username,full_name:fullname,password,role:'breeder',active:true,farm_id:selectedFarmId,phone,created_at:new Date().toISOString()});
         }
-        modal=null; toast('✅ Yetiştirici kaydedildi'); renderFarm();
-        // WA mesajı gönder
-        const raw=phone.replace(/\D/g,''); const fp=raw.startsWith('0')?'90'+raw.slice(1):raw.startsWith('90')?raw:'90'+raw;
-        const msg=`🐄 *Veteriner Cari Hesap & Sürü Takip*\n━━━━━━━━━━━━━━━━━━━━━━\nSayın *${fullname}*,\n\n*${farm?.owner_name||'İşletmeniz'}* için sisteme erişim tanımlanmıştır.\n\n🔗 *Programa Giriş İçin Tıklayın*\nhttps://gokhanbozkurt325-dotcom.github.io/veteriner-cari\n\n👤 Kullanıcı Adınız: *${username}*\n🔑 Şifreniz: *${password}*\n\n⚠️ İlk girişinizde şifrenizi değiştirmeniz önerilir.\n_(Ayarlar → Şifre Değiştir)_\n━━━━━━━━━━━━━━━━━━━━━━\n📋 Sisteme giriş yaptığınızda kendi işletmenize ait hayvanları görüntüleyebilir, yeni hayvan ekleyebilir ve olayları kaydedebilirsiniz.\n\n💬 Sorularınız için veteriner hekiminizle iletişime geçin.\n━━━━━━━━━━━━━━━━━━━━━━\n_Veteriner Cari Hesap & Sürü Takip_`;
-        setTimeout(()=>window.open(`https://wa.me/${fp}?text=${encodeURIComponent(msg)}`,'_blank'),300);
-      }catch(e){ alert('Hata: Kullanıcı adı zaten mevcut olabilir.'); }
+        modal=null; toast('✅ Yetiştirici kaydedildi, WA gönderildi'); renderFarm();
+      }catch(e){ alert('Kayıt hatası: Kullanıcı adı zaten mevcut olabilir.'); }
     });
   }
 }
