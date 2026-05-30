@@ -707,18 +707,21 @@ function bindLoginEvents(){
 
 // ─── HEADER & NAV ─────────────────────────────────────────────
 function buildHeader(overdueCount){
-  const titles={home:'Ana Sayfa',persons:'Cari Hesaplar',detail:'Hesap Detayı',report:'Raporlar',overdue:'Gecikme Takibi',settings:'Ayarlar',admin:'Kullanıcı Yönetimi',farms:'İşletmeler'};
+  const titles={home:'Ana Sayfa',persons:'Cari Hesaplar',detail:'Hesap Detayı',report:'Raporlar',overdue:'Gecikme Takibi',settings:'Ayarlar',admin:'Kullanıcı Yönetimi',farms:isBreeder()?'İşletmem':'İşletmeler'};
   const showBack=nav==='detail'||(nav==='farms'&&farmNav!=='farms');
-  const showClose=nav!=='home'; // Ana sayfa hariç ✕ göster
+  const showClose=nav!=='home';
   const dp=detailPid?persons.find(p=>p.id===detailPid):null;
-  const farmTitle=nav==='farms'?(farmNav==='animal-detail'?(animals.find(a=>a.id===selectedAnimalId)?.ear_tag||'Hayvan'):(farmNav==='farm-detail'?(farms.find(f=>f.id===selectedFarmId)?.owner_name||'İşletme'):'İşletmeler')):'';
+  const farmTitle=nav==='farms'?(farmNav==='animal-detail'?(animals.find(a=>a.id===selectedAnimalId)?.ear_tag||'Hayvan'):(farmNav==='farm-detail'?(farms.find(f=>f.id===selectedFarmId)?.owner_name||'İşletme'):(isBreeder()?'İşletmem':'İşletmeler'))):'';
+  const subtitle = isBreeder()
+    ? (farms[0]?.owner_name ? farms[0].owner_name+' · Sürü Takip' : 'Veteriner Sürü Takip')
+    : (currentUser?currentUser.full_name:'');
   return `<div class="header">
-    ${showBack?`<button class="back-btn" id="back-btn">‹</button>`:`<span style="font-size:22px">🩺</span>`}
+    ${showBack?`<button class="back-btn" id="back-btn">‹</button>`:`<span style="font-size:22px">${isBreeder()?'🐄':'🩺'}</span>`}
     <div class="header-title">
       <div class="main">${nav==='farms'?farmTitle:(nav==='detail'&&dp?dp.name:titles[nav]||'')}</div>
-      <div class="sub">${currentUser?currentUser.full_name:''}</div>
+      <div class="sub">${subtitle}</div>
     </div>
-    ${nav==='persons'?`<button class="hbtn" id="add-person-btn" style="font-size:22px;font-weight:300">+</button>`:''}
+    ${nav==='persons'&&!isBreeder()?`<button class="hbtn" id="add-person-btn" style="font-size:22px;font-weight:300">+</button>`:''}
     ${nav==='detail'?`<button class="hbtn" id="edit-person-btn">✏️</button>`:''}
     ${showClose&&nav!=='detail'&&nav!=='persons'?`<button class="hbtn" id="close-page-btn" style="font-size:18px">✕</button>`:''}
   </div>`;
@@ -2177,19 +2180,19 @@ function sendWhatsApp(pid){
   const bal=getBalance(pid); const lastPay=getLastPayment(pid);
   const raw=p.phone.replace(/\D/g,''); const fp=raw.startsWith('0')?'90'+raw.slice(1):raw.startsWith('90')?raw:'90'+raw;
   const tarih=new Date().toLocaleDateString('tr-TR',{day:'2-digit',month:'long',year:'numeric'});
-  const msg=`🐄 *SÜRÜ TAKİP PROGRAMI*\n━━━━━━━━━━━━━━━━━━━━━━\n📋 *CARİ HESAP BİLDİRİMİ*\n━━━━━━━━━━━━━━━━━━━━━━\nSayın *${p.name}*,\n\nCari hesabınıza ait bakiye bilginizi aşağıda bulabilirsiniz.\n\n💰 *Mevcut Bakiye:* ${bal>0?`-${fmt(bal)} (Borçlu)`:bal===0?'Dengede':'+'+fmt(Math.abs(bal))+' (Alacaklı)'}\n${lastPay?`💵 *Son Ödeme:* ${fmtDate(lastPay.date)} — +${fmt(lastPay.amount)}`:'💵 *Son Ödeme:* Kayıt bulunamadı'}\n📅 *Bildirim Tarihi:* ${tarih}\n\n${bal>0?'⚠️ Lütfen en kısa sürede ödemenizi gerçekleştiriniz.':'✅ Hesabınız günceldir.'}\n\n_Veteriner Cari & Sürü Takip_`;
+  const msg=`🐄 *SÜRÜ TAKİP PROGRAMI*\n━━━━━━━━━━━━━━━━━━━━━━\n📋 *CARİ HESAP BİLDİRİMİ*\n━━━━━━━━━━━━━━━━━━━━━━\nSayın *${p.name}*,\n\nCari hesabınıza ait bakiye bilginizi aşağıda bulabilirsiniz.\n\n💰 *Mevcut Bakiye:* ${bal>0?`-${fmt(bal)} (Borçlu)`:bal===0?'Dengede':'+'+fmt(Math.abs(bal))+' (Alacaklı)'}\n${lastPay?`💵 *Son Ödeme:* ${fmtDate(lastPay.date)} — +${fmt(lastPay.amount)}`:'💵 *Son Ödeme:* Kayıt bulunamadı'}\n📅 *Bildirim Tarihi:* ${tarih}\n\n${bal>0?'⚠️ Lütfen en kısa sürede ödemenizi gerçekleştiriniz.':'✅ Hesabınız günceldir.'}\n\n_Veteriner Sürü Takip Programı_`;
   window.open(`https://wa.me/${fp}?text=${encodeURIComponent(msg)}`,'_blank');
 }
 
 function sendWelcomeWhatsApp(phone,fullname,username,password){
   const raw=phone.replace(/\D/g,''); const fp=raw.startsWith('0')?'90'+raw.slice(1):raw.startsWith('90')?raw:'90'+raw;
-  const msg=`🐄 *Veteriner Cari Hesap & Sürü Takip*\n━━━━━━━━━━━━━━━━━━━━━━\nSayın *${fullname}*,\n\nSisteme kaydınız tamamlanmıştır. Aşağıdaki bilgilerle giriş yapabilirsiniz.\n\n🔗 *Programa Giriş İçin Tıklayın*\nhttps://gokhanbozkurt325-dotcom.github.io/veteriner-cari\n\n👤 Kullanıcı Adınız: *${username}*\n🔑 Şifreniz: *${password}*\n\n⚠️ Güvenliğiniz için ilk girişinizde şifrenizi değiştirmeniz gerekmektedir.\n_(Ayarlar → Şifre Değiştir)_\n━━━━━━━━━━━━━━━━━━━━━━\n📋 *Program Hakkında*\n\nBu program; müşterilerinizin cari hesaplarını, borç ve ödeme geçmişlerini dijital ortamda yönetmenizi sağlar. Vade tarihleri yaklaşan ödemeler için otomatik uyarı alabilir, müşterilerinize WhatsApp üzerinden borç bildirimi gönderebilirsiniz.\n\nSürü modülü ile hayvanlarınızın doğum, tohumlama, gebelik ve sağlık süreçlerini kayıt altına alabilir; takvim üzerinden yaklaşan olayları takip edebilirsiniz.\n\nRaporlarınızı PDF olarak indirebilir, WhatsApp veya e-posta yoluyla kendinize yedek olarak gönderebilirsiniz. *Verilerinizi düzenli yedeklemeyi unutmayınız.*\n\n💬 *İletişim & Destek*\nSorularınız için program içindeki "Admine Sor" butonunu kullanabilirsiniz.\n━━━━━━━━━━━━━━━━━━━━━━\n_Veteriner Cari Hesap & Sürü Takip_`;
+  const msg=`🐄 *Veteriner Sürü Takip Programı*\n━━━━━━━━━━━━━━━━━━━━━━\nSayın *${fullname}*,\n\nSisteme kaydınız tamamlanmıştır. Aşağıdaki bilgilerle giriş yapabilirsiniz.\n\n🔗 *Programa Giriş İçin Tıklayın*\nhttps://gokhanbozkurt325-dotcom.github.io/veteriner-cari\n\n👤 Kullanıcı Adınız: *${username}*\n🔑 Şifreniz: *${password}*\n\n⚠️ Güvenliğiniz için ilk girişinizde şifrenizi değiştirmeniz gerekmektedir.\n_(Ayarlar → Şifre Değiştir)_\n━━━━━━━━━━━━━━━━━━━━━━\n📋 *Program Hakkında*\n\nBu program; müşterilerinizin cari hesaplarını, borç ve ödeme geçmişlerini dijital ortamda yönetmenizi sağlar. Vade tarihleri yaklaşan ödemeler için otomatik uyarı alabilir, müşterilerinize WhatsApp üzerinden borç bildirimi gönderebilirsiniz.\n\nSürü modülü ile hayvanlarınızın doğum, tohumlama, gebelik ve sağlık süreçlerini kayıt altına alabilir; takvim üzerinden yaklaşan olayları takip edebilirsiniz.\n\nRaporlarınızı PDF olarak indirebilir, WhatsApp veya e-posta yoluyla kendinize yedek olarak gönderebilirsiniz. *Verilerinizi düzenli yedeklemeyi unutmayınız.*\n\n💬 *İletişim & Destek*\nSorularınız için program içindeki "Admine Sor" butonunu kullanabilirsiniz.\n━━━━━━━━━━━━━━━━━━━━━━\n_Veteriner Sürü Takip Programı_`;
   window.open(`https://wa.me/${fp}?text=${encodeURIComponent(msg)}`,'_blank');
 }
 
 function sendBreederWelcomeWA(phone,fullname,username,password,farmName){
   const raw=phone.replace(/\D/g,''); const fp=raw.startsWith('0')?'90'+raw.slice(1):raw.startsWith('90')?raw:'90'+raw;
-  const msg=`🐄 *Veteriner Cari Hesap & Sürü Takip*\n━━━━━━━━━━━━━━━━━━━━━━\nSayın *${fullname}*,\n\n*${farmName}* işletmeniz için sisteme erişim tanımlanmıştır.\n\n🔗 *Programa Giriş İçin Tıklayın*\nhttps://gokhanbozkurt325-dotcom.github.io/veteriner-cari\n\n👤 Kullanıcı Adınız: *${username}*\n🔑 Şifreniz: *${password}*\n\n⚠️ İlk girişinizde şifrenizi değiştirmeniz önerilir.\n_(Ayarlar → Şifre Değiştir)_\n━━━━━━━━━━━━━━━━━━━━━━\n📋 *Neler Yapabilirsiniz?*\n\nKendi işletmenize ait hayvanlarınızı görüntüleyebilir, yeni hayvan ekleyebilir, kızgınlık ve olayları kaydedebilirsiniz. Uyarılar ve takvim üzerinden yaklaşan olayları takip edebilirsiniz.\n\n💬 Sorularınız için veteriner hekiminizle iletişime geçin.\n━━━━━━━━━━━━━━━━━━━━━━\n_Veteriner Cari Hesap & Sürü Takip_`;
+  const msg=`🐄 *Veteriner Sürü Takip Programı*\n━━━━━━━━━━━━━━━━━━━━━━\nSayın *${fullname}*,\n\n*${farmName}* işletmeniz için sisteme erişim tanımlanmıştır.\n\n🔗 *Programa Giriş İçin Tıklayın*\nhttps://gokhanbozkurt325-dotcom.github.io/veteriner-cari\n\n👤 Kullanıcı Adınız: *${username}*\n🔑 Şifreniz: *${password}*\n\n⚠️ İlk girişinizde şifrenizi değiştirmeniz önerilir.\n_(Ayarlar → Şifre Değiştir)_\n━━━━━━━━━━━━━━━━━━━━━━\n📋 *Neler Yapabilirsiniz?*\n\nKendi işletmenize ait hayvanlarınızı görüntüleyebilir, yeni hayvan ekleyebilir, kızgınlık ve olayları kaydedebilirsiniz. Uyarılar ve takvim üzerinden yaklaşan olayları takip edebilirsiniz.\n\n💬 Sorularınız için veteriner hekiminizle iletişime geçin.\n━━━━━━━━━━━━━━━━━━━━━━\n_Veteriner Sürü Takip Programı_`;
   window.open(`https://wa.me/${fp}?text=${encodeURIComponent(msg)}`,'_blank');
 }
 
@@ -2201,7 +2204,7 @@ function sendPersonReportToVetWA(pid){
   const b=d-pd; const tarih=new Date().toLocaleDateString('tr-TR',{day:'2-digit',month:'long',year:'numeric'});
   const son5=ptxs.slice(0,5).map(t=>{ const tp2=TX_TYPES[t.type]||{icon:'📌',label:t.type}; const isPos=t.type==='payment'; return `  ${tp2.icon} ${fmtDate(t.date)} — ${isPos?'+':'-'}${fmt(t.amount)} (${t.desc||tp2.label})`; }).join('\n');
   const raw=phone.replace(/\D/g,''); const fp=raw.startsWith('0')?'90'+raw.slice(1):raw.startsWith('90')?raw:'90'+raw;
-  const msg=`📊 *CARİ HESAP RAPORU*\n━━━━━━━━━━━━━━━━━━━━━━\n👤 *${p.name}*\n📅 ${tarih}\n━━━━━━━━━━━━━━━━━━━━━━\n💰 Borç: *-${fmt(d)}* | Ödenen: *+${fmt(pd)}*\n📌 Bakiye: *${b>0?'-':''}${fmt(Math.abs(b))}* ${b>0?'(Borçlu)':b===0?'(Dengede)':'(Alacaklı)'}\n━━━━━━━━━━━━━━━━━━━━━━\n${son5||'  — İşlem yok —'}\n━━━━━━━━━━━━━━━━━━━━━━\n_Veteriner Cari Hesap & Sürü Takip_`;
+  const msg=`📊 *CARİ HESAP RAPORU*\n━━━━━━━━━━━━━━━━━━━━━━\n👤 *${p.name}*\n📅 ${tarih}\n━━━━━━━━━━━━━━━━━━━━━━\n💰 Borç: *-${fmt(d)}* | Ödenen: *+${fmt(pd)}*\n📌 Bakiye: *${b>0?'-':''}${fmt(Math.abs(b))}* ${b>0?'(Borçlu)':b===0?'(Dengede)':'(Alacaklı)'}\n━━━━━━━━━━━━━━━━━━━━━━\n${son5||'  — İşlem yok —'}\n━━━━━━━━━━━━━━━━━━━━━━\n_Veteriner Sürü Takip Programı_`;
   window.open(`https://wa.me/${fp}?text=${encodeURIComponent(msg)}`,'_blank');
 }
 function sendPersonReportToVetEmail(pid){
@@ -2212,7 +2215,7 @@ function sendPersonReportToVetEmail(pid){
   const b=d-pd; const tarih=new Date().toLocaleDateString('tr-TR',{day:'2-digit',month:'long',year:'numeric'});
   const satirlar=ptxs.map(t=>{ const tp2=TX_TYPES[t.type]||{label:t.type}; const isPos=t.type==='payment'; return `${fmtDate(t.date)} | ${tp2.label} | ${t.desc||'-'} | ${isPos?'+':'-'}${fmt(t.amount)}`; }).join('\n');
   const subject=encodeURIComponent(`Cari Raporu — ${p.name} — ${tarih}`);
-  const body=encodeURIComponent(`${p.name} — Cari Hesap Raporu\nTarih: ${tarih}\n\nBorç: -${fmt(d)} | Ödenen: +${fmt(pd)} | Bakiye: ${b>0?'-':''}${fmt(Math.abs(b))}\n\nTarih | Tür | Açıklama | Tutar\n${satirlar||'—'}\n\n---\nVeteriner Cari Hesap & Sürü Takip`);
+  const body=encodeURIComponent(`${p.name} — Cari Hesap Raporu\nTarih: ${tarih}\n\nBorç: -${fmt(d)} | Ödenen: +${fmt(pd)} | Bakiye: ${b>0?'-':''}${fmt(Math.abs(b))}\n\nTarih | Tür | Açıklama | Tutar\n${satirlar||'—'}\n\n---\nVeteriner Sürü Takip Programı`);
   window.open(`mailto:${email}?subject=${subject}&body=${body}`,'_blank');
 }
 
@@ -2229,7 +2232,7 @@ function doBackup(scope,type){
     if(type==='pdf'){ dlFullReport(); return; }
     if(type==='wa'){
       const top5=persons.filter(p=>getBalance(p.id)>0).sort((a,b)=>getBalance(b.id)-getBalance(a.id)).slice(0,5).map(p=>`  • ${p.name}: -${fmt(getBalance(p.id))}`).join('\n');
-      window.open(`https://wa.me/${rawToFp(phone)}?text=${encodeURIComponent(`📊 *CARİ YEDEĞİ*\n📅 ${tarih}\n👥 ${persons.length} kişi | 💰 -${fmt(td)} | ✅ +${fmt(tp)}\n⚠️ Gecikmiş: ${overdueList.length}\n━━━━\n${top5||'—'}\n_Veteriner Cari & Sürü Takip_`)}`,'_blank');
+      window.open(`https://wa.me/${rawToFp(phone)}?text=${encodeURIComponent(`📊 *CARİ YEDEĞİ*\n📅 ${tarih}\n👥 ${persons.length} kişi | 💰 -${fmt(td)} | ✅ +${fmt(tp)}\n⚠️ Gecikmiş: ${overdueList.length}\n━━━━\n${top5||'—'}\n_Veteriner Sürü Takip Programı_`)}`,'_blank');
     } else {
       const kisiSatir=persons.map(p=>{ let d=0,pd=0; txs.filter(t=>t.person_id===p.id).forEach(t=>{ const a=parseFloat(t.amount||0); t.type==='payment'?pd+=a:d+=a; }); const b=d-pd; return `${p.name}|${p.phone||'-'}|${p.address||'-'}|-${fmt(d)}|+${fmt(pd)}|${b>0?'-':''}${fmt(Math.abs(b))}|${isOverdue(p.id)?'GECİKMİŞ':b>0?'Borçlu':'Temiz'}`; }).join('\n');
       const txSatir=[...txs].sort((a,b)=>new Date(b.date)-new Date(a.date)).map(t=>{ const p2=persons.find(x=>x.id===t.person_id); const tp2=TX_TYPES[t.type]||{label:t.type}; const isPos=t.type==='payment'; return `${fmtDate(t.date)}|${p2?.name||'-'}|${tp2.label}|${t.desc||'-'}|${isPos?'+':'-'}${fmt(t.amount)}|${t.due_date?fmtDate(t.due_date):'-'}`; }).join('\n');
@@ -2239,7 +2242,7 @@ function doBackup(scope,type){
     if(type==='pdf'){ dlFarmReport(null); return; }
     if(type==='wa'){
       const fl=farms.map(f=>{ const fc=animals.filter(a=>a.farm_id===f.id&&!['sold','dead'].includes(a.status)); return `  🏭 ${f.owner_name||'?'}: ${fc.length}`; }).join('\n');
-      window.open(`https://wa.me/${rawToFp(phone)}?text=${encodeURIComponent(`🐄 *SÜRÜ YEDEĞİ*\n📅 ${tarih}\n🏭 ${farms.length} işletme | 🐄 ${fa.length} aktif\n━━━━\n${fl||'—'}\n_Veteriner Cari & Sürü Takip_`)}`,'_blank');
+      window.open(`https://wa.me/${rawToFp(phone)}?text=${encodeURIComponent(`🐄 *SÜRÜ YEDEĞİ*\n📅 ${tarih}\n🏭 ${farms.length} işletme | 🐄 ${fa.length} aktif\n━━━━\n${fl||'—'}\n_Veteriner Sürü Takip Programı_`)}`,'_blank');
     } else {
       const animalSatir=animals.map(a=>{ const f=farms.find(x=>x.id===a.farm_id); const st=ANIMAL_STATUS[a.status]||{label:a.status}; return `${a.ear_tag}|${f?.owner_name||'-'}|${BREEDS[a.breed]||a.breed}|Lak:${a.lactation_no||0}|${st.label}|Beklenen:${a.expected_birth_date?fmtDate(a.expected_birth_date):'-'}`; }).join('\n');
       window.open(`mailto:${email}?subject=${encodeURIComponent('Sürü Yedek — '+tarih)}&body=${encodeURIComponent('SÜRÜ TAM YEDEK\n'+tarih+'\nİşletme:'+farms.length+' | Hayvan:'+animals.length+' | Aktif:'+fa.length+'\n\nHAYVANLAR\n'+animalSatir)}`,'_blank');
@@ -2275,7 +2278,7 @@ function sendFarmBackupWA(farmId){
   const fa=animals.filter(a=>a.farm_id===farmId); const active=fa.filter(a=>!['sold','dead'].includes(a.status));
   const raw=phone.replace(/\D/g,''); const fp=raw.startsWith('0')?'90'+raw.slice(1):raw.startsWith('90')?raw:'90'+raw;
   const statusLines=Object.keys(ANIMAL_STATUS).map(k=>{ const c=fa.filter(a=>a.status===k).length; return c>0?`  ${ANIMAL_STATUS[k].icon} ${ANIMAL_STATUS[k].label}: ${c}`:null; }).filter(Boolean).join('\n');
-  window.open(`https://wa.me/${fp}?text=${encodeURIComponent(`🏭 *${farm.owner_name||'İsimsiz'} Yedeği*\n📅 ${new Date().toLocaleDateString('tr-TR')}\n🐄 Toplam:${fa.length} | Aktif:${active.length}\n━━━━\n${statusLines||'—'}\n_Veteriner Cari & Sürü Takip_`)}`,'_blank');
+  window.open(`https://wa.me/${fp}?text=${encodeURIComponent(`🏭 *${farm.owner_name||'İsimsiz'} Yedeği*\n📅 ${new Date().toLocaleDateString('tr-TR')}\n🐄 Toplam:${fa.length} | Aktif:${active.length}\n━━━━\n${statusLines||'—'}\n_Veteriner Sürü Takip Programı_`)}`,'_blank');
 }
 function sendFarmBackupEmail(farmId){
   const email=currentUser?.email; if(!email){ toast('⚠️ Ayarlar\'dan e-posta ekleyin'); return; }
@@ -2818,7 +2821,7 @@ function dlFullReport(){
   }).join('');
   var html='<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><title>Cari Rapor</title>'
     +'<style>'+REPORT_CSS+'</style></head><body>'
-    +'<h1>Veteriner Cari Hesap Raporu</h1>'
+    +'<h1>Veteriner Sürü Takip — Cari Rapor</h1>'
     +'<div class="sub">'+(currentUser?currentUser.full_name:'')+' - '+tarih+'</div>'
     +'<div class="sum">'
       +'<div class="sb"><div class="sl">Toplam Borc</div><div class="sv" style="color:#C0392B">-'+fmt(td)+'</div></div>'
@@ -4882,13 +4885,13 @@ function renderFarm() {
       const raw=phone.replace(/\D/g,'');
       const fp=raw.startsWith('0')?'90'+raw.slice(1):raw.startsWith('90')?raw:'90'+raw;
       const msg=
-`🐄 *Veteriner Cari Hesap & Sürü Takip*
+`🐄 *İşletme Bazlı Veteriner Sürü Takip Programı*
 ━━━━━━━━━━━━━━━━━━━━━━
 Sayın *${fullname}*,
 
-*${farm?.owner_name||'İşletmeniz'}* için sisteme erişiminiz tanımlanmıştır. Aşağıdaki bilgilerle giriş yapabilirsiniz.
+*${farm?.owner_name||'İşletmeniz'}* işletmesi için sisteme erişiminiz tanımlanmıştır. Aşağıdaki bilgilerle giriş yapabilirsiniz.
 
-🔗 *Giriş için tıklayın:*
+🔗 *Yetiştirici Paneline Giriş:*
 https://gokhanbozkurt325-dotcom.github.io/veteriner-cari
 
 👤 Kullanıcı Adı: *${username}*
@@ -4897,17 +4900,17 @@ https://gokhanbozkurt325-dotcom.github.io/veteriner-cari
 ⚠️ İlk girişinizde şifrenizi değiştirmeniz önerilir.
 _(Ayarlar → Şifre Değiştir)_
 ━━━━━━━━━━━━━━━━━━━━━━
-📋 *Sistemde yapabilecekleriniz:*
+📋 *Panelde Yapabilecekleriniz:*
 
-• Kendi işletmenize ait hayvanları görüntüleyebilir, yeni hayvan ekleyebilirsiniz
-• Kızgınlık, tohumlama ve doğum kayıtlarını girebilirsiniz
-• Gebelik takibi ve doğum beklenti tarihlerini görebilirsiniz
-• Yaklaşan olaylar için otomatik uyarılar alabilirsiniz
-• Hayvan sağlık ve olay geçmişini takip edebilirsiniz
+🐄 Kendi işletmenize ait hayvanları görüntüleyebilir ve yeni hayvan kaydı açabilirsiniz
+🌡️ Kızgınlık, tohumlama ve doğum kayıtlarını sisteme girebilirsiniz
+🤰 Gebelik takibi ve beklenen doğum tarihlerini görebilirsiniz
+⚠️ Yaklaşan kızgınlık, doğum ve kontrol tarihleri için otomatik uyarılar alabilirsiniz
+📋 Hayvanlarınızın tüm olay ve sağlık geçmişini takip edebilirsiniz
 
-💬 Sorularınız için veteriner hekiminizle iletişime geçin.
+💬 Sorularınız için veteriner hekiminizle iletişime geçiniz.
 ━━━━━━━━━━━━━━━━━━━━━━
-_Veteriner Cari Hesap & Sürü Takip_`;
+_İşletme Bazlı Veteriner Sürü Takip Programı_`;
 
       // Önce WA'yı aç (kullanıcı etkileşimi anında — await öncesi)
       const waWindow = window.open(`https://wa.me/${fp}?text=${encodeURIComponent(msg)}`,'_blank');
