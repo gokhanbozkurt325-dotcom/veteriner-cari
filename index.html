@@ -1892,32 +1892,28 @@ function buildModal(){
 
   if(modal==='grant-access'){
     const farm=farms.find(f=>f.id===selectedFarmId)||{};
-    // Mevcut yetiştirici kullanıcısı var mı?
     const existing=window._allUsers?.find(u=>u.farm_id===selectedFarmId&&u.role==='breeder');
+    // Otomatik kullanıcı adı ve şifre öner
+    const suggestUsername=(farm.owner_name||'yetiştirici').toLowerCase().replace(/\s+/g,'').replace(/[^a-z0-9]/g,'').slice(0,12);
+    const suggestPassword=Math.random().toString(36).slice(2,8).toUpperCase();
     return mWrap('👤 Yetiştirici Erişimi',`
       <div style="background:linear-gradient(135deg,#7c3aed,#6d28d9);border-radius:12px;padding:14px;margin-bottom:16px;text-align:center">
-        <div style="font-size:32px;margin-bottom:6px">🏭</div>
-        <div style="color:#fff;font-family:'Nunito',sans-serif;font-weight:800;font-size:15px">${farm.owner_name||'İşletme'}</div>
-        <div style="color:rgba(255,255,255,.7);font-size:11px;margin-top:2px">${farm.farm_no?'No: '+farm.farm_no:''}</div>
+        <div style="font-size:28px;margin-bottom:4px">🏭</div>
+        <div style="color:#fff;font-family:'Nunito',sans-serif;font-weight:800;font-size:14px">${farm.owner_name||'İşletme'}</div>
       </div>
-      ${existing?`<div style="background:var(--green-light);border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:var(--green);font-weight:700">
-        ✅ Bu işletme için zaten bir yetiştirici hesabı mevcut:<br>
-        <span style="font-size:13px">@${existing.username}</span> — ${existing.full_name}
-        <div style="margin-top:6px;font-size:11px;color:var(--gray4);font-weight:400">Yeni hesap oluşturmak için aşağıdaki bilgileri doldurun (mevcut hesap güncellenecek)</div>
-      </div>`:''}
-      <div class="fg"><label class="fl">Ad Soyad *</label><input class="fi" id="ga-fullname" placeholder="Ahmet Yılmaz" value="${existing?.full_name||''}"></div>
-      <div class="fg"><label class="fl">Kullanıcı Adı *</label><input class="fi" id="ga-username" placeholder="ahmetyilmaz" autocapitalize="none" value="${existing?.username||''}"></div>
-      <div class="fg"><label class="fl">Şifre *</label><input class="fi" id="ga-password" type="password" placeholder="${existing?'Değiştirmek için yeni şifre girin':'Şifre belirleyin'}"></div>
-      <div class="fg"><label class="fl">Telefon <span style="font-size:10px;color:var(--gray3)">(Hoş geldiniz WA için)</span></label>
+      ${existing?`<div style="background:var(--green-light);border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:var(--green);font-weight:700">✅ Mevcut yetiştirici: <b>@${existing.username}</b> — ${existing.full_name}<br><span style="font-size:11px;color:var(--gray4);font-weight:400">Aşağıdan güncelleyebilir veya yeni bilgileri WA ile gönderebilirsiniz.</span></div>`:''}
+      <div class="fg"><label class="fl">Ad Soyad *</label><input class="fi" id="ga-fullname" placeholder="Ahmet Yılmaz" value="${existing?.full_name||farm.owner_name||''}"></div>
+      <div class="fg"><label class="fl">Telefon * <span style="font-size:10px;color:var(--gray3)">(WA mesajı bu numaraya gider)</span></label>
         <div style="display:flex;gap:8px">
-          <input class="fi" id="ga-phone" type="tel" inputmode="numeric" placeholder="05XX XXX XX XX" style="flex:1">
+          <input class="fi" id="ga-phone" type="tel" inputmode="numeric" placeholder="05XX XXX XX XX" style="flex:1" value="${existing?.phone||''}">
           <button type="button" id="ga-contact-picker" style="background:var(--blue-light);color:var(--blue);border:none;border-radius:var(--radius-sm);padding:0 12px;font-size:16px;cursor:pointer">👥</button>
         </div>
       </div>
+      <div class="fg"><label class="fl">Kullanıcı Adı *</label><input class="fi" id="ga-username" placeholder="ahmetyilmaz" autocapitalize="none" value="${existing?.username||suggestUsername}"></div>
+      <div class="fg"><label class="fl">Şifre *</label><input class="fi" id="ga-password" placeholder="${existing?'Boş bırakırsanız değişmez':'Otomatik oluşturuldu — değiştirebilirsiniz'}" value="${existing?'':suggestPassword}"></div>
       <div class="btn-row">
-        <button class="modal-cancel-btn btn-o" type="button" onclick="closeModal()">İptal</button>
-        <button class="btn-p" id="ga-save-btn" style="background:linear-gradient(135deg,#7c3aed,#6d28d9)">💾 Kaydet</button>
-        <button class="btn-wa" id="ga-save-wa-btn">💾 Kaydet & WA</button>
+        <button class="modal-cancel-btn btn-o" type="button" id="ga-cancel-btn">İptal</button>
+        <button class="btn-wa" id="ga-save-wa-btn">✅ Kaydet & WA Gönder</button>
       </div>`);
   }
 
@@ -4518,33 +4514,6 @@ function bindFarmEvents() {
   document.getElementById('grant-access-btn')?.addEventListener('click',async()=>{
     window._allUsers=await sbReq('GET','vc_users?order=created_at.asc').catch(()=>[]);
     modal='grant-access'; renderFarm();
-    setTimeout(()=>{
-      document.getElementById('ga-contact-picker')?.addEventListener('click',async()=>{
-        if(!('contacts' in navigator&&'ContactsManager' in window)){ toast('⚠️ Rehber erişimi desteklenmiyor'); return; }
-        try{ const c=await navigator.contacts.select(['name','tel'],{multiple:false}); if(c&&c.length){ if(c[0].tel?.[0]) document.getElementById('ga-phone').value=c[0].tel[0]; if(c[0].name?.[0]) document.getElementById('ga-fullname').value=c[0].name[0]; toast('✅ Seçildi'); } }catch{}
-      });
-      async function doGrantAccess(sendWA){
-        const fullname=document.getElementById('ga-fullname')?.value.trim();
-        const username=document.getElementById('ga-username')?.value.trim().toLowerCase();
-        const password=document.getElementById('ga-password')?.value;
-        const phone=document.getElementById('ga-phone')?.value.trim()||'';
-        if(!fullname||!username||!password){ alert('Tüm alanlar zorunludur!'); return; }
-        const farm=farms.find(f=>f.id===selectedFarmId);
-        const existing=window._allUsers?.find(u=>u.farm_id===selectedFarmId&&u.role==='breeder');
-        try{
-          if(existing){
-            await sbReq('PATCH',`vc_users?id=eq.${existing.id}`,{full_name:fullname,username,password,active:true,farm_id:selectedFarmId,role:'breeder'});
-          } else {
-            await sbReq('POST','vc_users',{id:uid(),username,full_name:fullname,password,role:'breeder',active:true,farm_id:selectedFarmId,created_at:new Date().toISOString()});
-          }
-          modal=null; toast('✅ Yetiştirici erişimi tanımlandı'); renderFarm();
-          if(sendWA&&phone) setTimeout(()=>sendBreederWelcomeWA(phone,fullname,username,password,farm?.owner_name||'İşletme'),300);
-          else if(sendWA&&!phone) toast('⚠️ Telefon girilmediği için WA gönderilemedi');
-        }catch(e){ alert('Hata oluştu: '+e.message); }
-      }
-      document.getElementById('ga-save-btn')?.addEventListener('click',()=>doGrantAccess(false));
-      document.getElementById('ga-save-wa-btn')?.addEventListener('click',()=>doGrantAccess(true));
-    },100);
   });
 
   // ── Yetiştirici erişimi iptal et ──
@@ -4889,10 +4858,39 @@ function bindFarmEvents() {
 function renderFarm() {
   const app = document.getElementById('farm-module');
   if(!app) return;
-  const farmModals = ['add-farm','add-animal','edit-animal','add-event','excel-import','heat-insem-followup','filter-animals','add-disease'];
-  const fm = modal && farmModals.includes(modal) ? buildFarmModal() : '';
+  const farmModals = ['add-farm','add-animal','edit-animal','add-event','excel-import','heat-insem-followup','filter-animals','add-disease','grant-access'];
+  const fm = modal && farmModals.includes(modal) ? (modal==='grant-access' ? buildModal() : buildFarmModal()) : '';
   app.innerHTML = buildFarmModule() + fm;
   bindFarmEvents();
+  // grant-access modal butonlarını bağla
+  if(modal==='grant-access'){
+    document.getElementById('ga-cancel-btn')?.addEventListener('click',()=>{ modal=null; renderFarm(); });
+    document.getElementById('ga-contact-picker')?.addEventListener('click',async()=>{
+      if(!('contacts' in navigator&&'ContactsManager' in window)){ toast('⚠️ Rehber erişimi desteklenmiyor, numarayı manuel girin'); return; }
+      try{ const c=await navigator.contacts.select(['name','tel'],{multiple:false}); if(c&&c.length){ if(c[0].tel?.[0]) document.getElementById('ga-phone').value=c[0].tel[0]; if(c[0].name?.[0]&&!document.getElementById('ga-fullname').value) document.getElementById('ga-fullname').value=c[0].name[0]; toast('✅ Seçildi'); } }catch(e){ toast('Rehber erişimi iptal edildi'); }
+    });
+    document.getElementById('ga-save-wa-btn')?.addEventListener('click',async()=>{
+      const fullname=document.getElementById('ga-fullname')?.value.trim();
+      const phone=document.getElementById('ga-phone')?.value.trim();
+      const username=document.getElementById('ga-username')?.value.trim().toLowerCase();
+      const password=document.getElementById('ga-password')?.value.trim();
+      if(!fullname||!phone||!username||!password){ alert('Ad soyad, telefon, kullanıcı adı ve şifre zorunludur!'); return; }
+      const farm=farms.find(f=>f.id===selectedFarmId);
+      const existing=window._allUsers?.find(u=>u.farm_id===selectedFarmId&&u.role==='breeder');
+      try{
+        if(existing){
+          await sbReq('PATCH',`vc_users?id=eq.${existing.id}`,{full_name:fullname,username,password,active:true,farm_id:selectedFarmId,phone});
+        } else {
+          await sbReq('POST','vc_users',{id:uid(),username,full_name:fullname,password,role:'breeder',active:true,farm_id:selectedFarmId,phone,created_at:new Date().toISOString()});
+        }
+        modal=null; toast('✅ Yetiştirici kaydedildi'); renderFarm();
+        // WA mesajı gönder
+        const raw=phone.replace(/\D/g,''); const fp=raw.startsWith('0')?'90'+raw.slice(1):raw.startsWith('90')?raw:'90'+raw;
+        const msg=`🐄 *Veteriner Cari Hesap & Sürü Takip*\n━━━━━━━━━━━━━━━━━━━━━━\nSayın *${fullname}*,\n\n*${farm?.owner_name||'İşletmeniz'}* için sisteme erişim tanımlanmıştır.\n\n🔗 *Programa Giriş İçin Tıklayın*\nhttps://gokhanbozkurt325-dotcom.github.io/veteriner-cari\n\n👤 Kullanıcı Adınız: *${username}*\n🔑 Şifreniz: *${password}*\n\n⚠️ İlk girişinizde şifrenizi değiştirmeniz önerilir.\n_(Ayarlar → Şifre Değiştir)_\n━━━━━━━━━━━━━━━━━━━━━━\n📋 Sisteme giriş yaptığınızda kendi işletmenize ait hayvanları görüntüleyebilir, yeni hayvan ekleyebilir ve olayları kaydedebilirsiniz.\n\n💬 Sorularınız için veteriner hekiminizle iletişime geçin.\n━━━━━━━━━━━━━━━━━━━━━━\n_Veteriner Cari Hesap & Sürü Takip_`;
+        setTimeout(()=>window.open(`https://wa.me/${fp}?text=${encodeURIComponent(msg)}`,'_blank'),300);
+      }catch(e){ alert('Hata: Kullanıcı adı zaten mevcut olabilir.'); }
+    });
+  }
 }
 
 // ─── INIT ─────────────────────────────────────────────────────
