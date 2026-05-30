@@ -2611,49 +2611,6 @@ function bindEvents(){
   document.getElementById('save-user-btn')?.addEventListener('click',()=>doSaveUser(false));
   document.getElementById('save-user-wa-btn')?.addEventListener('click',()=>doSaveUser(true));
 
-  // ── Yetiştirici erişim izni ver / iptal ──
-  document.getElementById('grant-access-btn')?.addEventListener('click',async()=>{
-    window._allUsers=await sbReq('GET','vc_users?order=created_at.asc').catch(()=>[]);
-    modal='grant-access'; renderFarm();
-    setTimeout(()=>{
-      document.getElementById('ga-contact-picker')?.addEventListener('click',async()=>{
-        if(!('contacts' in navigator&&'ContactsManager' in window)){ toast('⚠️ Rehber erişimi desteklenmiyor'); return; }
-        try{ const c=await navigator.contacts.select(['name','tel'],{multiple:false}); if(c&&c.length){ if(c[0].tel?.[0]) document.getElementById('ga-phone').value=c[0].tel[0]; if(c[0].name?.[0]) document.getElementById('ga-fullname').value=c[0].name[0]; toast('✅ Seçildi'); } }catch{}
-      });
-      async function doGrantAccess(sendWA){
-        const fullname=document.getElementById('ga-fullname')?.value.trim();
-        const username=document.getElementById('ga-username')?.value.trim().toLowerCase();
-        const password=document.getElementById('ga-password')?.value;
-        const phone=document.getElementById('ga-phone')?.value.trim()||'';
-        if(!fullname||!username||!password){ alert('Tüm alanlar zorunludur!'); return; }
-        const farm=farms.find(f=>f.id===selectedFarmId);
-        const existing=window._allUsers?.find(u=>u.farm_id===selectedFarmId&&u.role==='breeder');
-        try{
-          if(existing){
-            await sbReq('PATCH',`vc_users?id=eq.${existing.id}`,{full_name:fullname,username,password,active:true,farm_id:selectedFarmId,role:'breeder'});
-          } else {
-            await sbReq('POST','vc_users',{id:uid(),username,full_name:fullname,password,role:'breeder',active:true,farm_id:selectedFarmId,created_at:new Date().toISOString()});
-          }
-          modal=null; toast('✅ Yetiştirici erişimi tanımlandı'); renderFarm();
-          if(sendWA&&phone) setTimeout(()=>sendBreederWelcomeWA(phone,fullname,username,password,farm?.owner_name||'İşletme'),300);
-          else if(sendWA&&!phone) toast('⚠️ Telefon girilmediği için WA gönderilemedi');
-        }catch(e){ alert('Hata oluştu: '+e.message); }
-      }
-      document.getElementById('ga-save-btn')?.addEventListener('click',()=>doGrantAccess(false));
-      document.getElementById('ga-save-wa-btn')?.addEventListener('click',()=>doGrantAccess(true));
-    },100);
-  });
-
-  document.getElementById('revoke-access-btn')?.addEventListener('click',async()=>{
-    if(!confirm('Bu işletmenin yetiştirici erişimi iptal edilsin mi?')) return;
-    const existing=await sbReq('GET',`vc_users?farm_id=eq.${selectedFarmId}&role=eq.breeder`).catch(()=>[]);
-    if(existing&&existing.length){
-      await sbReq('PATCH',`vc_users?id=eq.${existing[0].id}`,{active:false,farm_id:null});
-      toast('🚫 Yetiştirici erişimi iptal edildi');
-    } else { toast('Bu işletmede tanımlı yetiştirici yok'); }
-    renderFarm();
-  });
-
   // Ayarlar — iletişim bilgisi kaydet
   document.getElementById('save-contact-btn')?.addEventListener('click',async()=>{
     const phone=document.getElementById('s-phone')?.value.trim()||'';
@@ -3678,10 +3635,6 @@ function buildFarmDetail() {
     <button id="farm-backup-email-btn" style="flex:1;background:linear-gradient(135deg,#059669,#047857);color:#fff;border:none;border-radius:var(--radius-sm);padding:8px;font-family:'Nunito',sans-serif;font-weight:800;font-size:11px;cursor:pointer">📧 Mail</button>
     <button class="btn-p" id="farm-backup-pdf-btn" style="flex:1;font-size:11px;padding:8px">⬇️ PDF</button>
   </div>`:`<div style="margin-bottom:12px"></div>`}
-  ${!isBreeder()?`<div style="display:flex;gap:8px;margin-bottom:8px">
-    <button class="btn-p" id="grant-access-btn" style="flex:1;font-size:12px;padding:9px;background:linear-gradient(135deg,#7c3aed,#6d28d9)">👤 Erişim İzni Ver</button>
-    <button id="revoke-access-btn" style="flex:1;font-size:12px;padding:9px;border:none;background:var(--red-light);color:var(--red);border-radius:var(--radius-sm);font-family:'Nunito',sans-serif;font-weight:800;cursor:pointer">🚫 Erişimi İptal Et</button>
-  </div>`:''}
 
   ${bulkMode ? `
   <div class="bulk-bar">
@@ -4560,6 +4513,50 @@ function bindFarmEvents() {
   document.getElementById('farm-backup-wa-btn')?.addEventListener('click',()=>sendFarmBackupWA(selectedFarmId));
   document.getElementById('farm-backup-email-btn')?.addEventListener('click',()=>sendFarmBackupEmail(selectedFarmId));
   document.getElementById('farm-backup-pdf-btn')?.addEventListener('click',()=>dlFarmReport(selectedFarmId));
+
+  // ── Yetiştirici erişim izni ver ──
+  document.getElementById('grant-access-btn')?.addEventListener('click',async()=>{
+    window._allUsers=await sbReq('GET','vc_users?order=created_at.asc').catch(()=>[]);
+    modal='grant-access'; renderFarm();
+    setTimeout(()=>{
+      document.getElementById('ga-contact-picker')?.addEventListener('click',async()=>{
+        if(!('contacts' in navigator&&'ContactsManager' in window)){ toast('⚠️ Rehber erişimi desteklenmiyor'); return; }
+        try{ const c=await navigator.contacts.select(['name','tel'],{multiple:false}); if(c&&c.length){ if(c[0].tel?.[0]) document.getElementById('ga-phone').value=c[0].tel[0]; if(c[0].name?.[0]) document.getElementById('ga-fullname').value=c[0].name[0]; toast('✅ Seçildi'); } }catch{}
+      });
+      async function doGrantAccess(sendWA){
+        const fullname=document.getElementById('ga-fullname')?.value.trim();
+        const username=document.getElementById('ga-username')?.value.trim().toLowerCase();
+        const password=document.getElementById('ga-password')?.value;
+        const phone=document.getElementById('ga-phone')?.value.trim()||'';
+        if(!fullname||!username||!password){ alert('Tüm alanlar zorunludur!'); return; }
+        const farm=farms.find(f=>f.id===selectedFarmId);
+        const existing=window._allUsers?.find(u=>u.farm_id===selectedFarmId&&u.role==='breeder');
+        try{
+          if(existing){
+            await sbReq('PATCH',`vc_users?id=eq.${existing.id}`,{full_name:fullname,username,password,active:true,farm_id:selectedFarmId,role:'breeder'});
+          } else {
+            await sbReq('POST','vc_users',{id:uid(),username,full_name:fullname,password,role:'breeder',active:true,farm_id:selectedFarmId,created_at:new Date().toISOString()});
+          }
+          modal=null; toast('✅ Yetiştirici erişimi tanımlandı'); renderFarm();
+          if(sendWA&&phone) setTimeout(()=>sendBreederWelcomeWA(phone,fullname,username,password,farm?.owner_name||'İşletme'),300);
+          else if(sendWA&&!phone) toast('⚠️ Telefon girilmediği için WA gönderilemedi');
+        }catch(e){ alert('Hata oluştu: '+e.message); }
+      }
+      document.getElementById('ga-save-btn')?.addEventListener('click',()=>doGrantAccess(false));
+      document.getElementById('ga-save-wa-btn')?.addEventListener('click',()=>doGrantAccess(true));
+    },100);
+  });
+
+  // ── Yetiştirici erişimi iptal et ──
+  document.getElementById('revoke-access-btn')?.addEventListener('click',async()=>{
+    if(!confirm('Bu işletmenin yetiştirici erişimi iptal edilsin mi?')) return;
+    const existing=await sbReq('GET',`vc_users?farm_id=eq.${selectedFarmId}&role=eq.breeder`).catch(()=>[]);
+    if(existing&&existing.length){
+      await sbReq('PATCH',`vc_users?id=eq.${existing[0].id}`,{active:false,farm_id:null});
+      toast('🚫 Yetiştirici erişimi iptal edildi');
+    } else { toast('Bu işletmede tanımlı yetiştirici yok'); }
+    renderFarm();
+  });
 
   document.getElementById('delete-animal-btn')?.addEventListener('click', async (e) => {
     e.stopPropagation();
